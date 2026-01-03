@@ -2779,49 +2779,54 @@
         function renderPage() {
             const main = document.getElementById('main');
             
-            switch (state.currentPage) {
-                case 'home':
-                    main.innerHTML = renderHomePage();
-                    break;
-                case 'about':
-                    main.innerHTML = renderAboutPage();
-                    break;
-                case 'communities':
-                    main.innerHTML = renderCommunitiesPage();
-                    break;
-                case 'calendar':
-                case 'rsvp-calendar':
-                    main.innerHTML = renderCalendarPage();
-                    break;
-                case 'kete':
-                    main.innerHTML = renderKetePage();
-                    break;
-                case 'login':
-                    main.innerHTML = renderLoginPage();
-                    break;
-                case 'profile':
-                    main.innerHTML = renderProfilePage();
-                    break;
-                case 'giving':
-                    main.innerHTML = renderGivingPage();
-                    break;
-                case 'resources':
-                    main.innerHTML = renderResourcesPage();
-                    break;
-                case 'hosting':
-                    main.innerHTML = renderHostingPage();
-                    break;
-                case 'manage-gatherings':
-                    main.innerHTML = renderManageGatheringsPage();
-                    break;
-                case 'edit-kete':
-                    main.innerHTML = renderEditKetePage();
-                    break;
-                case 'settings':
-                    main.innerHTML = renderSettingsPage();
-                    break;
-                default:
-                    main.innerHTML = renderHomePage();
+            try {
+                switch (state.currentPage) {
+                    case 'home':
+                        main.innerHTML = renderHomePage();
+                        break;
+                    case 'about':
+                        main.innerHTML = renderAboutPage();
+                        break;
+                    case 'communities':
+                        main.innerHTML = renderCommunitiesPage();
+                        break;
+                    case 'calendar':
+                    case 'rsvp-calendar':
+                        main.innerHTML = renderCalendarPage();
+                        break;
+                    case 'kete':
+                        main.innerHTML = renderKetePage();
+                        break;
+                    case 'login':
+                        main.innerHTML = renderLoginPage();
+                        break;
+                    case 'profile':
+                        main.innerHTML = renderProfilePage();
+                        break;
+                    case 'giving':
+                        main.innerHTML = renderGivingPage();
+                        break;
+                    case 'resources':
+                        main.innerHTML = renderResourcesPage();
+                        break;
+                    case 'hosting':
+                        main.innerHTML = renderHostingPage();
+                        break;
+                    case 'manage-gatherings':
+                        main.innerHTML = renderManageGatheringsPage();
+                        break;
+                    case 'edit-kete':
+                        main.innerHTML = renderEditKetePage();
+                        break;
+                    case 'settings':
+                        main.innerHTML = renderSettingsPage();
+                        break;
+                    default:
+                        main.innerHTML = renderHomePage();
+                }
+            } catch (error) {
+                console.error('Render error on page "' + state.currentPage + '":', error);
+                main.innerHTML = '<div style="padding: 100px 20px; text-align: center;"><h2>Error rendering page</h2><p>' + error.message + '</p></div>';
             }
         }
 
@@ -3976,21 +3981,27 @@
         // ============================================
         
         function init() {
-            loadState();
-            
-            // Handle browser navigation
-            window.addEventListener('hashchange', () => {
+            try {
+                loadState();
+                
+                // Handle browser navigation
+                window.addEventListener('hashchange', () => {
+                    const hash = window.location.hash.slice(2) || 'home';
+                    state.currentPage = hash;
+                    renderNav();
+                    renderPage();
+                });
+
+                // Initial render
                 const hash = window.location.hash.slice(2) || 'home';
                 state.currentPage = hash;
                 renderNav();
                 renderPage();
-            });
-
-            // Initial render
-            const hash = window.location.hash.slice(2) || 'home';
-            state.currentPage = hash;
-            renderNav();
-            renderPage();
+                console.log('Kiwi Church app initialized successfully');
+            } catch (error) {
+                console.error('Init error:', error);
+                document.getElementById('main').innerHTML = '<div style="padding: 100px 20px; text-align: center;"><h2>Error loading app</h2><p>' + error.message + '</p></div>';
+            }
         }
 
         // Start the app
@@ -3998,7 +4009,7 @@
 
         // Register service worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
         }
     </script>
 </body>

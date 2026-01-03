@@ -1,14 +1,14 @@
 // Kiwi Church Service Worker
 const CACHE_NAME = 'kiwichurch-v1';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/manifest.json',
-    '/KiwiChurch_Old_White.png',
-    '/KiwiChurch_Old_White_Shadow.png',
-    '/HansonsLaneOpening-2131a.jpg',
-    '/icons/icon-192.png',
-    '/icons/icon-512.png'
+    './',
+    './index.html',
+    './manifest.json',
+    './KiwiChurch_Old_White.png',
+    './KiwiChurch_Old_White_Shadow.png',
+    './HansonsLaneOpening-2131a.jpg',
+    './icons/icon-192.png',
+    './icons/icon-512.png'
 ];
 
 // Install event
@@ -68,7 +68,7 @@ self.addEventListener('fetch', event => {
                         }
                         // Return offline page for navigation requests
                         if (event.request.mode === 'navigate') {
-                            return caches.match('/index.html');
+                            return caches.match('./index.html');
                         }
                     });
             })
