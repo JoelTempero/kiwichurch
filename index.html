@@ -1675,6 +1675,303 @@
             color: var(--color-forest);
         }
 
+        /* ==========================================
+           APP MODE - Bottom Navigation & Portal UI
+           ========================================== */
+        
+        /* App mode body class */
+        body.app-mode {
+            padding-bottom: 80px;
+        }
+
+        body.app-mode .header {
+            background: var(--color-white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        body.app-mode .header .header-logo img {
+            filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);
+        }
+
+        body.app-mode .mobile-menu-btn {
+            display: none !important;
+        }
+
+        body.app-mode .mobile-nav {
+            display: none !important;
+        }
+
+        body.app-mode .footer {
+            display: none;
+        }
+
+        /* Hide header on mobile in app mode */
+        @media (max-width: 768px) {
+            body.app-mode .header {
+                display: none;
+            }
+
+            body.app-mode .page > div:first-child {
+                padding-top: 0 !important;
+            }
+        }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: var(--color-white);
+            border-top: 1px solid var(--color-cream-dark);
+            display: none;
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        body.app-mode .bottom-nav {
+            display: flex;
+        }
+
+        .bottom-nav-inner {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            flex: 1;
+            padding: 0.5rem;
+            color: var(--color-text-light);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+
+        .bottom-nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%) scaleX(0);
+            width: 40px;
+            height: 3px;
+            background: var(--color-forest);
+            border-radius: 0 0 3px 3px;
+            transition: transform var(--transition-fast);
+        }
+
+        .bottom-nav-item.active::before {
+            transform: translateX(-50%) scaleX(1);
+        }
+
+        .bottom-nav-item.active {
+            color: var(--color-forest);
+        }
+
+        .bottom-nav-item:hover {
+            color: var(--color-forest);
+        }
+
+        .bottom-nav-item svg {
+            width: 24px;
+            height: 24px;
+            stroke-width: 1.75;
+        }
+
+        .bottom-nav-item.active svg {
+            stroke-width: 2.25;
+        }
+
+        .bottom-nav-label {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        }
+
+        /* App Portal Header */
+        .app-header {
+            display: none;
+            padding: 1rem 1.5rem;
+            background: var(--color-white);
+            border-bottom: 1px solid var(--color-cream-dark);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        body.app-mode .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .app-header-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--color-forest);
+        }
+
+        .app-header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* App Dashboard Cards */
+        .app-dashboard {
+            padding: 1rem;
+        }
+
+        .app-quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .app-quick-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1.5rem 1rem;
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            text-decoration: none;
+            color: var(--color-forest);
+            transition: all var(--transition-base);
+        }
+
+        .app-quick-action:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            color: var(--color-forest);
+        }
+
+        .app-quick-action-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--color-sage-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .app-quick-action-icon svg {
+            width: 24px;
+            height: 24px;
+            color: var(--color-forest);
+        }
+
+        .app-quick-action-label {
+            font-weight: 500;
+            font-size: 0.9375rem;
+        }
+
+        /* App Section */
+        .app-section {
+            padding: 0 1rem 1.5rem;
+        }
+
+        .app-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .app-section-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--color-forest);
+        }
+
+        .app-section-link {
+            font-size: 0.875rem;
+            color: var(--color-terracotta);
+            font-weight: 500;
+        }
+
+        /* App Event Card (compact) */
+        .app-event-card {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--color-white);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .app-event-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .app-event-date {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 50px;
+            padding: 0.5rem;
+            background: var(--color-forest);
+            border-radius: var(--radius-sm);
+            color: var(--color-white);
+        }
+
+        .app-event-date-day {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .app-event-date-month {
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+        }
+
+        .app-event-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .app-event-title {
+            font-weight: 600;
+            color: var(--color-forest);
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .app-event-meta {
+            font-size: 0.8125rem;
+            color: var(--color-text-light);
+        }
+
+        /* App mode toast position adjustment */
+        body.app-mode .toast-container {
+            bottom: 90px;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .features-grid {
@@ -1829,6 +2126,13 @@
         <!-- Pages rendered here by JS -->
     </main>
 
+    <!-- Bottom Navigation (App Mode) -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <div class="bottom-nav-inner" id="bottom-nav-inner">
+            <!-- Populated by JS -->
+        </div>
+    </nav>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -1902,42 +2206,48 @@
                     name: 'Thin Place',
                     description: 'A space for allowing our humanity to be held gently. A space for wonder, for being at home, for lamenting, hoping, playing, and encounter.',
                     rhythm: '2nd & 4th Sunday, 10am',
-                    color: '#1a3a2f'
+                    color: '#1a3a2f',
+                    image: 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=600&h=400&fit=crop'
                 },
                 {
                     id: 'gathering-2',
                     name: 'Online Prayer',
                     description: 'Join us in the Zoom room for prayer and connection. All are welcome to these times of shared spiritual practice.',
                     rhythm: 'Tues 6:45am & Wed 12:15pm',
-                    color: '#7d9a87'
+                    color: '#7d9a87',
+                    image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=600&h=400&fit=crop'
                 },
                 {
                     id: 'gathering-3',
                     name: 'Prestons Community',
                     description: 'A geographical community gathering in the Prestons area. We share food, fellowship, and faith together.',
                     rhythm: '1st Sunday of the month',
-                    color: '#c17f59'
+                    color: '#c17f59',
+                    image: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=600&h=400&fit=crop'
                 },
                 {
                     id: 'gathering-4',
                     name: 'Rito Shack',
                     description: 'A gathering space for young adults exploring faith, meaning, and authentic community together.',
                     rhythm: 'Fortnightly Thursdays',
-                    color: '#2d5a4a'
+                    color: '#2d5a4a',
+                    image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=400&fit=crop'
                 },
                 {
                     id: 'gathering-5',
                     name: 'Digging Deeper',
                     description: 'A time where we go deeper into God\'s story, exploring ways to listen to God\'s word and comprehend it more fully.',
                     rhythm: '3rd Sunday of the month',
-                    color: '#d4a574'
+                    color: '#d4a574',
+                    image: 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=600&h=400&fit=crop'
                 },
                 {
                     id: 'gathering-6',
                     name: 'Reel Life',
                     description: 'For those who love movies, acknowledging God is in all things. We watch together and reflect on what God might be showing us.',
                     rhythm: 'Friday nights',
-                    color: '#5a6b62'
+                    color: '#5a6b62',
+                    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=400&fit=crop'
                 }
             ],
             
@@ -1950,7 +2260,7 @@
                     excerpt: 'As we enter this season of anticipation, we explore what it means to wait with hope and expectation in our daily lives.',
                     content: 'Full article content here...',
                     date: '2025-12-20',
-                    image: null
+                    image: 'https://images.unsplash.com/photo-1512909006721-3d6018887383?w=600&h=400&fit=crop'
                 },
                 {
                     id: 'kete-2',
@@ -1958,7 +2268,7 @@
                     excerpt: 'The gardening club has been busy preparing beds and planting seeds. See what\'s growing at 75 Hansons Lane.',
                     content: 'Full article content here...',
                     date: '2025-12-15',
-                    image: null
+                    image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=400&fit=crop'
                 },
                 {
                     id: 'kete-3',
@@ -1966,7 +2276,7 @@
                     excerpt: 'Exploring the ancient practice of spiritual friendship and how it shapes our community life together.',
                     content: 'Full article content here...',
                     date: '2025-12-10',
-                    image: null
+                    image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop'
                 }
             ]
         };
@@ -2085,6 +2395,13 @@
             return dateStr === today;
         }
 
+        function getTimeBasedGreeting() {
+            const hour = new Date().getHours();
+            if (hour < 12) return 'Good morning,';
+            if (hour < 17) return 'Good afternoon,';
+            return 'Good evening,';
+        }
+
         function getUpcomingEvents(days = 21) {
             const today = new Date();
             const endDate = new Date(today);
@@ -2174,6 +2491,14 @@
             const navItems = getNavItems();
             const desktopNav = document.getElementById('nav-desktop');
             const mobileNav = document.getElementById('mobile-nav');
+            const bottomNav = document.getElementById('bottom-nav-inner');
+
+            // Toggle app mode based on login state
+            if (state.currentUser) {
+                document.body.classList.add('app-mode');
+            } else {
+                document.body.classList.remove('app-mode');
+            }
 
             let desktopHTML = navItems.map(item => `
                 <a href="#/${item.id}" class="nav-link ${state.currentPage === item.id ? 'active' : ''}" 
@@ -2222,7 +2547,7 @@
 
             desktopNav.innerHTML = desktopHTML;
 
-            // Mobile nav
+            // Mobile nav (only for public/logged out)
             let mobileHTML = navItems.map(item => `
                 <a href="#/${item.id}" class="mobile-nav-link" onclick="navigate('${item.id}'); closeMobileMenu();">${item.label}</a>
             `).join('');
@@ -2237,6 +2562,24 @@
             }
 
             mobileNav.innerHTML = mobileHTML;
+
+            // Bottom navigation (app mode - logged in users)
+            if (state.currentUser) {
+                const bottomNavItems = [
+                    { id: 'home', label: 'Home', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>' },
+                    { id: 'rsvp-calendar', label: 'Events', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>' },
+                    { id: 'communities', label: 'Groups', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>' },
+                    { id: 'giving', label: 'Giving', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>' },
+                    { id: 'profile', label: 'Profile', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>' }
+                ];
+
+                bottomNav.innerHTML = bottomNavItems.map(item => `
+                    <a href="#/${item.id}" class="bottom-nav-item ${state.currentPage === item.id ? 'active' : ''}" onclick="navigate('${item.id}')">
+                        ${item.icon}
+                        <span class="bottom-nav-label">${item.label}</span>
+                    </a>
+                `).join('');
+            }
         }
 
         function navigate(page) {
@@ -2485,6 +2828,151 @@
         function renderHomePage() {
             const upcomingEvents = getUpcomingEvents();
             
+            // APP MODE - Dashboard for logged in users
+            if (state.currentUser) {
+                const userEvents = upcomingEvents.slice(0, 4);
+                const greeting = getTimeBasedGreeting();
+                
+                return `
+                    <div class="page active">
+                        <!-- App Dashboard -->
+                        <div style="padding-top: 70px;">
+                            <!-- Welcome Header -->
+                            <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 2rem 1.5rem; color: white;">
+                                <p style="opacity: 0.8; margin-bottom: 0.25rem; font-size: 0.9375rem;">${greeting}</p>
+                                <h1 style="font-family: var(--font-display); font-size: 1.75rem; color: white; margin: 0;">${state.currentUser.name.split(' ')[0]}</h1>
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div class="app-dashboard">
+                                <div class="app-quick-actions">
+                                    <a href="#/rsvp-calendar" class="app-quick-action" onclick="navigate('rsvp-calendar')">
+                                        <div class="app-quick-action-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                                            </svg>
+                                        </div>
+                                        <span class="app-quick-action-label">Events</span>
+                                    </a>
+                                    <a href="#/communities" class="app-quick-action" onclick="navigate('communities')">
+                                        <div class="app-quick-action-icon" style="background: var(--color-terracotta-light);">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="9" cy="7" r="4"></circle>
+                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="app-quick-action-label">Groups</span>
+                                    </a>
+                                    <a href="#/resources" class="app-quick-action" onclick="navigate('resources')">
+                                        <div class="app-quick-action-icon" style="background: var(--color-cream-dark);">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                <polyline points="14 2 14 8 20 8"></polyline>
+                                            </svg>
+                                        </div>
+                                        <span class="app-quick-action-label">Resources</span>
+                                    </a>
+                                    <a href="#/giving" class="app-quick-action" onclick="navigate('giving')">
+                                        <div class="app-quick-action-icon" style="background: #fde68a;">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="app-quick-action-label">Give</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Upcoming Events -->
+                            <div class="app-section">
+                                <div class="app-section-header">
+                                    <h3 class="app-section-title">Upcoming Events</h3>
+                                    <a href="#/rsvp-calendar" class="app-section-link" onclick="navigate('rsvp-calendar')">See all</a>
+                                </div>
+                                ${userEvents.length > 0 ? userEvents.map(event => {
+                                    const date = new Date(event.date);
+                                    return `
+                                        <div class="app-event-card" onclick="openEventModal('${event.id}')">
+                                            <div class="app-event-date">
+                                                <span class="app-event-date-day">${date.getDate()}</span>
+                                                <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
+                                            </div>
+                                            <div class="app-event-info">
+                                                <div class="app-event-title">${event.title}</div>
+                                                <div class="app-event-meta">${event.time} · ${event.location}</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('') : '<p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No upcoming events</p>'}
+                            </div>
+
+                            <!-- Recent Kete Posts -->
+                            <div class="app-section">
+                                <div class="app-section-header">
+                                    <h3 class="app-section-title">From the Kete</h3>
+                                    <a href="#/kete" class="app-section-link" onclick="navigate('kete')">Read more</a>
+                                </div>
+                                ${DB.kete.slice(0, 2).map(post => `
+                                    <div class="app-event-card" style="cursor: pointer;">
+                                        <div style="width: 60px; height: 60px; border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0;">
+                                            <img src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=120&h=120&fit=crop" 
+                                                 alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                        <div class="app-event-info">
+                                            <div class="app-event-title">${post.title}</div>
+                                            <div class="app-event-meta">${formatDateShort(post.date)}</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            ${(state.currentUser.role === 'host' || state.currentUser.role === 'admin') ? `
+                            <!-- Host/Admin Quick Access -->
+                            <div class="app-section">
+                                <div class="app-section-header">
+                                    <h3 class="app-section-title">Manage</h3>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                    <a href="#/hosting" class="app-event-card" onclick="navigate('hosting')" style="text-decoration: none;">
+                                        <div style="width: 40px; height: 40px; background: var(--color-sage-light); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="app-event-info">
+                                            <div class="app-event-title">Hosting</div>
+                                        </div>
+                                    </a>
+                                    ${state.currentUser.role === 'admin' ? `
+                                    <a href="#/settings" class="app-event-card" onclick="navigate('settings')" style="text-decoration: none;">
+                                        <div style="width: 40px; height: 40px; background: var(--color-cream-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="app-event-info">
+                                            <div class="app-event-title">Settings</div>
+                                        </div>
+                                    </a>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <div style="height: 20px;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // PUBLIC WEBSITE - For visitors
             return `
                 <div class="page active">
                     <!-- Hero Section -->
@@ -2525,7 +3013,8 @@
 
                             <div class="features-grid">
                                 <div class="feature-card">
-                                    <div class="feature-card-image" style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-sage) 100%);">
+                                    <div class="feature-card-image">
+                                        <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop" alt="Friends gathering together">
                                     </div>
                                     <div class="feature-card-content">
                                         <h3 class="feature-card-title">Relationships First</h3>
@@ -2533,7 +3022,8 @@
                                     </div>
                                 </div>
                                 <div class="feature-card">
-                                    <div class="feature-card-image" style="background: linear-gradient(135deg, var(--color-sage) 0%, var(--color-terracotta) 100%);">
+                                    <div class="feature-card-image">
+                                        <img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&h=400&fit=crop" alt="Small group community">
                                     </div>
                                     <div class="feature-card-content">
                                         <h3 class="feature-card-title">Small Communities</h3>
@@ -2541,7 +3031,8 @@
                                     </div>
                                 </div>
                                 <div class="feature-card">
-                                    <div class="feature-card-image" style="background: linear-gradient(135deg, var(--color-terracotta) 0%, var(--color-gold) 100%);">
+                                    <div class="feature-card-image">
+                                        <img src="https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=600&h=400&fit=crop" alt="Faith and reflection">
                                     </div>
                                     <div class="feature-card-content">
                                         <h3 class="feature-card-title">Authentic Faith</h3>
@@ -2734,16 +3225,28 @@
         }
 
         function renderCommunitiesPage() {
+            // App mode header for logged-in users
+            const pageHeader = state.currentUser ? `
+                <div style="padding-top: 70px;">
+                    <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+                        <h1 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">My Communities</h1>
+                        <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Gatherings you're connected to</p>
+                    </div>
+                </div>
+            ` : `
+                <div class="about-hero">
+                    <div class="about-hero-content">
+                        <h1>Communities & Gatherings</h1>
+                        <p>Rhythms and Relationships</p>
+                    </div>
+                </div>
+            `;
+
             return `
                 <div class="page active">
-                    <div class="about-hero">
-                        <div class="about-hero-content">
-                            <h1>Communities & Gatherings</h1>
-                            <p>Rhythms and Relationships</p>
-                        </div>
-                    </div>
+                    ${pageHeader}
 
-                    <section class="section">
+                    <section class="section" ${state.currentUser ? 'style="padding-top: 1.5rem;"' : ''}>
                         <div class="container">
                             <div class="section-header">
                                 <p class="section-desc" style="font-style: italic;">
@@ -2755,7 +3258,7 @@
                             <div class="gatherings-grid">
                                 ${DB.gatherings.map(g => `
                                     <div class="gathering-card">
-                                        <div class="gathering-card-header" style="background: linear-gradient(135deg, ${g.color} 0%, ${g.color}dd 100%);">
+                                        <div class="gathering-card-header" style="background: linear-gradient(to bottom, transparent 0%, ${g.color}ee 100%), url('${g.image}') center/cover;">
                                             <h3>${g.name}</h3>
                                         </div>
                                         <div class="gathering-card-body">
@@ -2767,7 +3270,7 @@
                                                 ${g.rhythm}
                                             </span>
                                             <p class="gathering-card-desc">${g.description}</p>
-                                            <a href="#/calendar" class="btn btn-sm btn-ghost" onclick="navigate('calendar')">View Events →</a>
+                                            <a href="#/${state.currentUser ? 'rsvp-calendar' : 'calendar'}" class="btn btn-sm btn-ghost" onclick="navigate('${state.currentUser ? 'rsvp-calendar' : 'calendar'}')">View Events →</a>
                                         </div>
                                     </div>
                                 `).join('')}
@@ -2783,16 +3286,28 @@
             const currentMonth = today.getMonth();
             const currentYear = today.getFullYear();
             
+            // App mode header for logged-in users
+            const pageHeader = state.currentUser ? `
+                <div style="padding-top: 70px;">
+                    <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+                        <h1 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Events</h1>
+                        <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">View and RSVP to gatherings</p>
+                    </div>
+                </div>
+            ` : `
+                <div class="about-hero" style="padding-bottom: 4rem;">
+                    <div class="about-hero-content">
+                        <h1>Events Calendar</h1>
+                        <p>Public events and gatherings</p>
+                    </div>
+                </div>
+            `;
+
             return `
                 <div class="page active">
-                    <div class="about-hero" style="padding-bottom: 4rem;">
-                        <div class="about-hero-content">
-                            <h1>${state.currentPage === 'rsvp-calendar' ? 'RSVP Calendar' : 'Events Calendar'}</h1>
-                            <p>${state.currentPage === 'rsvp-calendar' ? 'View all events and manage your RSVPs' : 'Public events and gatherings'}</p>
-                        </div>
-                    </div>
+                    ${pageHeader}
 
-                    <section class="section" style="padding-top: 0; margin-top: -2rem;">
+                    <section class="section" style="${state.currentUser ? 'padding-top: 1.5rem;' : 'padding-top: 0; margin-top: -2rem;'}">
                         <div class="container">
                             <div class="calendar-container" id="calendar-container">
                                 ${renderCalendar(currentYear, currentMonth)}
@@ -2935,7 +3450,9 @@
                             <div class="blog-grid">
                                 ${DB.kete.map(post => `
                                     <article class="blog-card">
-                                        <div class="blog-card-image"></div>
+                                        <div class="blog-card-image">
+                                            <img src="${post.image}" alt="${post.title}">
+                                        </div>
                                         <div class="blog-card-content">
                                             <div class="blog-card-date">${formatDate(post.date)}</div>
                                             <h3 class="blog-card-title">${post.title}</h3>
@@ -3007,14 +3524,14 @@
 
             return `
                 <div class="page active">
-                    <div class="dashboard-header">
-                        <div class="container">
-                            <h1 class="dashboard-greeting">My Profile</h1>
-                            <p class="dashboard-subtitle">Manage your account and preferences</p>
+                    <div style="padding-top: 70px;">
+                        <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+                            <h1 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">My Profile</h1>
+                            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Manage your account</p>
                         </div>
                     </div>
 
-                    <section class="section">
+                    <section class="section" style="padding-top: 1.5rem;">
                         <div class="container-sm">
                             <div class="profile-header">
                                 <div class="profile-avatar">${state.currentUser.name.charAt(0)}</div>
@@ -3074,6 +3591,18 @@
                                     <p style="color: var(--color-text-light);">Your event history will appear here.</p>
                                 </div>
                             </div>
+
+                            <!-- Sign Out Section -->
+                            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--color-cream-dark);">
+                                <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="logout()">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                        <polyline points="16 17 21 12 16 7"></polyline>
+                                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                                    </svg>
+                                    Sign Out
+                                </button>
+                            </div>
                         </div>
                     </section>
                 </div>
@@ -3095,14 +3624,14 @@
 
             return `
                 <div class="page active">
-                    <div class="dashboard-header">
-                        <div class="container">
-                            <h1 class="dashboard-greeting">Giving</h1>
-                            <p class="dashboard-subtitle">Support the work of Kiwi Church</p>
+                    <div style="padding-top: 70px;">
+                        <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+                            <h1 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Giving</h1>
+                            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Support the work of Kiwi Church</p>
                         </div>
                     </div>
 
-                    <section class="section">
+                    <section class="section" style="padding-top: 1.5rem;">
                         <div class="container-sm">
                             <div class="giving-card">
                                 <h3 style="margin-bottom: 1rem;">Bank Transfer</h3>
