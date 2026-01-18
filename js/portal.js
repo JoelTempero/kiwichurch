@@ -190,6 +190,7 @@ let state = {
     selectedDate: null,
     calendarYear: new Date().getFullYear(),
     calendarMonth: new Date().getMonth(),
+    eventsViewMode: 'list', // 'list' or 'calendar'
     isLoading: false
 };
 
@@ -284,8 +285,138 @@ const DataService = {
         }
         const event = MockDB.events.find(e => e.id === eventId);
         if (event) {
-            event.rsvps = event.rsvps.filter(id => id !== userId);
+            event.rsvps = event.rsvps.filter(r =>
+                typeof r === 'string' ? r !== userId : r.userId !== userId
+            );
         }
+    },
+
+    // RSVP with status and notes
+    async rsvpWithDetails(eventId, userId, status, notes = '', attendees = []) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.setRSVP(eventId, userId, status, notes, attendees);
+        }
+        const event = MockDB.events.find(e => e.id === eventId);
+        if (event) {
+            // Remove existing RSVP
+            event.rsvps = event.rsvps.filter(r =>
+                typeof r === 'string' ? r !== userId : r.userId !== userId
+            );
+            // Add new RSVP with details
+            event.rsvps.push({
+                userId,
+                status, // 'attending', 'maybe', 'not-attending'
+                notes,
+                attendees, // dependants attending
+                updatedAt: new Date().toISOString()
+            });
+        }
+        return true;
+    },
+
+    // Get RSVP details for a user
+    getRSVPDetails(eventId, userId) {
+        const event = MockDB.events.find(e => e.id === eventId);
+        if (!event) return null;
+
+        const rsvp = event.rsvps.find(r =>
+            typeof r === 'string' ? r === userId : r.userId === userId
+        );
+
+        if (!rsvp) return null;
+        if (typeof rsvp === 'string') {
+            return { userId: rsvp, status: 'attending', notes: '', attendees: [] };
+        }
+        return rsvp;
+    },
+
+    // Get all RSVPs for an event with details
+    getEventRSVPs(eventId) {
+        const event = MockDB.events.find(e => e.id === eventId);
+        if (!event) return [];
+
+        return event.rsvps.map(r => {
+            if (typeof r === 'string') {
+                const user = MockDB.users.find(u => u.id === r);
+                return {
+                    userId: r,
+                    status: 'attending',
+                    notes: '',
+                    attendees: [],
+                    userName: user?.displayName || 'Unknown'
+                };
+            }
+            const user = MockDB.users.find(u => u.id === r.userId);
+            return { ...r, userName: user?.displayName || 'Unknown' };
+        });
+    },
+
+    // Create new event
+    async createEvent(eventData) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.createEvent(eventData);
+        }
+        const newEvent = {
+            id: 'event-' + Date.now(),
+            ...eventData,
+            createdAt: new Date().toISOString(),
+            createdBy: this.getCurrentUser()?.id,
+            rsvps: []
+        };
+        MockDB.events.push(newEvent);
+        // Sort events by date
+        MockDB.events.sort((a, b) => new Date(a.date) - new Date(b.date));
+        return newEvent;
+    },
+
+    // Update event
+    async updateEvent(eventId, updates) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.updateEvent(eventId, updates);
+        }
+        const event = MockDB.events.find(e => e.id === eventId);
+        if (event) {
+            Object.assign(event, updates, { updatedAt: new Date().toISOString() });
+            // Re-sort events by date
+            MockDB.events.sort((a, b) => new Date(a.date) - new Date(b.date));
+            return event;
+        }
+        throw new Error('Event not found');
+    },
+
+    // Delete event
+    async deleteEvent(eventId) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.deleteEvent(eventId);
+        }
+        const index = MockDB.events.findIndex(e => e.id === eventId);
+        if (index !== -1) {
+            MockDB.events.splice(index, 1);
+            return true;
+        }
+        throw new Error('Event not found');
+    },
+
+    // Check if user can manage event
+    canManageEvent(event) {
+        const user = this.getCurrentUser();
+        if (!user) return false;
+        if (user.role === 'admin') return true;
+        if (user.role === 'host') {
+            // Hosts can manage events they created
+            if (event.createdBy === user.id) return true;
+            // Hosts can manage events for their assigned gatherings
+            if (user.assignedGatherings?.includes(event.gatheringId)) return true;
+        }
+        return false;
+    },
+
+    // Get events manageable by current user
+    getManageableEvents() {
+        const user = this.getCurrentUser();
+        if (!user) return [];
+
+        return MockDB.events.filter(e => this.canManageEvent(e));
     },
 
     // Get kete posts
@@ -443,7 +574,7 @@ async function logout() {
 }
 
 function demoLogin(username, password) {
-    document.getElementById('login-username').value = username;
+    document.getElementById('login-identifier').value = username;
     document.getElementById('login-password').value = password;
     document.getElementById('login-form').dispatchEvent(new Event('submit'));
 }
@@ -505,16 +636,35 @@ function openEventModal(eventId) {
 
     const gathering = DataService.getGatheringById(event.gatheringId);
     const currentUser = DataService.getCurrentUser();
-    const isRSVPd = currentUser && event.rsvps.includes(currentUser.id);
+    const canManage = DataService.canManageEvent(event);
 
-    const rsvpNames = event.rsvps.map(id => {
-        const u = MockDB.users.find(user => user.id === id);
-        return u ? (u.id === currentUser?.id ? 'You' : u.displayName.split(' ')[0]) : 'Unknown';
-    });
+    // Get enhanced RSVP details
+    const allRSVPs = DataService.getEventRSVPs(eventId);
+    const userRSVP = DataService.getRSVPDetails(eventId, currentUser?.id);
+    const isRSVPd = !!userRSVP;
+
+    // Categorize RSVPs
+    const attendingRSVPs = allRSVPs.filter(r => r.status === 'attending' || !r.status);
+    const maybeRSVPs = allRSVPs.filter(r => r.status === 'maybe');
+    const notAttendingRSVPs = allRSVPs.filter(r => r.status === 'not-attending');
+
+    // Count total attendees (including dependants)
+    const totalAttending = attendingRSVPs.reduce((count, r) => {
+        return count + 1 + (r.attendees?.length || 0);
+    }, 0);
 
     const bodyHTML = `
-        <div style="margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
             <span class="event-badge ${event.isPublic ? '' : 'private'}">${event.isPublic ? 'Public Event' : 'Members Only'}</span>
+            ${canManage ? `
+                <button class="btn btn-ghost btn-sm" onclick="openEditEventModal('${event.id}')" style="margin: -0.5rem -0.5rem 0 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Edit
+                </button>
+            ` : ''}
         </div>
         <p style="color: var(--color-text-light); margin-bottom: 1.5rem;">${event.description}</p>
         <div style="display: grid; gap: 1rem;">
@@ -553,21 +703,52 @@ function openEventModal(eventId) {
                 </div>
             ` : ''}
         </div>
+
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
-            <h4 style="margin-bottom: 0.75rem;">RSVPs (${event.rsvps.length})</h4>
-            ${rsvpNames.length > 0 ? `
-                <div class="rsvp-list">
-                    ${rsvpNames.map(n => `<span class="rsvp-chip ${n === 'You' ? 'you' : ''}">${n}</span>`).join('')}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="margin: 0;">RSVPs</h4>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">
+                    ${totalAttending} attending${maybeRSVPs.length > 0 ? `, ${maybeRSVPs.length} maybe` : ''}
+                </span>
+            </div>
+
+            ${attendingRSVPs.length > 0 ? `
+                <div class="rsvp-list" style="margin-bottom: 0.75rem;">
+                    ${attendingRSVPs.map(r => {
+                        const isYou = r.userId === currentUser?.id;
+                        const attendeeCount = r.attendees?.length || 0;
+                        return `<span class="rsvp-chip ${isYou ? 'you' : ''}" title="${r.notes || ''}">${isYou ? 'You' : r.userName.split(' ')[0]}${attendeeCount > 0 ? ` +${attendeeCount}` : ''}</span>`;
+                    }).join('')}
                 </div>
-            ` : '<p style="color: var(--color-text-light); font-size: 0.9375rem;">No RSVPs yet</p>'}
+            ` : ''}
+
+            ${maybeRSVPs.length > 0 ? `
+                <div style="margin-bottom: 0.75rem;">
+                    <span style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Maybe:</span>
+                    <div class="rsvp-list">
+                        ${maybeRSVPs.map(r => {
+                            const isYou = r.userId === currentUser?.id;
+                            return `<span class="rsvp-chip ${isYou ? 'you' : ''}" style="opacity: 0.7;" title="${r.notes || ''}">${isYou ? 'You' : r.userName.split(' ')[0]}</span>`;
+                        }).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            ${allRSVPs.length === 0 ? '<p style="color: var(--color-text-light); font-size: 0.9375rem;">No RSVPs yet. Be the first!</p>' : ''}
+
+            ${userRSVP?.notes ? `
+                <p style="font-size: 0.875rem; color: var(--color-text-light); font-style: italic; margin-top: 0.5rem;">
+                    Your note: "${userRSVP.notes}"
+                </p>
+            ` : ''}
         </div>
     `;
 
     let footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
     if (isRSVPd) {
-        footerHTML += `<button class="btn btn-primary" onclick="cancelRSVP('${event.id}')">Cancel RSVP</button>`;
+        footerHTML += `<button class="btn btn-primary" onclick="openRSVPModal('${event.id}')">Update RSVP</button>`;
     } else {
-        footerHTML += `<button class="btn btn-primary" onclick="confirmRSVP('${event.id}')">RSVP</button>`;
+        footerHTML += `<button class="btn btn-primary" onclick="openRSVPModal('${event.id}')">RSVP</button>`;
     }
 
     openModal(event.title, bodyHTML, footerHTML);
@@ -591,6 +772,387 @@ async function cancelRSVP(eventId) {
     showToast('RSVP cancelled', 'default');
     closeModal();
     renderPage();
+}
+
+// ============================================
+// EVENT MANAGEMENT MODALS
+// ============================================
+
+function openCreateEventModal(prefillGatheringId = null) {
+    const gatherings = MockDB.gatherings;
+    const currentUser = DataService.getCurrentUser();
+
+    // Filter gatherings for hosts (only their assigned ones)
+    let availableGatherings = gatherings;
+    if (currentUser.role === 'host' && currentUser.assignedGatherings) {
+        availableGatherings = gatherings.filter(g =>
+            currentUser.assignedGatherings.includes(g.id)
+        );
+    }
+
+    // Default date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const defaultDate = tomorrow.toISOString().split('T')[0];
+
+    const bodyHTML = `
+        <form id="event-form">
+            <div class="form-group">
+                <label class="form-label" for="event-title">Event Title *</label>
+                <input type="text" class="form-input" id="event-title" required placeholder="e.g., Weekly Gathering">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="event-gathering">Gathering *</label>
+                <select class="form-input" id="event-gathering" required>
+                    <option value="">Select a gathering...</option>
+                    ${availableGatherings.map(g => `
+                        <option value="${g.id}" ${prefillGatheringId === g.id ? 'selected' : ''}>${g.name}</option>
+                    `).join('')}
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="event-date">Date *</label>
+                    <input type="date" class="form-input" id="event-date" required value="${defaultDate}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="event-time">Time *</label>
+                    <input type="time" class="form-input" id="event-time" required value="18:00">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="event-location">Location *</label>
+                <input type="text" class="form-input" id="event-location" required placeholder="e.g., Hansons Lane or Zoom">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="event-description">Description</label>
+                <textarea class="form-input" id="event-description" rows="3" placeholder="Tell people what this event is about..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="event-visibility">Visibility *</label>
+                <select class="form-input" id="event-visibility" required>
+                    <option value="public">Public - Anyone can see and RSVP</option>
+                    <option value="private">Private - Members only</option>
+                </select>
+            </div>
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveNewEvent()">Create Event</button>
+    `;
+
+    openModal('Create Event', bodyHTML, footerHTML);
+
+    // Auto-fill gathering location when selected
+    document.getElementById('event-gathering').addEventListener('change', function() {
+        const gatheringId = this.value;
+        const gathering = MockDB.gatherings.find(g => g.id === gatheringId);
+        if (gathering) {
+            // Set visibility based on gathering type
+            document.getElementById('event-visibility').value = gathering.isPublic ? 'public' : 'private';
+
+            // Suggest location based on gathering name
+            const locationInput = document.getElementById('event-location');
+            if (!locationInput.value) {
+                if (gathering.name.includes('Online') || gathering.name.includes('Zoom')) {
+                    locationInput.value = 'Zoom';
+                } else if (gathering.name.includes('Prestons')) {
+                    locationInput.value = 'Prestons';
+                } else {
+                    locationInput.value = 'Hansons Lane';
+                }
+            }
+        }
+    });
+}
+
+async function saveNewEvent() {
+    const title = document.getElementById('event-title').value.trim();
+    const gatheringId = document.getElementById('event-gathering').value;
+    const date = document.getElementById('event-date').value;
+    const time = document.getElementById('event-time').value;
+    const location = document.getElementById('event-location').value.trim();
+    const description = document.getElementById('event-description').value.trim();
+    const visibility = document.getElementById('event-visibility').value;
+
+    // Validation
+    if (!title || !gatheringId || !date || !time || !location) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    // Check date is in future
+    const eventDate = new Date(date + 'T' + time);
+    if (eventDate < new Date()) {
+        showToast('Event date must be in the future', 'error');
+        return;
+    }
+
+    try {
+        await DataService.createEvent({
+            title,
+            gatheringId,
+            date,
+            time,
+            location,
+            description: description || `Join us for ${title.toLowerCase()}.`,
+            isPublic: visibility === 'public'
+        });
+
+        showToast('Event created successfully!', 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not create event', 'error');
+    }
+}
+
+function openEditEventModal(eventId) {
+    const event = DataService.getEventById(eventId);
+    if (!event) return;
+
+    const gatherings = MockDB.gatherings;
+
+    const bodyHTML = `
+        <form id="edit-event-form">
+            <div class="form-group">
+                <label class="form-label" for="edit-event-title">Event Title *</label>
+                <input type="text" class="form-input" id="edit-event-title" required value="${event.title}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="edit-event-gathering">Gathering *</label>
+                <select class="form-input" id="edit-event-gathering" required>
+                    ${gatherings.map(g => `
+                        <option value="${g.id}" ${event.gatheringId === g.id ? 'selected' : ''}>${g.name}</option>
+                    `).join('')}
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="edit-event-date">Date *</label>
+                    <input type="date" class="form-input" id="edit-event-date" required value="${event.date}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit-event-time">Time *</label>
+                    <input type="time" class="form-input" id="edit-event-time" required value="${event.time}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="edit-event-location">Location *</label>
+                <input type="text" class="form-input" id="edit-event-location" required value="${event.location}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="edit-event-description">Description</label>
+                <textarea class="form-input" id="edit-event-description" rows="3">${event.description || ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="edit-event-visibility">Visibility *</label>
+                <select class="form-input" id="edit-event-visibility" required>
+                    <option value="public" ${event.isPublic ? 'selected' : ''}>Public - Anyone can see and RSVP</option>
+                    <option value="private" ${!event.isPublic ? 'selected' : ''}>Private - Members only</option>
+                </select>
+            </div>
+
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+                <p style="color: var(--color-text-light); font-size: 0.875rem; margin-bottom: 0.75rem;">
+                    RSVPs: ${event.rsvps?.length || 0} people
+                </p>
+                <button type="button" class="btn btn-ghost" style="color: #dc2626;" onclick="confirmDeleteEvent('${event.id}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Delete Event
+                </button>
+            </div>
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEventEdits('${event.id}')">Save Changes</button>
+    `;
+
+    openModal('Edit Event', bodyHTML, footerHTML);
+}
+
+async function saveEventEdits(eventId) {
+    const title = document.getElementById('edit-event-title').value.trim();
+    const gatheringId = document.getElementById('edit-event-gathering').value;
+    const date = document.getElementById('edit-event-date').value;
+    const time = document.getElementById('edit-event-time').value;
+    const location = document.getElementById('edit-event-location').value.trim();
+    const description = document.getElementById('edit-event-description').value.trim();
+    const visibility = document.getElementById('edit-event-visibility').value;
+
+    // Validation
+    if (!title || !gatheringId || !date || !time || !location) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    try {
+        await DataService.updateEvent(eventId, {
+            title,
+            gatheringId,
+            date,
+            time,
+            location,
+            description: description || `Join us for ${title.toLowerCase()}.`,
+            isPublic: visibility === 'public'
+        });
+
+        showToast('Event updated successfully!', 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not update event', 'error');
+    }
+}
+
+function confirmDeleteEvent(eventId) {
+    const event = DataService.getEventById(eventId);
+    if (!event) return;
+
+    const bodyHTML = `
+        <p style="margin-bottom: 1rem;">Are you sure you want to delete <strong>${event.title}</strong>?</p>
+        <p style="color: var(--color-text-light); font-size: 0.9375rem;">
+            This action cannot be undone. ${event.rsvps?.length > 0 ? `${event.rsvps.length} people have already RSVP'd.` : ''}
+        </p>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="openEditEventModal('${eventId}')">Cancel</button>
+        <button class="btn btn-primary" style="background: #dc2626; border-color: #dc2626;" onclick="deleteEvent('${eventId}')">Delete Event</button>
+    `;
+
+    openModal('Delete Event?', bodyHTML, footerHTML);
+}
+
+async function deleteEvent(eventId) {
+    try {
+        await DataService.deleteEvent(eventId);
+        showToast('Event deleted', 'default');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not delete event', 'error');
+    }
+}
+
+// ============================================
+// ENHANCED RSVP MODAL
+// ============================================
+
+function openRSVPModal(eventId) {
+    const event = DataService.getEventById(eventId);
+    if (!event) return;
+
+    const currentUser = DataService.getCurrentUser();
+    const existingRSVP = DataService.getRSVPDetails(eventId, currentUser.id);
+    const gathering = DataService.getGatheringById(event.gatheringId);
+
+    const bodyHTML = `
+        <div style="margin-bottom: 1.5rem;">
+            <h4 style="margin: 0 0 0.5rem; color: var(--color-forest);">${event.title}</h4>
+            <p style="margin: 0; color: var(--color-text-light); font-size: 0.9375rem;">
+                ${formatDate(event.date)} at ${formatTime(event.time)}
+            </p>
+            <p style="margin: 0.25rem 0 0; color: var(--color-text-light); font-size: 0.875rem;">
+                ${event.location}${gathering ? ` • ${gathering.name}` : ''}
+            </p>
+        </div>
+
+        <form id="rsvp-form">
+            <div class="form-group">
+                <label class="form-label">Your Response *</label>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; background: var(--color-cream); border-radius: var(--radius-md); cursor: pointer; flex: 1; min-width: 100px;">
+                        <input type="radio" name="rsvp-status" value="attending" ${!existingRSVP || existingRSVP.status === 'attending' ? 'checked' : ''}>
+                        <span>Attending</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; background: var(--color-cream); border-radius: var(--radius-md); cursor: pointer; flex: 1; min-width: 100px;">
+                        <input type="radio" name="rsvp-status" value="maybe" ${existingRSVP?.status === 'maybe' ? 'checked' : ''}>
+                        <span>Maybe</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; background: var(--color-cream); border-radius: var(--radius-md); cursor: pointer; flex: 1; min-width: 100px;">
+                        <input type="radio" name="rsvp-status" value="not-attending" ${existingRSVP?.status === 'not-attending' ? 'checked' : ''}>
+                        <span>Can't make it</span>
+                    </label>
+                </div>
+            </div>
+
+            ${currentUser.dependants && currentUser.dependants.length > 0 ? `
+            <div class="form-group">
+                <label class="form-label">Who's coming?</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" value="self" checked disabled>
+                        <span>${currentUser.displayName.split(' ')[0]} (you)</span>
+                    </label>
+                    ${currentUser.dependants.map(d => `
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="rsvp-attendees" value="${d}" ${existingRSVP?.attendees?.includes(d) ? 'checked' : ''}>
+                            <span>${d}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
+
+            <div class="form-group">
+                <label class="form-label" for="rsvp-notes">Notes (optional)</label>
+                <textarea class="form-input" id="rsvp-notes" rows="2" placeholder="e.g., I'll bring dessert, arriving late, etc.">${existingRSVP?.notes || ''}</textarea>
+            </div>
+        </form>
+    `;
+
+    let footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>`;
+    if (existingRSVP) {
+        footerHTML += `<button class="btn btn-ghost" style="color: #dc2626;" onclick="cancelRSVP('${eventId}')">Remove RSVP</button>`;
+    }
+    footerHTML += `<button class="btn btn-primary" onclick="submitRSVP('${eventId}')">Save RSVP</button>`;
+
+    openModal('RSVP', bodyHTML, footerHTML);
+}
+
+async function submitRSVP(eventId) {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    const status = document.querySelector('input[name="rsvp-status"]:checked')?.value || 'attending';
+    const notes = document.getElementById('rsvp-notes').value.trim();
+
+    // Get selected attendees (dependants)
+    const attendeeCheckboxes = document.querySelectorAll('input[name="rsvp-attendees"]:checked');
+    const attendees = Array.from(attendeeCheckboxes).map(cb => cb.value);
+
+    try {
+        await DataService.rsvpWithDetails(eventId, currentUser.id, status, notes, attendees);
+
+        const statusMessages = {
+            'attending': 'See you there!',
+            'maybe': 'We hope you can make it!',
+            'not-attending': 'Sorry you can\'t make it'
+        };
+        showToast(statusMessages[status] || 'RSVP saved!', 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not save RSVP', 'error');
+    }
 }
 
 // ============================================
@@ -765,35 +1327,224 @@ function renderHomePage() {
 function renderEventsPage() {
     const events = DataService.getUpcomingEvents(60);
     const currentUser = DataService.getCurrentUser();
+    const viewMode = state.eventsViewMode || 'list';
+
+    // Get user's RSVP status for each event
+    const getUserRSVPStatus = (event) => {
+        const rsvp = DataService.getRSVPDetails(event.id, currentUser?.id);
+        if (!rsvp) return null;
+        return rsvp.status || 'attending';
+    };
+
+    // Render calendar view
+    const renderCalendar = () => {
+        const year = state.calendarYear;
+        const month = state.calendarMonth;
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startPad = firstDay.getDay(); // 0 = Sunday
+        const daysInMonth = lastDay.getDate();
+
+        const monthName = firstDay.toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' });
+
+        // Get events for this month
+        const monthEvents = MockDB.events.filter(e => {
+            const eventDate = new Date(e.date);
+            return eventDate.getFullYear() === year && eventDate.getMonth() === month;
+        });
+
+        // Group events by day
+        const eventsByDay = {};
+        monthEvents.forEach(e => {
+            const day = new Date(e.date).getDate();
+            if (!eventsByDay[day]) eventsByDay[day] = [];
+            eventsByDay[day].push(e);
+        });
+
+        const today = new Date();
+        const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+        const todayDate = today.getDate();
+
+        let calendarHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <button class="btn btn-ghost btn-sm" onclick="changeMonth(-1)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <h3 style="margin: 0; font-size: 1.125rem;">${monthName}</h3>
+                <button class="btn btn-ghost btn-sm" onclick="changeMonth(1)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font-size: 0.75rem; margin-bottom: 0.5rem;">
+                <span style="color: var(--color-text-light);">Sun</span>
+                <span style="color: var(--color-text-light);">Mon</span>
+                <span style="color: var(--color-text-light);">Tue</span>
+                <span style="color: var(--color-text-light);">Wed</span>
+                <span style="color: var(--color-text-light);">Thu</span>
+                <span style="color: var(--color-text-light);">Fri</span>
+                <span style="color: var(--color-text-light);">Sat</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">
+        `;
+
+        // Empty cells for padding
+        for (let i = 0; i < startPad; i++) {
+            calendarHTML += `<div style="aspect-ratio: 1; padding: 0.25rem;"></div>`;
+        }
+
+        // Days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayEvents = eventsByDay[day] || [];
+            const isToday = isCurrentMonth && day === todayDate;
+            const hasEvents = dayEvents.length > 0;
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+            calendarHTML += `
+                <div
+                    style="aspect-ratio: 1; padding: 0.25rem; background: ${isToday ? 'var(--color-sage-light)' : hasEvents ? 'var(--color-cream)' : 'transparent'}; border-radius: var(--radius-sm); cursor: ${hasEvents ? 'pointer' : 'default'}; display: flex; flex-direction: column; align-items: center;"
+                    ${hasEvents ? `onclick="showDayEvents('${dateStr}')"` : ''}
+                >
+                    <span style="font-weight: ${isToday ? '600' : '400'}; font-size: 0.875rem; color: ${isToday ? 'var(--color-forest)' : 'inherit'};">${day}</span>
+                    ${hasEvents ? `
+                        <div style="display: flex; gap: 2px; margin-top: 2px;">
+                            ${dayEvents.slice(0, 3).map(e => {
+                                const gathering = DataService.getGatheringById(e.gatheringId);
+                                return `<span style="width: 6px; height: 6px; border-radius: 50%; background: ${gathering?.color || 'var(--color-sage)'};"></span>`;
+                            }).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        calendarHTML += `</div>`;
+
+        return calendarHTML;
+    };
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
-            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Events</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">View and RSVP to gatherings</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Events</h2>
+                    <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">View and RSVP to gatherings</p>
+                </div>
+                <div style="display: flex; gap: 0.25rem; background: rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 0.25rem;">
+                    <button class="btn btn-ghost btn-sm" style="color: white; ${viewMode === 'list' ? 'background: rgba(255,255,255,0.2);' : ''}" onclick="setEventsView('list')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                    </button>
+                    <button class="btn btn-ghost btn-sm" style="color: white; ${viewMode === 'calendar' ? 'background: rgba(255,255,255,0.2);' : ''}" onclick="setEventsView('calendar')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div class="app-section" style="padding-top: 1.5rem;">
-            <div class="app-section-header">
-                <h3 class="app-section-title">Upcoming</h3>
+        ${viewMode === 'calendar' ? `
+            <div class="app-section" style="padding-top: 1.5rem;">
+                <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm);">
+                    ${renderCalendar()}
+                </div>
             </div>
-            ${events.length > 0 ? events.map(event => {
-                const date = new Date(event.date);
-                const isRSVPd = event.rsvps.includes(currentUser?.id);
+            <div id="day-events-container"></div>
+        ` : `
+            <div class="app-section" style="padding-top: 1.5rem;">
+                <div class="app-section-header">
+                    <h3 class="app-section-title">Upcoming</h3>
+                </div>
+                ${events.length > 0 ? events.map(event => {
+                    const date = new Date(event.date);
+                    const rsvpStatus = getUserRSVPStatus(event);
+                    const gathering = DataService.getGatheringById(event.gatheringId);
+                    return `
+                        <div class="app-event-card" onclick="openEventModal('${event.id}')">
+                            <div class="app-event-date" style="background: ${gathering?.color || (!event.isPublic ? 'var(--color-terracotta)' : 'var(--color-sage)')};">
+                                <span class="app-event-date-day">${date.getDate()}</span>
+                                <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
+                            </div>
+                            <div class="app-event-info">
+                                <div class="app-event-title">
+                                    ${event.title}
+                                    ${rsvpStatus === 'attending' ? '<span style="color: var(--color-sage);">&#10003;</span>' : ''}
+                                    ${rsvpStatus === 'maybe' ? '<span style="color: var(--color-terracotta);">?</span>' : ''}
+                                </div>
+                                <div class="app-event-meta">${formatTime(event.time)} - ${event.location}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('') : '<p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No upcoming events</p>'}
+            </div>
+        `}
+        <div style="height: 20px;"></div>
+    `;
+}
+
+// Calendar helper functions
+function setEventsView(mode) {
+    state.eventsViewMode = mode;
+    renderPage();
+}
+
+function changeMonth(delta) {
+    state.calendarMonth += delta;
+    if (state.calendarMonth > 11) {
+        state.calendarMonth = 0;
+        state.calendarYear++;
+    } else if (state.calendarMonth < 0) {
+        state.calendarMonth = 11;
+        state.calendarYear--;
+    }
+    renderPage();
+}
+
+function showDayEvents(dateStr) {
+    const dayEvents = DataService.getEventsForDate(dateStr);
+    const container = document.getElementById('day-events-container');
+    if (!container) return;
+
+    const date = new Date(dateStr);
+    const formattedDate = date.toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    if (dayEvents.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="app-section">
+            <div class="app-section-header">
+                <h3 class="app-section-title">${formattedDate}</h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">${dayEvents.length} event${dayEvents.length !== 1 ? 's' : ''}</span>
+            </div>
+            ${dayEvents.map(event => {
+                const gathering = DataService.getGatheringById(event.gatheringId);
                 return `
                     <div class="app-event-card" onclick="openEventModal('${event.id}')">
-                        <div class="app-event-date" ${!event.isPublic ? 'style="background: var(--color-terracotta);"' : ''}>
-                            <span class="app-event-date-day">${date.getDate()}</span>
-                            <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
-                        </div>
-                        <div class="app-event-info">
-                            <div class="app-event-title">${event.title} ${isRSVPd ? '<span style="color: var(--color-sage);">&#10003;</span>' : ''}</div>
+                        <div style="width: 4px; height: 100%; min-height: 50px; background: ${gathering?.color || 'var(--color-sage)'}; border-radius: 2px; flex-shrink: 0;"></div>
+                        <div class="app-event-info" style="padding-left: 0.75rem;">
+                            <div class="app-event-title">${event.title}</div>
                             <div class="app-event-meta">${formatTime(event.time)} - ${event.location}</div>
                         </div>
                     </div>
                 `;
-            }).join('') : '<p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No upcoming events</p>'}
+            }).join('')}
         </div>
-        <div style="height: 20px;"></div>
     `;
 }
 
@@ -949,6 +1700,23 @@ function renderProfilePage() {
 }
 
 function renderHostingPage() {
+    const currentUser = DataService.getCurrentUser();
+    const manageableEvents = DataService.getManageableEvents();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Split into upcoming and past events
+    const upcomingEvents = manageableEvents.filter(e => new Date(e.date) >= today).slice(0, 10);
+    const pastEvents = manageableEvents.filter(e => new Date(e.date) < today).slice(0, 5);
+
+    // Get gatherings this user can host
+    let hostableGatherings = MockDB.gatherings;
+    if (currentUser.role === 'host' && currentUser.assignedGatherings) {
+        hostableGatherings = MockDB.gatherings.filter(g =>
+            currentUser.assignedGatherings.includes(g.id)
+        );
+    }
+
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Hosting</h2>
@@ -956,27 +1724,107 @@ function renderHostingPage() {
         </div>
 
         <div class="app-section" style="padding-top: 1.5rem;">
-            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="showToast('Event creation coming in Stage 4!', 'default')">
-                + Create Event
+            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="openCreateEventModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Create Event
             </button>
         </div>
 
         <div class="app-section">
             <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="showToast('Post creation coming in Stage 5!', 'default')">
-                + Write Kete Post
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                    <path d="M2 2l7.586 7.586"></path>
+                    <circle cx="11" cy="11" r="2"></circle>
+                </svg>
+                Write Kete Post
             </button>
         </div>
 
+        ${hostableGatherings.length > 0 ? `
         <div class="app-section">
             <div class="app-section-header">
-                <h3 class="app-section-title">Your Events</h3>
+                <h3 class="app-section-title">Your Gatherings</h3>
             </div>
-            <p style="color: var(--color-text-light); text-align: center; padding: 2rem;">
-                Event management will be available once Firebase is connected.
-                <br><br>
-                <span style="font-size: 0.875rem;">Stage 4: Events & RSVP System</span>
-            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                ${hostableGatherings.map(g => `
+                    <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); font-size: 0.875rem;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${g.color};"></span>
+                        ${g.name}
+                    </span>
+                `).join('')}
+            </div>
         </div>
+        ` : ''}
+
+        <div class="app-section">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Upcoming Events</h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">${upcomingEvents.length} events</span>
+            </div>
+            ${upcomingEvents.length > 0 ? upcomingEvents.map(event => {
+                const date = new Date(event.date);
+                const gathering = DataService.getGatheringById(event.gatheringId);
+                const rsvpCount = event.rsvps?.length || 0;
+                return `
+                    <div class="app-event-card" onclick="openEventModal('${event.id}')">
+                        <div class="app-event-date" style="background: ${gathering?.color || 'var(--color-sage)'};">
+                            <span class="app-event-date-day">${date.getDate()}</span>
+                            <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
+                        </div>
+                        <div class="app-event-info">
+                            <div class="app-event-title">${event.title}</div>
+                            <div class="app-event-meta">${formatTime(event.time)} • ${rsvpCount} RSVP${rsvpCount !== 1 ? 's' : ''}</div>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openEditEventModal('${event.id}')" style="flex-shrink: 0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            }).join('') : `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <p style="margin: 0;">No upcoming events.</p>
+                    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Create one to get started!</p>
+                </div>
+            `}
+        </div>
+
+        ${pastEvents.length > 0 ? `
+        <div class="app-section">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Past Events</h3>
+            </div>
+            ${pastEvents.map(event => {
+                const date = new Date(event.date);
+                const rsvpCount = event.rsvps?.length || 0;
+                return `
+                    <div class="app-event-card" style="opacity: 0.6;" onclick="openEventModal('${event.id}')">
+                        <div class="app-event-date" style="background: var(--color-text-light);">
+                            <span class="app-event-date-day">${date.getDate()}</span>
+                            <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
+                        </div>
+                        <div class="app-event-info">
+                            <div class="app-event-title">${event.title}</div>
+                            <div class="app-event-meta">${rsvpCount} attended</div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        ` : ''}
         <div style="height: 20px;"></div>
     `;
 }
@@ -1042,7 +1890,7 @@ function renderSettingsPage() {
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 4: Events & RSVP</span>
-                        <span style="color: var(--color-text-light);">Pending</span>
+                        <span style="color: var(--color-sage);">Complete</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 5: Kete Blog System</span>
