@@ -4,17 +4,27 @@
    ============================================ */
 
 // ============================================
-// DATA STORE (Simulating Firebase)
+// CONFIGURATION
 // ============================================
 
-const DB = {
+const PortalConfig = {
+    // Set to true to use Firebase, false for demo mode
+    useFirebase: false,
+    demoMode: true
+};
+
+// ============================================
+// MOCK DATA STORE (Demo Mode)
+// ============================================
+
+const MockDB = {
     users: [
         {
             id: 'user-1',
             username: 'Utting',
             password: 'Freedom',
-            name: 'Sarah Utting',
-            email: 'sarah.utting@email.com',
+            displayName: 'Sarah Utting',
+            email: 'utting@kiwichurch.org.nz',
             phone: '027-123-4567',
             role: 'member',
             dependants: ['James Utting', 'Emma Utting'],
@@ -24,8 +34,8 @@ const DB = {
             id: 'user-2',
             username: 'Olds',
             password: 'Prestons',
-            name: 'Michael Olds',
-            email: 'michael.olds@email.com',
+            displayName: 'Michael Olds',
+            email: 'olds@kiwichurch.org.nz',
             phone: '027-234-5678',
             role: 'host',
             dependants: ['Lucy Olds'],
@@ -36,8 +46,8 @@ const DB = {
             id: 'user-3',
             username: 'Tempero',
             password: 'Hansons',
-            name: 'Darryl Tempero',
-            email: 'd.tempero@xtra.co.nz',
+            displayName: 'Darryl Tempero',
+            email: 'tempero@kiwichurch.org.nz',
             phone: '027-556-0055',
             role: 'admin',
             dependants: [],
@@ -104,24 +114,27 @@ const DB = {
             title: 'Finding Sacred in the Ordinary',
             excerpt: 'Reflections on discovering God in everyday moments and mundane routines.',
             content: 'Full article content here...',
-            date: '2024-01-10',
-            author: 'Darryl Tempero'
+            publishedAt: '2024-01-10',
+            authorName: 'Darryl Tempero',
+            published: true
         },
         {
             id: 'kete-2',
             title: 'Community Update: Summer 2024',
             excerpt: 'A look back at what God has been doing in our communities over the past season.',
             content: 'Full article content here...',
-            date: '2024-01-03',
-            author: 'Kiwi Church Team'
+            publishedAt: '2024-01-03',
+            authorName: 'Kiwi Church Team',
+            published: true
         },
         {
             id: 'kete-3',
             title: 'The Art of Showing Up',
             excerpt: 'Why consistent presence matters more than perfect attendance.',
             content: 'Full article content here...',
-            date: '2023-12-20',
-            author: 'Sarah Utting'
+            publishedAt: '2023-12-20',
+            authorName: 'Sarah Utting',
+            published: true
         }
     ],
 
@@ -131,12 +144,12 @@ const DB = {
 // Generate sample events
 function generateEvents() {
     const eventTemplates = [
-        { title: 'Thin Place Gathering', gathering: 'gathering-1', location: 'Hansons Lane', public: true, time: '18:30' },
-        { title: 'Morning Prayer', gathering: 'gathering-2', location: 'Zoom', public: true, time: '07:00' },
-        { title: 'Prestons Dinner', gathering: 'gathering-3', location: 'Prestons', public: false, time: '18:00' },
-        { title: 'Rito Shack Creative', gathering: 'gathering-4', location: 'Hansons Lane', public: true, time: '10:00' },
-        { title: 'Digging Deeper Study', gathering: 'gathering-5', location: 'Rotating homes', public: false, time: '19:30' },
-        { title: 'Reel Life Movie Night', gathering: 'gathering-6', location: 'Hansons Lane', public: true, time: '19:00' }
+        { title: 'Thin Place Gathering', gathering: 'gathering-1', location: 'Hansons Lane', isPublic: true, time: '18:30' },
+        { title: 'Morning Prayer', gathering: 'gathering-2', location: 'Zoom', isPublic: true, time: '07:00' },
+        { title: 'Prestons Dinner', gathering: 'gathering-3', location: 'Prestons', isPublic: false, time: '18:00' },
+        { title: 'Rito Shack Creative', gathering: 'gathering-4', location: 'Hansons Lane', isPublic: true, time: '10:00' },
+        { title: 'Digging Deeper Study', gathering: 'gathering-5', location: 'Rotating homes', isPublic: false, time: '19:30' },
+        { title: 'Reel Life Movie Night', gathering: 'gathering-6', location: 'Hansons Lane', isPublic: true, time: '19:00' }
     ];
 
     const events = [];
@@ -156,7 +169,7 @@ function generateEvents() {
             time: template.time,
             location: template.location,
             description: `Join us for ${template.title.toLowerCase()}. All are welcome.`,
-            isPublic: template.public,
+            isPublic: template.isPublic,
             rsvps: []
         });
     }
@@ -164,7 +177,7 @@ function generateEvents() {
     return events;
 }
 
-DB.events = generateEvents();
+MockDB.events = generateEvents();
 
 // ============================================
 // APP STATE
@@ -172,10 +185,133 @@ DB.events = generateEvents();
 
 let state = {
     currentUser: null,
+    currentUserData: null,
     currentPage: 'home',
     selectedDate: null,
     calendarYear: new Date().getFullYear(),
-    calendarMonth: new Date().getMonth()
+    calendarMonth: new Date().getMonth(),
+    isLoading: false
+};
+
+// ============================================
+// DATA ACCESS LAYER
+// ============================================
+
+const DataService = {
+    // Get current user data
+    getCurrentUser() {
+        if (PortalConfig.useFirebase && window.Auth) {
+            return Auth.currentUserData;
+        }
+        return state.currentUser;
+    },
+
+    // Get user by ID
+    async getUser(userId) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.getUser(userId);
+        }
+        return MockDB.users.find(u => u.id === userId);
+    },
+
+    // Get all gatherings
+    async getGatherings() {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.getGatherings();
+        }
+        return MockDB.gatherings;
+    },
+
+    // Get gathering by ID
+    getGatheringById(id) {
+        if (PortalConfig.useFirebase && window.DB) {
+            // For sync access, use cached data or make async
+            return MockDB.gatherings.find(g => g.id === id);
+        }
+        return MockDB.gatherings.find(g => g.id === id);
+    },
+
+    // Get events
+    async getEvents(options = {}) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.getEvents(options);
+        }
+        return MockDB.events;
+    },
+
+    // Get upcoming events
+    getUpcomingEvents(days = 21) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        return MockDB.events
+            .filter(e => {
+                const eventDate = new Date(e.date);
+                eventDate.setHours(0, 0, 0, 0);
+                const endDate = new Date(today);
+                endDate.setDate(endDate.getDate() + days);
+                return eventDate >= today && eventDate <= endDate;
+            })
+            .sort((a, b) => new Date(a.date) - new Date(b.date))
+            .slice(0, 8);
+    },
+
+    // Get events for a specific date
+    getEventsForDate(dateStr) {
+        return MockDB.events.filter(e => e.date === dateStr);
+    },
+
+    // Get event by ID
+    getEventById(eventId) {
+        return MockDB.events.find(e => e.id === eventId);
+    },
+
+    // RSVP to event
+    async rsvpToEvent(eventId, userId, status = 'attending') {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.setRSVP(eventId, userId, status);
+        }
+        const event = MockDB.events.find(e => e.id === eventId);
+        if (event && !event.rsvps.includes(userId)) {
+            event.rsvps.push(userId);
+        }
+    },
+
+    // Cancel RSVP
+    async cancelRSVP(eventId, userId) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.removeRSVP(eventId, userId);
+        }
+        const event = MockDB.events.find(e => e.id === eventId);
+        if (event) {
+            event.rsvps = event.rsvps.filter(id => id !== userId);
+        }
+    },
+
+    // Get kete posts
+    async getKetePosts(options = {}) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.getKetePosts({ published: true, ...options });
+        }
+        return MockDB.kete.filter(k => k.published);
+    },
+
+    // Check if user is admin
+    isAdmin() {
+        const user = this.getCurrentUser();
+        return user?.role === 'admin';
+    },
+
+    // Check if user is host
+    isHost() {
+        const user = this.getCurrentUser();
+        return user?.role === 'host';
+    },
+
+    // Check if user is admin or host
+    isAdminOrHost() {
+        return this.isAdmin() || this.isHost();
+    }
 };
 
 // ============================================
@@ -187,9 +323,9 @@ function loadState() {
         const saved = localStorage.getItem('kiwichurch_portal_state');
         if (saved) {
             const parsed = JSON.parse(saved);
-            if (parsed.currentUser) {
-                // Verify user still exists
-                const user = DB.users.find(u => u.id === parsed.currentUser.id);
+            if (parsed.currentUser && PortalConfig.demoMode) {
+                // Verify user still exists in demo mode
+                const user = MockDB.users.find(u => u.id === parsed.currentUser.id);
                 if (user) {
                     state.currentUser = user;
                 }
@@ -244,34 +380,6 @@ function getTimeBasedGreeting() {
     return 'Good evening,';
 }
 
-function getUpcomingEvents(days = 21) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return DB.events
-        .filter(e => {
-            const eventDate = new Date(e.date);
-            eventDate.setHours(0, 0, 0, 0);
-            const endDate = new Date(today);
-            endDate.setDate(endDate.getDate() + days);
-            return eventDate >= today && eventDate <= endDate;
-        })
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
-        .slice(0, 8);
-}
-
-function getEventsForDate(dateStr) {
-    return DB.events.filter(e => e.date === dateStr);
-}
-
-function getGatheringById(id) {
-    return DB.gatherings.find(g => g.id === id);
-}
-
-function getUserById(id) {
-    return DB.users.find(u => u.id === id);
-}
-
 function showToast(message, type = 'default') {
     if (window.KiwiChurch && window.KiwiChurch.showToast) {
         window.KiwiChurch.showToast(message, type);
@@ -280,14 +388,33 @@ function showToast(message, type = 'default') {
     }
 }
 
+function showLoading(show = true) {
+    state.isLoading = show;
+    // Could add a loading indicator UI here
+}
+
 // ============================================
 // AUTHENTICATION
 // ============================================
 
-function login(username, password) {
-    const user = DB.users.find(u =>
-        (u.username.toLowerCase() === username.toLowerCase() ||
-         u.email.toLowerCase() === username.toLowerCase()) &&
+async function login(identifier, password) {
+    if (PortalConfig.useFirebase && window.Auth) {
+        try {
+            showLoading(true);
+            await Auth.signIn(identifier, password);
+            return true;
+        } catch (error) {
+            console.error('Firebase login error:', error);
+            return false;
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // Demo mode login
+    const user = MockDB.users.find(u =>
+        (u.username.toLowerCase() === identifier.toLowerCase() ||
+         u.email.toLowerCase() === identifier.toLowerCase()) &&
         u.password === password
     );
 
@@ -299,7 +426,15 @@ function login(username, password) {
     return false;
 }
 
-function logout() {
+async function logout() {
+    if (PortalConfig.useFirebase && window.Auth) {
+        try {
+            await Auth.signOut();
+        } catch (error) {
+            console.error('Firebase logout error:', error);
+        }
+    }
+
     state.currentUser = null;
     state.currentPage = 'home';
     saveState();
@@ -364,15 +499,16 @@ function closeModalOutside(e) {
 }
 
 function openEventModal(eventId) {
-    const event = DB.events.find(e => e.id === eventId);
+    const event = DataService.getEventById(eventId);
     if (!event) return;
 
-    const gathering = getGatheringById(event.gatheringId);
-    const isRSVPd = state.currentUser && event.rsvps.includes(state.currentUser.id);
+    const gathering = DataService.getGatheringById(event.gatheringId);
+    const currentUser = DataService.getCurrentUser();
+    const isRSVPd = currentUser && event.rsvps.includes(currentUser.id);
 
     const rsvpNames = event.rsvps.map(id => {
-        const u = getUserById(id);
-        return u ? (u.id === state.currentUser.id ? 'You' : u.name.split(' ')[0]) : 'Unknown';
+        const u = MockDB.users.find(user => user.id === id);
+        return u ? (u.id === currentUser?.id ? 'You' : u.displayName.split(' ')[0]) : 'Unknown';
     });
 
     const bodyHTML = `
@@ -436,24 +572,24 @@ function openEventModal(eventId) {
     openModal(event.title, bodyHTML, footerHTML);
 }
 
-function confirmRSVP(eventId) {
-    const event = DB.events.find(e => e.id === eventId);
-    if (event && state.currentUser && !event.rsvps.includes(state.currentUser.id)) {
-        event.rsvps.push(state.currentUser.id);
-        showToast('RSVP confirmed!', 'success');
-        closeModal();
-        renderPage();
-    }
+async function confirmRSVP(eventId) {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    await DataService.rsvpToEvent(eventId, currentUser.id);
+    showToast('RSVP confirmed!', 'success');
+    closeModal();
+    renderPage();
 }
 
-function cancelRSVP(eventId) {
-    const event = DB.events.find(e => e.id === eventId);
-    if (event && state.currentUser) {
-        event.rsvps = event.rsvps.filter(id => id !== state.currentUser.id);
-        showToast('RSVP cancelled', 'default');
-        closeModal();
-        renderPage();
-    }
+async function cancelRSVP(eventId) {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    await DataService.cancelRSVP(eventId, currentUser.id);
+    showToast('RSVP cancelled', 'default');
+    closeModal();
+    renderPage();
 }
 
 // ============================================
@@ -491,13 +627,15 @@ function renderPage() {
 }
 
 function renderHomePage() {
-    const events = getUpcomingEvents().slice(0, 4);
+    const events = DataService.getUpcomingEvents().slice(0, 4);
     const greeting = getTimeBasedGreeting();
+    const currentUser = DataService.getCurrentUser();
+    const ketePosts = MockDB.kete.slice(0, 2);
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 2rem 1.5rem; color: white;">
             <p style="opacity: 0.8; margin-bottom: 0.25rem; font-size: 0.9375rem;">${greeting}</p>
-            <h2 style="font-family: var(--font-display); font-size: 1.75rem; color: white; margin: 0;">${state.currentUser.name.split(' ')[0]}</h2>
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; color: white; margin: 0;">${currentUser.displayName.split(' ')[0]}</h2>
         </div>
 
         <div class="app-dashboard">
@@ -571,18 +709,18 @@ function renderHomePage() {
                 <h3 class="app-section-title">From the Kete</h3>
                 <a href="#" class="app-section-link" onclick="navigateTo('kete'); return false;">Read more</a>
             </div>
-            ${DB.kete.slice(0, 2).map(post => `
+            ${ketePosts.map(post => `
                 <div class="app-event-card" style="cursor: pointer;">
                     <div style="width: 50px; height: 50px; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--color-sage) 0%, var(--color-forest) 100%); flex-shrink: 0;"></div>
                     <div class="app-event-info">
                         <div class="app-event-title">${post.title}</div>
-                        <div class="app-event-meta">${formatDateShort(post.date)}</div>
+                        <div class="app-event-meta">${formatDateShort(post.publishedAt)}</div>
                     </div>
                 </div>
             `).join('')}
         </div>
 
-        ${(state.currentUser.role === 'host' || state.currentUser.role === 'admin') ? `
+        ${DataService.isAdminOrHost() ? `
         <div class="app-section">
             <div class="app-section-header">
                 <h3 class="app-section-title">Manage</h3>
@@ -599,7 +737,7 @@ function renderHomePage() {
                         <div class="app-event-title">Hosting</div>
                     </div>
                 </a>
-                ${state.currentUser.role === 'admin' ? `
+                ${DataService.isAdmin() ? `
                 <a href="#" class="app-event-card" onclick="navigateTo('settings'); return false;" style="text-decoration: none;">
                     <div style="width: 40px; height: 40px; background: var(--color-cream-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
@@ -621,7 +759,8 @@ function renderHomePage() {
 }
 
 function renderEventsPage() {
-    const events = getUpcomingEvents(60);
+    const events = DataService.getUpcomingEvents(60);
+    const currentUser = DataService.getCurrentUser();
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
@@ -635,7 +774,7 @@ function renderEventsPage() {
             </div>
             ${events.length > 0 ? events.map(event => {
                 const date = new Date(event.date);
-                const isRSVPd = event.rsvps.includes(state.currentUser.id);
+                const isRSVPd = event.rsvps.includes(currentUser?.id);
                 return `
                     <div class="app-event-card" onclick="openEventModal('${event.id}')">
                         <div class="app-event-date" ${!event.isPublic ? 'style="background: var(--color-terracotta);"' : ''}>
@@ -663,7 +802,7 @@ function renderGroupsPage() {
 
         <div class="app-section" style="padding-top: 1.5rem;">
             <div class="gatherings-grid">
-                ${DB.gatherings.map(g => `
+                ${MockDB.gatherings.map(g => `
                     <div class="gathering-card">
                         <div class="gathering-card-header" style="background: linear-gradient(135deg, ${g.color} 0%, ${g.color}cc 100%); height: 100px;">
                             <h3 style="font-size: 1.25rem;">${g.name}</h3>
@@ -688,16 +827,26 @@ function renderGroupsPage() {
 }
 
 function renderKetePage() {
+    const canPost = DataService.isAdminOrHost();
+
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">The Kete</h2>
             <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Stories and reflections</p>
         </div>
 
-        <div class="app-section" style="padding-top: 1.5rem;">
-            ${DB.kete.map(post => `
+        ${canPost ? `
+        <div class="app-section" style="padding-top: 1rem;">
+            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="showToast('Post creation coming in Stage 5!', 'default')">
+                + New Post
+            </button>
+        </div>
+        ` : ''}
+
+        <div class="app-section" style="padding-top: ${canPost ? '0.5rem' : '1.5rem'};">
+            ${MockDB.kete.map(post => `
                 <div class="app-event-card" style="display: block; padding: 1.25rem;">
-                    <span style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(post.date)} - ${post.author}</span>
+                    <span style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(post.publishedAt)} - ${post.authorName}</span>
                     <h4 style="margin: 0.5rem 0; color: var(--color-forest);">${post.title}</h4>
                     <p style="font-size: 0.9375rem; color: var(--color-text-light); margin: 0;">${post.excerpt}</p>
                 </div>
@@ -708,13 +857,15 @@ function renderKetePage() {
 }
 
 function renderProfilePage() {
+    const currentUser = DataService.getCurrentUser();
+
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 2rem 1.5rem; color: white; text-align: center;">
             <div style="width: 80px; height: 80px; background: var(--color-terracotta); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 2rem; color: white;">
-                ${state.currentUser.name.charAt(0)}
+                ${currentUser.displayName.charAt(0)}
             </div>
-            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${state.currentUser.name}</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem; text-transform: capitalize;">${state.currentUser.role}</p>
+            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${currentUser.displayName}</h2>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem; text-transform: capitalize;">${currentUser.role}</p>
         </div>
 
         <div class="app-section" style="padding-top: 1.5rem;">
@@ -723,23 +874,29 @@ function renderProfilePage() {
                 <div style="display: grid; gap: 1rem;">
                     <div>
                         <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Email</label>
-                        <p style="margin: 0;">${state.currentUser.email}</p>
+                        <p style="margin: 0;">${currentUser.email}</p>
                     </div>
                     <div>
                         <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Phone</label>
-                        <p style="margin: 0;">${state.currentUser.phone}</p>
+                        <p style="margin: 0;">${currentUser.phone}</p>
                     </div>
+                    ${currentUser.username ? `
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Username</label>
+                        <p style="margin: 0;">@${currentUser.username}</p>
+                    </div>
+                    ` : ''}
                 </div>
-                <button class="btn btn-secondary btn-sm" style="margin-top: 1rem;" onclick="showToast('Profile editing coming soon!', 'default')">Edit Profile</button>
+                <button class="btn btn-secondary btn-sm" style="margin-top: 1rem;" onclick="showToast('Profile editing coming in Stage 3!', 'default')">Edit Profile</button>
             </div>
         </div>
 
-        ${state.currentUser.dependants.length > 0 ? `
+        ${currentUser.dependants && currentUser.dependants.length > 0 ? `
         <div class="app-section">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
                 <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Family Members</h3>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    ${state.currentUser.dependants.map(d => `
+                    ${currentUser.dependants.map(d => `
                         <div style="padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm);">
                             ${d}
                         </div>
@@ -772,12 +929,18 @@ function renderHostingPage() {
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Hosting</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Manage your events</p>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Manage your events and posts</p>
         </div>
 
         <div class="app-section" style="padding-top: 1.5rem;">
-            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="showToast('Event creation coming with Firebase integration!', 'default')">
+            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="showToast('Event creation coming in Stage 4!', 'default')">
                 + Create Event
+            </button>
+        </div>
+
+        <div class="app-section">
+            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="showToast('Post creation coming in Stage 5!', 'default')">
+                + Write Kete Post
             </button>
         </div>
 
@@ -785,13 +948,20 @@ function renderHostingPage() {
             <div class="app-section-header">
                 <h3 class="app-section-title">Your Events</h3>
             </div>
-            <p style="color: var(--color-text-light); text-align: center; padding: 2rem;">Event management coming soon with Firebase integration.</p>
+            <p style="color: var(--color-text-light); text-align: center; padding: 2rem;">
+                Event management will be available once Firebase is connected.
+                <br><br>
+                <span style="font-size: 0.875rem;">Stage 4: Events & RSVP System</span>
+            </p>
         </div>
         <div style="height: 20px;"></div>
     `;
 }
 
 function renderSettingsPage() {
+    const firebaseStatus = PortalConfig.useFirebase ? 'Connected' : 'Demo Mode';
+    const statusColor = PortalConfig.useFirebase ? 'var(--color-sage)' : 'var(--color-terracotta)';
+
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Settings</h2>
@@ -800,21 +970,66 @@ function renderSettingsPage() {
 
         <div class="app-section" style="padding-top: 1.5rem;">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
-                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">User Management</h3>
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Database Status</h3>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: ${statusColor};"></span>
+                    <span style="font-weight: 500;">${firebaseStatus}</span>
+                </div>
                 <p style="color: var(--color-text-light); font-size: 0.9375rem;">
-                    User management features will be available with Firebase integration.
+                    ${PortalConfig.useFirebase
+                        ? 'Firebase Firestore is connected and syncing data.'
+                        : 'Currently using local demo data. Firebase integration available.'}
                 </p>
-                <button class="btn btn-secondary btn-sm" style="margin-top: 1rem;" onclick="showToast('Coming with Firebase integration!', 'default')">Manage Users</button>
             </div>
         </div>
 
         <div class="app-section">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
-                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Database Status</h3>
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">User Management</h3>
                 <p style="color: var(--color-text-light); font-size: 0.9375rem;">
-                    <strong>Current:</strong> Local demo mode<br>
-                    <strong>Next:</strong> Firebase Firestore integration
+                    User management features will be available in Stage 3: Authentication & User Management.
                 </p>
+                <button class="btn btn-secondary btn-sm" style="margin-top: 1rem;" onclick="showToast('Coming in Stage 3!', 'default')">Manage Users</button>
+            </div>
+        </div>
+
+        <div class="app-section">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Development Progress</h3>
+                <div style="display: grid; gap: 0.5rem; font-size: 0.875rem;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Stage 1: Multi-Page Architecture</span>
+                        <span style="color: var(--color-sage);">Complete</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Stage 2: Firebase Core Setup</span>
+                        <span style="color: var(--color-sage);">Complete</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Stage 3: Authentication</span>
+                        <span style="color: var(--color-text-light);">Pending</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Stage 4: Events & RSVP</span>
+                        <span style="color: var(--color-text-light);">Pending</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Stage 5: Kete Blog System</span>
+                        <span style="color: var(--color-text-light);">Pending</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Stage 6: Group Messaging</span>
+                        <span style="color: var(--color-text-light);">Pending</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Stage 7: Advanced Features</span>
+                        <span style="color: var(--color-text-light);">Pending</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Stage 8: Final Polish</span>
+                        <span style="color: var(--color-text-light);">Pending</span>
+                    </div>
+                </div>
             </div>
         </div>
         <div style="height: 20px;"></div>
@@ -828,8 +1043,9 @@ function renderSettingsPage() {
 function showAppState() {
     const loginView = document.getElementById('login-view');
     const appView = document.getElementById('app-view');
+    const currentUser = DataService.getCurrentUser();
 
-    if (state.currentUser) {
+    if (currentUser) {
         loginView.style.display = 'none';
         appView.style.display = 'block';
         document.body.classList.add('app-mode');
@@ -842,20 +1058,36 @@ function showAppState() {
 }
 
 function initPortal() {
-    loadState();
+    // Load saved state for demo mode
+    if (PortalConfig.demoMode) {
+        loadState();
+    }
+
+    // If Firebase is enabled, listen for auth changes
+    if (PortalConfig.useFirebase && window.Auth) {
+        Auth.onAuthChange((user, userData) => {
+            if (userData) {
+                state.currentUserData = userData;
+            }
+            showAppState();
+        });
+    }
 
     // Handle login form
-    document.getElementById('login-form').addEventListener('submit', function(e) {
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const username = document.getElementById('login-username').value;
+        const identifier = document.getElementById('login-username').value;
         const password = document.getElementById('login-password').value;
 
-        if (login(username, password)) {
-            showToast(`Welcome back, ${state.currentUser.name.split(' ')[0]}!`, 'success');
+        const success = await login(identifier, password);
+
+        if (success) {
+            const currentUser = DataService.getCurrentUser();
+            showToast(`Welcome back, ${currentUser.displayName.split(' ')[0]}!`, 'success');
             showAppState();
         } else {
             const errorEl = document.getElementById('login-error');
-            errorEl.textContent = 'Invalid username or password';
+            errorEl.textContent = 'Invalid username/email or password';
             errorEl.style.display = 'block';
         }
     });
@@ -869,6 +1101,8 @@ function initPortal() {
 
     // Show correct state
     showAppState();
+
+    console.log('[Portal] Initialized', PortalConfig.useFirebase ? '(Firebase mode)' : '(Demo mode)');
 }
 
 // Initialize when DOM is ready

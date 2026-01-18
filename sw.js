@@ -1,5 +1,5 @@
 // Kiwi Church Service Worker
-const CACHE_NAME = 'kiwichurch-v2';
+const CACHE_NAME = 'kiwichurch-v3';
 const STATIC_ASSETS = [
     './',
     './index.html',
@@ -13,6 +13,10 @@ const STATIC_ASSETS = [
     './css/styles.css',
     './js/main.js',
     './js/portal.js',
+    './js/firebase-config.js',
+    './js/db.js',
+    './js/auth.js',
+    './js/storage.js',
     './manifest.json',
     './KiwiChurch_Old_White.png',
     './KiwiChurch_Old_White_Shadow.png',
