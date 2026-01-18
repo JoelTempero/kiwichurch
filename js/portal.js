@@ -1229,8 +1229,74 @@ function showToast(message, type = 'default') {
 
 function showLoading(show = true) {
     state.isLoading = show;
-    // Could add a loading indicator UI here
+    const main = document.getElementById('app-main');
+    if (show && main) {
+        main.innerHTML = renderSkeletonLoader();
+    }
 }
+
+// Generate skeleton loading screen
+function renderSkeletonLoader() {
+    return `
+        <div class="page-transition" style="padding: 1.5rem;">
+            <div class="skeleton" style="height: 100px; border-radius: var(--radius-lg); margin-bottom: 1.5rem;"></div>
+            <div class="skeleton skeleton-text medium" style="margin-bottom: 1rem;"></div>
+            <div class="skeleton-card" style="margin-bottom: 0.75rem;">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div class="skeleton skeleton-circle" style="width: 45px; height: 45px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton skeleton-text medium"></div>
+                        <div class="skeleton skeleton-text short"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="skeleton-card" style="margin-bottom: 0.75rem;">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div class="skeleton skeleton-circle" style="width: 45px; height: 45px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton skeleton-text medium"></div>
+                        <div class="skeleton skeleton-text short"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="skeleton-card">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div class="skeleton skeleton-circle" style="width: 45px; height: 45px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton skeleton-text medium"></div>
+                        <div class="skeleton skeleton-text short"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Generate empty state component
+function renderEmptyState(icon, title, message, actionLabel = null, actionFn = null) {
+    return `
+        <div class="empty-state slide-up">
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                ${icon}
+            </svg>
+            <h4 class="empty-state-title">${title}</h4>
+            <p class="empty-state-text">${message}</p>
+            ${actionLabel && actionFn ? `
+                <button class="btn btn-secondary" onclick="${actionFn}">${actionLabel}</button>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Common empty state icons
+const EmptyStateIcons = {
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>',
+    message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
+    users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>',
+    search: '<circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>',
+    book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>',
+    bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path>'
+};
 
 // ============================================
 // AUTHENTICATION
@@ -1344,20 +1410,116 @@ function navigateToGroup(groupId) {
 // ============================================
 
 function openModal(title, bodyHTML, footerHTML = '') {
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-body').innerHTML = bodyHTML;
-    document.getElementById('modal-footer').innerHTML = footerHTML;
-    document.getElementById('modal-overlay').classList.add('open');
+    const overlay = document.getElementById('modal-overlay');
+    const modal = document.getElementById('modal');
+    const titleEl = document.getElementById('modal-title');
+    const bodyEl = document.getElementById('modal-body');
+    const footerEl = document.getElementById('modal-footer');
+
+    titleEl.textContent = title;
+    bodyEl.innerHTML = bodyHTML;
+    footerEl.innerHTML = footerHTML;
+
+    // Set ARIA attributes
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'modal-title');
+    modal.setAttribute('tabindex', '-1');
+
+    overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
+
+    // Focus the modal for accessibility
+    setTimeout(() => {
+        // Focus first focusable element in modal, or the modal itself
+        const focusable = modal.querySelector('input, button, textarea, select, [tabindex]:not([tabindex="-1"])');
+        if (focusable) {
+            focusable.focus();
+        } else {
+            modal.focus();
+        }
+    }, 100);
+
+    // Trap focus within modal
+    modal.addEventListener('keydown', trapFocus);
 }
 
 function closeModal() {
-    document.getElementById('modal-overlay').classList.remove('open');
+    const overlay = document.getElementById('modal-overlay');
+    const modal = document.getElementById('modal');
+
+    overlay.classList.remove('open');
     document.body.style.overflow = '';
+
+    // Remove focus trap
+    modal.removeEventListener('keydown', trapFocus);
+
+    // Return focus to trigger element if available
+    if (window.lastFocusedElement) {
+        window.lastFocusedElement.focus();
+        window.lastFocusedElement = null;
+    }
 }
 
 function closeModalOutside(e) {
     if (e.target.id === 'modal-overlay') closeModal();
+}
+
+// Focus trap for modal accessibility
+function trapFocus(e) {
+    if (e.key !== 'Tab') return;
+
+    const modal = document.getElementById('modal');
+    const focusableElements = modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements[focusableElements.length - 1];
+
+    if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstFocusable) {
+            e.preventDefault();
+            lastFocusable.focus();
+        }
+    } else {
+        // Tab
+        if (document.activeElement === lastFocusable) {
+            e.preventDefault();
+            firstFocusable.focus();
+        }
+    }
+}
+
+// Setup accessibility features
+function setupAccessibility() {
+    // Add skip link if not present
+    if (!document.querySelector('.skip-link')) {
+        const skipLink = document.createElement('a');
+        skipLink.className = 'skip-link';
+        skipLink.href = '#app-main';
+        skipLink.textContent = 'Skip to main content';
+        document.body.insertBefore(skipLink, document.body.firstChild);
+    }
+
+    // Ensure bottom nav items have aria labels
+    document.querySelectorAll('.bottom-nav-item').forEach(item => {
+        const label = item.querySelector('.bottom-nav-label');
+        if (label) {
+            item.setAttribute('aria-label', label.textContent);
+        }
+    });
+
+    // Make event cards keyboard accessible
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            const target = e.target;
+            if (target.classList.contains('app-event-card') || target.classList.contains('gathering-card')) {
+                e.preventDefault();
+                target.click();
+            }
+        }
+    });
 }
 
 function openEventModal(eventId) {
@@ -2435,38 +2597,42 @@ function performSearch(query) {
 
 function renderPage() {
     const main = document.getElementById('app-main');
+    let content = '';
 
     switch (state.currentPage) {
         case 'home':
-            main.innerHTML = renderHomePage();
+            content = renderHomePage();
             break;
         case 'events':
-            main.innerHTML = renderEventsPage();
+            content = renderEventsPage();
             break;
         case 'groups':
-            main.innerHTML = renderGroupsPage();
+            content = renderGroupsPage();
             break;
         case 'kete':
-            main.innerHTML = renderKetePage();
+            content = renderKetePage();
             break;
         case 'profile':
-            main.innerHTML = renderProfilePage();
+            content = renderProfilePage();
             break;
         case 'hosting':
-            main.innerHTML = renderHostingPage();
+            content = renderHostingPage();
             break;
         case 'settings':
-            main.innerHTML = renderSettingsPage();
+            content = renderSettingsPage();
             break;
         case 'users':
-            main.innerHTML = renderUsersPage();
+            content = renderUsersPage();
             break;
         case 'group':
-            main.innerHTML = renderGroupPage();
+            content = renderGroupPage();
             break;
         default:
-            main.innerHTML = renderHomePage();
+            content = renderHomePage();
     }
+
+    // Wrap content in page transition
+    main.innerHTML = `<div class="page-transition">${content}</div>`;
 }
 
 function renderHomePage() {
@@ -3644,7 +3810,7 @@ function renderSettingsPage() {
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 8: Final Polish</span>
-                        <span style="color: var(--color-text-light);">Pending</span>
+                        <span style="color: var(--color-sage);">Complete</span>
                     </div>
                 </div>
             </div>
@@ -4151,10 +4317,49 @@ function initPortal() {
 
     // Handle keyboard shortcuts
     document.addEventListener('keydown', function(e) {
+        // Close modal on Escape
         if (e.key === 'Escape') {
             closeModal();
         }
+
+        // Only enable shortcuts when authenticated and not in modal
+        const isModalOpen = document.getElementById('modal-overlay')?.classList.contains('open');
+        const currentUser = DataService.getCurrentUser();
+        if (!currentUser || isModalOpen) return;
+
+        // Quick navigation shortcuts (Ctrl/Cmd + number)
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
+            switch (e.key) {
+                case '1':
+                    e.preventDefault();
+                    navigateTo('home');
+                    break;
+                case '2':
+                    e.preventDefault();
+                    navigateTo('events');
+                    break;
+                case '3':
+                    e.preventDefault();
+                    navigateTo('groups');
+                    break;
+                case '4':
+                    e.preventDefault();
+                    navigateTo('kete');
+                    break;
+                case '5':
+                    e.preventDefault();
+                    navigateTo('profile');
+                    break;
+                case 'k':
+                    e.preventDefault();
+                    openSearchModal();
+                    break;
+            }
+        }
     });
+
+    // Add ARIA labels to interactive elements
+    setupAccessibility();
 
     // Show correct state
     showAppState();
