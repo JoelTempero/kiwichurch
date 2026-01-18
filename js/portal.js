@@ -113,28 +113,102 @@ const MockDB = {
             id: 'kete-1',
             title: 'Finding Sacred in the Ordinary',
             excerpt: 'Reflections on discovering God in everyday moments and mundane routines.',
-            content: 'Full article content here...',
+            content: `There's a moment each morning, somewhere between the first sip of coffee and the rush of the day, where I find myself pausing. It's not a grand spiritual practice—just a breath, a noticing.
+
+I've been learning that God doesn't only show up in the mountain-top experiences or the carefully crafted worship services. Sometimes the sacred sneaks in through the back door: in the steam rising from a cup, in the sound of rain on the roof, in the mundane rhythm of washing dishes.
+
+Brother Lawrence called it "practicing the presence of God." I'm calling it "paying attention."
+
+What if our everyday moments—the commute, the grocery run, the bedtime routine—are all invitations to encounter? What if the ordinary is already holy, and we just need eyes to see?
+
+This week, I'm trying something simple: before I rush into each task, I'll take one breath and ask, "Where are you here, God?"
+
+Maybe you'd like to try it too.`,
             publishedAt: '2024-01-10',
+            authorId: 'user-3',
             authorName: 'Darryl Tempero',
-            published: true
+            published: true,
+            featuredImage: null,
+            createdAt: '2024-01-08',
+            updatedAt: '2024-01-10'
         },
         {
             id: 'kete-2',
             title: 'Community Update: Summer 2024',
             excerpt: 'A look back at what God has been doing in our communities over the past season.',
-            content: 'Full article content here...',
+            content: `As we head into the new year, we wanted to take a moment to celebrate what God has been doing in our communities over the summer.
+
+## Thin Place
+Our fortnightly gatherings have continued to be a space of deep encounter and honest conversation. We've welcomed several new faces and have been moved by the stories shared around our tables.
+
+## Prestons Community
+The Friday night dinners have become a highlight for many families. There's something beautiful about sharing a meal together, watching the kids play, and simply being present with one another.
+
+## Rito Shack
+Our creative gathering has been exploring new ways of expressing faith through art. Last month's collaborative painting project was a powerful reminder that we're all part of something bigger.
+
+## Looking Ahead
+As we move into 2024, we're excited about what's to come. We're dreaming about new ways to serve our neighborhoods and deepen our connections with one another.
+
+Thank you for being part of this community. You belong here.`,
             publishedAt: '2024-01-03',
+            authorId: 'user-3',
             authorName: 'Kiwi Church Team',
-            published: true
+            published: true,
+            featuredImage: null,
+            createdAt: '2024-01-02',
+            updatedAt: '2024-01-03'
         },
         {
             id: 'kete-3',
             title: 'The Art of Showing Up',
             excerpt: 'Why consistent presence matters more than perfect attendance.',
-            content: 'Full article content here...',
+            content: `I used to think that being part of a community meant never missing a gathering. That good members showed up every single time, fully present and engaged.
+
+But life doesn't work that way, does it?
+
+There are seasons when we're overwhelmed, when the kids are sick, when work is demanding, when we simply don't have the energy. And in those moments, I've learned something important: **showing up doesn't have to be perfect to be meaningful**.
+
+Sometimes showing up means dragging yourself to the gathering even when you'd rather stay home. Other times, it means sending a text to say "I'm thinking of you" when you can't be there in person. And sometimes, it means receiving grace when you've been absent for weeks.
+
+Community isn't built on perfect attendance. It's built on consistent presence over time—the kind that weathers the ups and downs, the busy seasons and the quiet ones.
+
+So if you've been away for a while, know this: you're still part of us. And when you're ready, there's always a seat at the table with your name on it.`,
             publishedAt: '2023-12-20',
+            authorId: 'user-1',
             authorName: 'Sarah Utting',
-            published: true
+            published: true,
+            featuredImage: null,
+            createdAt: '2023-12-18',
+            updatedAt: '2023-12-20'
+        },
+        {
+            id: 'kete-4',
+            title: 'Draft: Upcoming Retreat Plans',
+            excerpt: 'Planning notes for our 2024 community retreat.',
+            content: `# Retreat Planning Notes
+
+**Date options:** March or April 2024
+**Location ideas:** Hanmer Springs, Tekapo, local campground
+
+## Goals
+- Time for rest and refreshment
+- Building deeper connections
+- Space for prayer and reflection
+
+## To discuss
+- Budget considerations
+- Childcare options
+- Activities vs. free time balance
+
+*This is a draft - more details coming soon!*`,
+            publishedAt: null,
+            authorId: 'user-2',
+            authorName: 'Michael Olds',
+            published: false,
+            featuredImage: null,
+            createdAt: '2024-01-12',
+            updatedAt: '2024-01-12'
         }
     ],
 
@@ -424,7 +498,93 @@ const DataService = {
         if (PortalConfig.useFirebase && window.DB) {
             return await DB.getKetePosts({ published: true, ...options });
         }
+        if (options.includeDrafts) {
+            return MockDB.kete;
+        }
         return MockDB.kete.filter(k => k.published);
+    },
+
+    // Get single kete post by ID
+    getKetePostById(postId) {
+        return MockDB.kete.find(k => k.id === postId);
+    },
+
+    // Get all kete posts for management (including drafts)
+    getAllKetePosts() {
+        return MockDB.kete.sort((a, b) => {
+            // Sort by updatedAt descending
+            return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+        });
+    },
+
+    // Get kete posts by current user
+    getMyKetePosts() {
+        const user = this.getCurrentUser();
+        if (!user) return [];
+        return MockDB.kete.filter(k => k.authorId === user.id).sort((a, b) => {
+            return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+        });
+    },
+
+    // Create new kete post
+    async createKetePost(postData) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.createKetePost(postData);
+        }
+        const user = this.getCurrentUser();
+        const now = new Date().toISOString();
+        const newPost = {
+            id: 'kete-' + Date.now(),
+            ...postData,
+            authorId: user.id,
+            authorName: user.displayName,
+            createdAt: now,
+            updatedAt: now,
+            publishedAt: postData.published ? now.split('T')[0] : null
+        };
+        MockDB.kete.unshift(newPost);
+        return newPost;
+    },
+
+    // Update kete post
+    async updateKetePost(postId, updates) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.updateKetePost(postId, updates);
+        }
+        const post = MockDB.kete.find(k => k.id === postId);
+        if (post) {
+            const wasPublished = post.published;
+            Object.assign(post, updates, { updatedAt: new Date().toISOString() });
+            // Set publishedAt when first published
+            if (!wasPublished && updates.published) {
+                post.publishedAt = new Date().toISOString().split('T')[0];
+            }
+            return post;
+        }
+        throw new Error('Post not found');
+    },
+
+    // Delete kete post
+    async deleteKetePost(postId) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.deleteKetePost(postId);
+        }
+        const index = MockDB.kete.findIndex(k => k.id === postId);
+        if (index !== -1) {
+            MockDB.kete.splice(index, 1);
+            return true;
+        }
+        throw new Error('Post not found');
+    },
+
+    // Check if user can manage a kete post
+    canManageKetePost(post) {
+        const user = this.getCurrentUser();
+        if (!user) return false;
+        if (user.role === 'admin') return true;
+        // Hosts can edit their own posts
+        if (user.role === 'host' && post.authorId === user.id) return true;
+        return false;
     },
 
     // Check if user is admin
@@ -1156,6 +1316,364 @@ async function submitRSVP(eventId) {
 }
 
 // ============================================
+// KETE POST MANAGEMENT
+// ============================================
+
+function openCreateKetePostModal() {
+    const bodyHTML = `
+        <form id="kete-form">
+            <div class="form-group">
+                <label class="form-label" for="kete-title">Title *</label>
+                <input type="text" class="form-input" id="kete-title" required placeholder="Your post title">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="kete-excerpt">Excerpt *</label>
+                <input type="text" class="form-input" id="kete-excerpt" required placeholder="A brief summary (shown in listings)" maxlength="200">
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Max 200 characters</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="kete-content">Content *</label>
+                <textarea class="form-input" id="kete-content" rows="12" required placeholder="Write your post here...
+
+You can use simple formatting:
+# Heading
+## Subheading
+**bold text**
+*italic text*
+- bullet points"></textarea>
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Supports basic Markdown formatting</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="kete-image">Featured Image (optional)</label>
+                <input type="file" class="form-input" id="kete-image" accept="image/*" onchange="previewKeteImage(this)">
+                <div id="kete-image-preview" style="margin-top: 0.5rem; display: none;">
+                    <img src="" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: var(--radius-sm);">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="clearKeteImage()" style="margin-top: 0.5rem;">Remove image</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                    <input type="checkbox" id="kete-published" checked>
+                    <span>Publish immediately</span>
+                </label>
+                <small style="color: var(--color-text-light); font-size: 0.75rem; display: block; margin-top: 0.25rem;">Uncheck to save as draft</small>
+            </div>
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-ghost" onclick="saveKetePost(false)">Save Draft</button>
+        <button class="btn btn-primary" onclick="saveKetePost(true)">Publish</button>
+    `;
+
+    openModal('New Kete Post', bodyHTML, footerHTML);
+}
+
+function previewKeteImage(input) {
+    const preview = document.getElementById('kete-image-preview');
+    const img = preview.querySelector('img');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function clearKeteImage() {
+    document.getElementById('kete-image').value = '';
+    document.getElementById('kete-image-preview').style.display = 'none';
+}
+
+async function saveKetePost(publish = true) {
+    const title = document.getElementById('kete-title').value.trim();
+    const excerpt = document.getElementById('kete-excerpt').value.trim();
+    const content = document.getElementById('kete-content').value.trim();
+    const imageInput = document.getElementById('kete-image');
+
+    // Validation
+    if (!title || !excerpt || !content) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    try {
+        let featuredImage = null;
+
+        // Handle image upload (demo mode - store as data URL)
+        if (imageInput.files && imageInput.files[0]) {
+            if (PortalConfig.useFirebase && window.Storage) {
+                // Upload to Firebase Storage
+                const result = await Storage.uploadKeteImage('temp', imageInput.files[0]);
+                featuredImage = result.url;
+            } else {
+                // Demo mode - store as data URL
+                featuredImage = document.getElementById('kete-image-preview').querySelector('img').src;
+            }
+        }
+
+        await DataService.createKetePost({
+            title,
+            excerpt,
+            content,
+            featuredImage,
+            published: publish
+        });
+
+        showToast(publish ? 'Post published!' : 'Draft saved!', 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not save post', 'error');
+    }
+}
+
+function openEditKetePostModal(postId) {
+    const post = DataService.getKetePostById(postId);
+    if (!post) return;
+
+    const bodyHTML = `
+        <form id="edit-kete-form">
+            <div class="form-group">
+                <label class="form-label" for="edit-kete-title">Title *</label>
+                <input type="text" class="form-input" id="edit-kete-title" required value="${escapeHtml(post.title)}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="edit-kete-excerpt">Excerpt *</label>
+                <input type="text" class="form-input" id="edit-kete-excerpt" required value="${escapeHtml(post.excerpt)}" maxlength="200">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="edit-kete-content">Content *</label>
+                <textarea class="form-input" id="edit-kete-content" rows="12" required>${escapeHtml(post.content)}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="edit-kete-image">Featured Image</label>
+                ${post.featuredImage ? `
+                    <div id="current-kete-image" style="margin-bottom: 0.5rem;">
+                        <img src="${post.featuredImage}" alt="Current image" style="max-width: 100%; max-height: 150px; border-radius: var(--radius-sm);">
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="removeCurrentKeteImage('${postId}')" style="margin-top: 0.5rem;">Remove current image</button>
+                    </div>
+                ` : ''}
+                <input type="file" class="form-input" id="edit-kete-image" accept="image/*" onchange="previewEditKeteImage(this)">
+                <div id="edit-kete-image-preview" style="margin-top: 0.5rem; display: none;">
+                    <img src="" alt="Preview" style="max-width: 100%; max-height: 150px; border-radius: var(--radius-sm);">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                    <input type="checkbox" id="edit-kete-published" ${post.published ? 'checked' : ''}>
+                    <span>Published</span>
+                </label>
+            </div>
+
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+                <p style="color: var(--color-text-light); font-size: 0.875rem; margin-bottom: 0.75rem;">
+                    Created: ${formatDateShort(post.createdAt)} by ${post.authorName}
+                </p>
+                <button type="button" class="btn btn-ghost" style="color: #dc2626;" onclick="confirmDeleteKetePost('${post.id}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Delete Post
+                </button>
+            </div>
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="updateKetePost('${post.id}')">Save Changes</button>
+    `;
+
+    openModal('Edit Post', bodyHTML, footerHTML);
+}
+
+function previewEditKeteImage(input) {
+    const preview = document.getElementById('edit-kete-image-preview');
+    const img = preview.querySelector('img');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function removeCurrentKeteImage(postId) {
+    const container = document.getElementById('current-kete-image');
+    if (container) {
+        container.innerHTML = '<p style="color: var(--color-text-light); font-size: 0.875rem;">Image will be removed on save</p>';
+        container.dataset.removeImage = 'true';
+    }
+}
+
+async function updateKetePost(postId) {
+    const title = document.getElementById('edit-kete-title').value.trim();
+    const excerpt = document.getElementById('edit-kete-excerpt').value.trim();
+    const content = document.getElementById('edit-kete-content').value.trim();
+    const published = document.getElementById('edit-kete-published').checked;
+    const imageInput = document.getElementById('edit-kete-image');
+    const currentImageContainer = document.getElementById('current-kete-image');
+
+    // Validation
+    if (!title || !excerpt || !content) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    try {
+        const updates = { title, excerpt, content, published };
+
+        // Handle image changes
+        if (imageInput.files && imageInput.files[0]) {
+            // New image uploaded
+            if (PortalConfig.useFirebase && window.Storage) {
+                const result = await Storage.uploadKeteImage(postId, imageInput.files[0]);
+                updates.featuredImage = result.url;
+            } else {
+                updates.featuredImage = document.getElementById('edit-kete-image-preview').querySelector('img').src;
+            }
+        } else if (currentImageContainer?.dataset.removeImage === 'true') {
+            // Remove existing image
+            updates.featuredImage = null;
+        }
+
+        await DataService.updateKetePost(postId, updates);
+
+        showToast('Post updated!', 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not update post', 'error');
+    }
+}
+
+function confirmDeleteKetePost(postId) {
+    const post = DataService.getKetePostById(postId);
+    if (!post) return;
+
+    const bodyHTML = `
+        <p style="margin-bottom: 1rem;">Are you sure you want to delete <strong>${escapeHtml(post.title)}</strong>?</p>
+        <p style="color: var(--color-text-light); font-size: 0.9375rem;">
+            This action cannot be undone.
+        </p>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="openEditKetePostModal('${postId}')">Cancel</button>
+        <button class="btn btn-primary" style="background: #dc2626; border-color: #dc2626;" onclick="deleteKetePost('${postId}')">Delete Post</button>
+    `;
+
+    openModal('Delete Post?', bodyHTML, footerHTML);
+}
+
+async function deleteKetePost(postId) {
+    try {
+        await DataService.deleteKetePost(postId);
+        showToast('Post deleted', 'default');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not delete post', 'error');
+    }
+}
+
+// View a full Kete post
+function openKetePostModal(postId) {
+    const post = DataService.getKetePostById(postId);
+    if (!post) return;
+
+    const canManage = DataService.canManageKetePost(post);
+
+    // Convert simple markdown to HTML
+    const contentHtml = renderMarkdown(post.content);
+
+    const bodyHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+            <div>
+                <p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0;">
+                    ${formatDate(post.publishedAt || post.createdAt)} ${!post.published ? '<span style="background: var(--color-terracotta-light); color: var(--color-terracotta); padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem;">Draft</span>' : ''}
+                </p>
+                <p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0.25rem 0 0;">
+                    by ${post.authorName}
+                </p>
+            </div>
+            ${canManage ? `
+                <button class="btn btn-ghost btn-sm" onclick="openEditKetePostModal('${post.id}')" style="margin: -0.5rem -0.5rem 0 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Edit
+                </button>
+            ` : ''}
+        </div>
+
+        ${post.featuredImage ? `
+            <img src="${post.featuredImage}" alt="${escapeHtml(post.title)}" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+        ` : ''}
+
+        <div class="kete-content" style="line-height: 1.7; color: var(--color-text);">
+            ${contentHtml}
+        </div>
+    `;
+
+    const footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
+
+    openModal(post.title, bodyHTML, footerHTML);
+}
+
+// Simple markdown renderer
+function renderMarkdown(text) {
+    if (!text) return '';
+
+    return text
+        // Escape HTML
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // Headers
+        .replace(/^### (.+)$/gm, '<h4 style="margin: 1.5rem 0 0.75rem; font-family: var(--font-display);">$1</h4>')
+        .replace(/^## (.+)$/gm, '<h3 style="margin: 1.5rem 0 0.75rem; font-family: var(--font-display);">$1</h3>')
+        .replace(/^# (.+)$/gm, '<h2 style="margin: 1.5rem 0 0.75rem; font-family: var(--font-display);">$1</h2>')
+        // Bold and italic
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // Lists
+        .replace(/^- (.+)$/gm, '<li style="margin-left: 1.5rem;">$1</li>')
+        // Paragraphs (double newlines)
+        .replace(/\n\n/g, '</p><p style="margin: 1rem 0;">')
+        // Single newlines to <br>
+        .replace(/\n/g, '<br>')
+        // Wrap in paragraph
+        .replace(/^(.+)/, '<p style="margin: 1rem 0;">$1</p>');
+}
+
+// Escape HTML for safe display
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================
 // PAGE RENDERERS
 // ============================================
 
@@ -1583,29 +2101,85 @@ function renderGroupsPage() {
 
 function renderKetePage() {
     const canPost = DataService.isAdminOrHost();
+    const currentUser = DataService.getCurrentUser();
+
+    // Get published posts for display
+    const publishedPosts = MockDB.kete.filter(k => k.published).sort((a, b) => {
+        return new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt);
+    });
+
+    // Get user's drafts (if they can post)
+    const myDrafts = canPost ? MockDB.kete.filter(k => !k.published && k.authorId === currentUser?.id) : [];
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">The Kete</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Stories and reflections</p>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Stories and reflections from our community</p>
         </div>
 
         ${canPost ? `
         <div class="app-section" style="padding-top: 1rem;">
-            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="showToast('Post creation coming in Stage 5!', 'default')">
-                + New Post
+            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="openCreateKetePostModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                    <path d="M2 2l7.586 7.586"></path>
+                    <circle cx="11" cy="11" r="2"></circle>
+                </svg>
+                Write a Post
             </button>
         </div>
         ` : ''}
 
-        <div class="app-section" style="padding-top: ${canPost ? '0.5rem' : '1.5rem'};">
-            ${MockDB.kete.map(post => `
-                <div class="app-event-card" style="display: block; padding: 1.25rem;">
-                    <span style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(post.publishedAt)} - ${post.authorName}</span>
-                    <h4 style="margin: 0.5rem 0; color: var(--color-forest);">${post.title}</h4>
-                    <p style="font-size: 0.9375rem; color: var(--color-text-light); margin: 0;">${post.excerpt}</p>
+        ${myDrafts.length > 0 ? `
+        <div class="app-section" style="padding-top: 0.5rem;">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Your Drafts</h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">${myDrafts.length}</span>
+            </div>
+            ${myDrafts.map(post => `
+                <div class="app-event-card" onclick="openEditKetePostModal('${post.id}')" style="cursor: pointer;">
+                    <div style="width: 4px; height: 100%; min-height: 50px; background: var(--color-terracotta); border-radius: 2px; flex-shrink: 0;"></div>
+                    <div style="flex: 1; padding-left: 0.75rem;">
+                        <span style="font-size: 0.75rem; color: var(--color-terracotta);">Draft</span>
+                        <h4 style="margin: 0.25rem 0; color: var(--color-forest); font-size: 1rem;">${escapeHtml(post.title)}</h4>
+                        <p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0;">${escapeHtml(post.excerpt).substring(0, 80)}...</p>
+                    </div>
                 </div>
             `).join('')}
+        </div>
+        ` : ''}
+
+        <div class="app-section" style="padding-top: ${canPost && myDrafts.length === 0 ? '0.5rem' : '1.5rem'};">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Published</h3>
+            </div>
+            ${publishedPosts.length > 0 ? publishedPosts.map(post => {
+                const canManage = DataService.canManageKetePost(post);
+                return `
+                    <div class="app-event-card" onclick="openKetePostModal('${post.id}')" style="cursor: pointer; display: block; padding: 1.25rem;">
+                        ${post.featuredImage ? `
+                            <img src="${post.featuredImage}" alt="" style="width: 100%; height: 120px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 0.75rem;">
+                        ` : ''}
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <span style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(post.publishedAt)} • ${post.authorName}</span>
+                            ${canManage ? `
+                                <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openEditKetePostModal('${post.id}')" style="margin: -0.5rem -0.5rem 0 0; padding: 0.25rem;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            ` : ''}
+                        </div>
+                        <h4 style="margin: 0.5rem 0; color: var(--color-forest);">${escapeHtml(post.title)}</h4>
+                        <p style="font-size: 0.9375rem; color: var(--color-text-light); margin: 0;">${escapeHtml(post.excerpt)}</p>
+                        <span style="display: inline-block; margin-top: 0.75rem; font-size: 0.875rem; color: var(--color-sage); font-weight: 500;">Read more →</span>
+                    </div>
+                `;
+            }).join('') : `
+                <p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No posts yet. Check back soon!</p>
+            `}
         </div>
         <div style="height: 20px;"></div>
     `;
@@ -1734,7 +2308,7 @@ function renderHostingPage() {
         </div>
 
         <div class="app-section">
-            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="showToast('Post creation coming in Stage 5!', 'default')">
+            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="openCreateKetePostModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
                     <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
@@ -1894,7 +2468,7 @@ function renderSettingsPage() {
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 5: Kete Blog System</span>
-                        <span style="color: var(--color-text-light);">Pending</span>
+                        <span style="color: var(--color-sage);">Complete</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 6: Group Messaging</span>
