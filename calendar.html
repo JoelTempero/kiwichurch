@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>Calendar - Kiwi Church | Upcoming Events & Gatherings</title>
+    <meta name="title" content="Calendar - Kiwi Church | Upcoming Events & Gatherings">
+    <meta name="description" content="View upcoming Kiwi Church events and gatherings in Christchurch. Find when and where our communities meet.">
+    <meta name="keywords" content="church calendar, Christchurch events, Christian gatherings, church schedule NZ">
+    <meta name="author" content="Kiwi Church">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://kiwichurch.org.nz/calendar.html">
+
+    <!-- Theme & App Meta -->
+    <meta name="theme-color" content="#1a3a2f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kiwi Church">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kiwichurch.org.nz/calendar.html">
+    <meta property="og:title" content="Calendar - Kiwi Church">
+    <meta property="og:description" content="View upcoming Kiwi Church events and gatherings in Christchurch.">
+    <meta property="og:image" content="https://kiwichurch.org.nz/images/og-image.jpg">
+    <meta property="og:locale" content="en_NZ">
+    <meta property="og:site_name" content="Kiwi Church">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://kiwichurch.org.nz/calendar.html">
+    <meta name="twitter:title" content="Calendar - Kiwi Church">
+    <meta name="twitter:description" content="View upcoming Kiwi Church events and gatherings in Christchurch.">
+    <meta name="twitter:image" content="https://kiwichurch.org.nz/images/og-image.jpg">
+
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Preconnect & Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Nunito+Sans:ital,opsz,wght@0,6..12,300;0,6..12,400;0,6..12,500;0,6..12,600;1,6..12,400&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header scrolled" id="header">
+        <div class="header-inner">
+            <a href="index.html" class="header-logo">
+                <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church Logo">
+            </a>
+
+            <nav class="nav-desktop" id="nav-desktop" aria-label="Main navigation">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="about.html" class="nav-link">About</a>
+                <a href="communities.html" class="nav-link">Communities</a>
+                <a href="calendar.html" class="nav-link active">Calendar</a>
+                <a href="kete.html" class="nav-link">Kete</a>
+                <a href="resources.html" class="nav-link">Resources</a>
+                <a href="giving.html" class="nav-link">Giving</a>
+                <a href="portal.html" class="btn btn-outline">Portal</a>
+            </nav>
+
+            <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation -->
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+        <a href="index.html" class="mobile-nav-link">Home</a>
+        <a href="about.html" class="mobile-nav-link">About</a>
+        <a href="communities.html" class="mobile-nav-link">Communities</a>
+        <a href="calendar.html" class="mobile-nav-link">Calendar</a>
+        <a href="kete.html" class="mobile-nav-link">Kete</a>
+        <a href="resources.html" class="mobile-nav-link">Resources</a>
+        <a href="giving.html" class="mobile-nav-link">Giving</a>
+        <a href="portal.html" class="mobile-nav-link">Member Portal</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main">
+        <!-- Hero Section -->
+        <section class="about-hero" aria-labelledby="calendar-heading">
+            <div class="about-hero-content">
+                <h1 id="calendar-heading">Calendar</h1>
+                <p>See what's happening across our communities</p>
+            </div>
+        </section>
+
+        <!-- Calendar Section -->
+        <section class="section" aria-labelledby="events-heading">
+            <div class="container">
+                <h2 class="sr-only" id="events-heading">Monthly Calendar</h2>
+
+                <!-- Calendar Widget -->
+                <div class="calendar-container" id="calendar">
+                    <div class="calendar-header">
+                        <h3 class="calendar-title" id="calendar-title">January 2024</h3>
+                        <div class="calendar-nav">
+                            <button class="calendar-nav-btn" onclick="changeMonth(-1)" aria-label="Previous month">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <button class="calendar-nav-btn" onclick="changeMonth(1)" aria-label="Next month">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Calendar days populated by JavaScript -->
+                    </div>
+                    <div class="day-events-panel" id="day-events-panel" style="display: none;">
+                        <div class="day-events-header">
+                            <h4 class="day-events-date" id="selected-date-title">Selected Date</h4>
+                        </div>
+                        <div id="day-events-list">
+                            <!-- Events for selected day -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Events List -->
+                <div style="margin-top: 3rem;">
+                    <h3 style="margin-bottom: 1.5rem;">Upcoming Events</h3>
+                    <div class="coming-up-grid" id="upcoming-events-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Legend -->
+        <section class="section section-sm section-sage" aria-labelledby="legend-heading">
+            <div class="container-sm">
+                <h3 class="sr-only" id="legend-heading">Event Types</h3>
+                <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="calendar-event-dot" style="width: 12px; height: 12px;"></span>
+                        <span>Open Event</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="calendar-event-dot private" style="width: 12px; height: 12px;"></span>
+                        <span>Members Only</span>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 1rem; color: var(--color-text-light); font-size: 0.9375rem;">
+                    Log in to the <a href="portal.html">Member Portal</a> to RSVP for events and see full details.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church">
+                <p>A network of small group Christian communities in Christchurch, New Zealand.</p>
+            </div>
+            <div class="footer-nav">
+                <h4 class="footer-title">Explore</h4>
+                <ul class="footer-links">
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="communities.html">Communities</a></li>
+                    <li><a href="calendar.html">Calendar</a></li>
+                    <li><a href="kete.html">Kete</a></li>
+                </ul>
+            </div>
+            <div class="footer-nav">
+                <h4 class="footer-title">Connect</h4>
+                <ul class="footer-links">
+                    <li><a href="resources.html">Resources</a></li>
+                    <li><a href="giving.html">Giving</a></li>
+                    <li><a href="portal.html">Member Portal</a></li>
+                </ul>
+            </div>
+            <div class="footer-contact-section">
+                <h4 class="footer-title">Contact</h4>
+                <div class="footer-contact">
+                    <p>Christchurch, New Zealand</p>
+                    <p><a href="mailto:hello@kiwichurch.org.nz">hello@kiwichurch.org.nz</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Kiwi Church. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+    <script>
+        // Calendar State
+        let currentDate = new Date();
+        let selectedDate = null;
+
+        // Sample events data
+        const events = generateSampleEvents();
+
+        function generateSampleEvents() {
+            const eventsData = [];
+            const today = new Date();
+            const gatherings = [
+                { name: 'Thin Place', time: '18:30', location: 'Hansons Lane', isPublic: true, weekday: 3, frequency: 2 },
+                { name: 'Online Prayer', time: '07:00', location: 'Zoom', isPublic: true, weekday: 2, frequency: 1 },
+                { name: 'Online Prayer', time: '07:00', location: 'Zoom', isPublic: true, weekday: 4, frequency: 1 },
+                { name: 'Prestons Community', time: '18:00', location: 'Prestons', isPublic: false, weekday: 5, frequency: 1 },
+                { name: 'Digging Deeper', time: '19:30', location: 'Rotating homes', isPublic: false, weekday: 2, frequency: 2 }
+            ];
+
+            // Generate events for the next 60 days
+            for (let i = 0; i < 60; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                const weekday = date.getDay();
+
+                gatherings.forEach(g => {
+                    if (weekday === g.weekday) {
+                        // Check frequency (1 = weekly, 2 = fortnightly)
+                        const weekNumber = Math.floor(i / 7);
+                        if (g.frequency === 1 || weekNumber % 2 === 0) {
+                            eventsData.push({
+                                id: `event-${eventsData.length}`,
+                                title: g.name,
+                                date: date.toISOString().split('T')[0],
+                                time: g.time,
+                                location: g.location,
+                                isPublic: g.isPublic
+                            });
+                        }
+                    }
+                });
+            }
+
+            return eventsData;
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            const title = document.getElementById('calendar-title');
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            title.textContent = currentDate.toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' });
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startPadding = firstDay.getDay();
+
+            let html = '';
+
+            // Day headers
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            days.forEach(day => {
+                html += `<div class="calendar-day-header">${day}</div>`;
+            });
+
+            // Previous month padding
+            const prevMonth = new Date(year, month, 0);
+            for (let i = startPadding - 1; i >= 0; i--) {
+                const day = prevMonth.getDate() - i;
+                html += `<div class="calendar-day other-month"><span class="calendar-day-number">${day}</span></div>`;
+            }
+
+            // Current month days
+            const today = new Date();
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEvents = events.filter(e => e.date === dateStr);
+
+                const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+                const isSelected = selectedDate === dateStr;
+
+                let classes = 'calendar-day';
+                if (isToday) classes += ' today';
+                if (isSelected) classes += ' selected';
+
+                let dots = '';
+                if (dayEvents.length > 0) {
+                    dots = '<div class="calendar-day-events">';
+                    dayEvents.slice(0, 3).forEach(e => {
+                        dots += `<span class="calendar-event-dot ${e.isPublic ? '' : 'private'}"></span>`;
+                    });
+                    dots += '</div>';
+                }
+
+                html += `
+                    <div class="${classes}" onclick="selectDate('${dateStr}')" role="button" tabindex="0">
+                        <span class="calendar-day-number">${day}</span>
+                        ${dots}
+                    </div>
+                `;
+            }
+
+            // Next month padding
+            const remainingDays = 42 - (startPadding + lastDay.getDate());
+            for (let day = 1; day <= remainingDays; day++) {
+                html += `<div class="calendar-day other-month"><span class="calendar-day-number">${day}</span></div>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            selectedDate = null;
+            document.getElementById('day-events-panel').style.display = 'none';
+            renderCalendar();
+        }
+
+        function selectDate(dateStr) {
+            selectedDate = dateStr;
+            renderCalendar();
+            showDayEvents(dateStr);
+        }
+
+        function showDayEvents(dateStr) {
+            const panel = document.getElementById('day-events-panel');
+            const title = document.getElementById('selected-date-title');
+            const list = document.getElementById('day-events-list');
+
+            const date = new Date(dateStr);
+            title.textContent = date.toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' });
+
+            const dayEvents = events.filter(e => e.date === dateStr);
+
+            if (dayEvents.length === 0) {
+                list.innerHTML = '<p style="color: var(--color-text-light);">No events scheduled for this day.</p>';
+            } else {
+                list.innerHTML = dayEvents.map(e => `
+                    <div class="day-event-item">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <strong>${e.title}</strong>
+                                <div style="font-size: 0.875rem; color: var(--color-text-light);">
+                                    ${KiwiChurch.formatTime(e.time)} - ${e.location}
+                                </div>
+                            </div>
+                            <span class="event-badge ${e.isPublic ? '' : 'private'}" style="flex-shrink: 0;">
+                                ${e.isPublic ? 'Open' : 'Members'}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            panel.style.display = 'block';
+        }
+
+        function renderUpcomingEvents() {
+            const container = document.getElementById('upcoming-events-list');
+            const today = new Date().toISOString().split('T')[0];
+            const upcoming = events.filter(e => e.date >= today).slice(0, 5);
+
+            container.innerHTML = upcoming.map(event => {
+                const date = new Date(event.date);
+                const day = date.getDate();
+                const month = date.toLocaleDateString('en-NZ', { month: 'short' });
+
+                return `
+                    <article class="event-card" onclick="selectDate('${event.date}')">
+                        <div class="event-date">
+                            <span class="event-date-day">${day}</span>
+                            <span class="event-date-month">${month}</span>
+                        </div>
+                        <div class="event-info">
+                            <h4>${event.title}</h4>
+                            <div class="event-meta">
+                                <span class="event-meta-item">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    ${KiwiChurch.formatTime(event.time)}
+                                </span>
+                                <span class="event-meta-item">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
+                                    ${event.location}
+                                </span>
+                            </div>
+                        </div>
+                        <span class="event-badge ${event.isPublic ? '' : 'private'}">${event.isPublic ? 'Open' : 'Members'}</span>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCalendar();
+            renderUpcomingEvents();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Kiwi Church robots.txt
+# https://kiwichurch.org.nz
+
+User-agent: *
+Allow: /
+
+# Disallow portal (authenticated area)
+Disallow: /portal.html
+
+# Sitemap location
+Sitemap: https://kiwichurch.org.nz/sitemap.xml
+
+# Crawl-delay for politeness
+Crawl-delay: 1
