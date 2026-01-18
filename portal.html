@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>Member Portal - Kiwi Church</title>
+    <meta name="title" content="Member Portal - Kiwi Church">
+    <meta name="description" content="Access your Kiwi Church member portal. RSVP to events, manage your profile, and connect with your community.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Theme & App Meta -->
+    <meta name="theme-color" content="#1a3a2f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kiwi Church">
+
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Preconnect & Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com">
+    <link rel="preconnect" href="https://firestore.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Nunito+Sans:ital,opsz,wght@0,6..12,300;0,6..12,400;0,6..12,500;0,6..12,600;1,6..12,400&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Skip Link for Accessibility -->
+    <a href="#app-main" class="skip-link">Skip to main content</a>
+
+    <!-- Auth Views (shown when not authenticated) -->
+    <div id="auth-view">
+        <div class="login-container">
+            <!-- Login Card -->
+            <div class="login-card" id="login-card">
+                <div class="login-header">
+                    <a href="index.html">
+                        <img src="KiwiChurch_Old_White.png" alt="Kiwi Church" class="login-logo" style="filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);">
+                    </a>
+                    <h1 class="login-title">Welcome back</h1>
+                    <p class="login-subtitle">Sign in to your account</p>
+                </div>
+                <div id="login-error" class="login-error" style="display: none;"></div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label class="form-label" for="login-identifier">Username or Email</label>
+                        <input type="text" class="form-input" id="login-identifier" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="login-password">Password</label>
+                        <input type="password" class="form-input" id="login-password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="login-submit">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-loading" style="display: none;">Signing in...</span>
+                    </button>
+                </form>
+                <p style="text-align: center; margin-top: 1rem;">
+                    <a href="#" onclick="showAuthView('forgot'); return false;" style="font-size: 0.875rem; color: var(--color-sage);">Forgot your password?</a>
+                </p>
+                <p style="text-align: center; margin-top: 1.5rem; color: var(--color-text-light); font-size: 0.9375rem;">
+                    Need an account? <a href="#" onclick="showAuthView('register'); return false;" style="color: var(--color-forest); font-weight: 500;">Request access</a>
+                </p>
+                <p style="text-align: center; margin-top: 1rem;">
+                    <a href="index.html" style="font-size: 0.875rem;">Back to website</a>
+                </p>
+
+                <!-- Demo Credentials -->
+                <div id="demo-credentials" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+                    <p style="font-size: 0.75rem; color: var(--color-text-light); text-align: center; margin-bottom: 0.75rem;">Demo Accounts:</p>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem;">
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="demoLogin('Utting', 'Freedom')" style="justify-content: space-between;">
+                            <span>Member</span>
+                            <span style="opacity: 0.7;">Utting / Freedom</span>
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="demoLogin('Olds', 'Prestons')" style="justify-content: space-between;">
+                            <span>Host</span>
+                            <span style="opacity: 0.7;">Olds / Prestons</span>
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="demoLogin('Tempero', 'Hansons')" style="justify-content: space-between;">
+                            <span>Admin</span>
+                            <span style="opacity: 0.7;">Tempero / Hansons</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Registration Request Card -->
+            <div class="login-card" id="register-card" style="display: none;">
+                <div class="login-header">
+                    <a href="index.html">
+                        <img src="KiwiChurch_Old_White.png" alt="Kiwi Church" class="login-logo" style="filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);">
+                    </a>
+                    <h1 class="login-title">Request Access</h1>
+                    <p class="login-subtitle">Join our community</p>
+                </div>
+                <div id="register-message" class="login-error" style="display: none;"></div>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label class="form-label" for="register-name">Full Name</label>
+                        <input type="text" class="form-input" id="register-name" required autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-email">Email</label>
+                        <input type="email" class="form-input" id="register-email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-username">Preferred Username</label>
+                        <input type="text" class="form-input" id="register-username" autocomplete="username" pattern="[a-zA-Z0-9_]+" title="Letters, numbers, and underscores only">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-password">Password</label>
+                        <input type="password" class="form-input" id="register-password" required autocomplete="new-password" minlength="6">
+                        <small style="color: var(--color-text-light); font-size: 0.75rem;">At least 6 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-password-confirm">Confirm Password</label>
+                        <input type="password" class="form-input" id="register-password-confirm" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-message-text">Message (optional)</label>
+                        <textarea class="form-input" id="register-message-text" rows="2" placeholder="Tell us a bit about yourself or how you heard about us"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="register-submit">
+                        <span class="btn-text">Request Access</span>
+                        <span class="btn-loading" style="display: none;">Submitting...</span>
+                    </button>
+                </form>
+                <p style="text-align: center; margin-top: 1.5rem;">
+                    <a href="#" onclick="showAuthView('login'); return false;" style="font-size: 0.875rem;">Already have an account? Sign in</a>
+                </p>
+            </div>
+
+            <!-- Forgot Password Card -->
+            <div class="login-card" id="forgot-card" style="display: none;">
+                <div class="login-header">
+                    <a href="index.html">
+                        <img src="KiwiChurch_Old_White.png" alt="Kiwi Church" class="login-logo" style="filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);">
+                    </a>
+                    <h1 class="login-title">Reset Password</h1>
+                    <p class="login-subtitle">We'll send you a reset link</p>
+                </div>
+                <div id="forgot-message" class="login-error" style="display: none;"></div>
+                <form id="forgot-form">
+                    <div class="form-group">
+                        <label class="form-label" for="forgot-email">Email Address</label>
+                        <input type="email" class="form-input" id="forgot-email" required autocomplete="email">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="forgot-submit">
+                        <span class="btn-text">Send Reset Link</span>
+                        <span class="btn-loading" style="display: none;">Sending...</span>
+                    </button>
+                </form>
+                <p style="text-align: center; margin-top: 1.5rem;">
+                    <a href="#" onclick="showAuthView('login'); return false;" style="font-size: 0.875rem;">Back to sign in</a>
+                </p>
+            </div>
+
+            <!-- Reset Sent Confirmation -->
+            <div class="login-card" id="reset-sent-card" style="display: none;">
+                <div class="login-header">
+                    <div style="width: 60px; height: 60px; background: var(--color-sage-light); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <h1 class="login-title">Check Your Email</h1>
+                    <p class="login-subtitle">We've sent a password reset link to <strong id="reset-email-display"></strong></p>
+                </div>
+                <p style="text-align: center; color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1.5rem;">
+                    Didn't receive the email? Check your spam folder or try again.
+                </p>
+                <button class="btn btn-secondary" style="width: 100%;" onclick="showAuthView('forgot')">Try Again</button>
+                <p style="text-align: center; margin-top: 1.5rem;">
+                    <a href="#" onclick="showAuthView('login'); return false;" style="font-size: 0.875rem;">Back to sign in</a>
+                </p>
+            </div>
+
+            <!-- Registration Success -->
+            <div class="login-card" id="register-success-card" style="display: none;">
+                <div class="login-header">
+                    <div style="width: 60px; height: 60px; background: var(--color-sage-light); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <h1 class="login-title">Request Submitted</h1>
+                    <p class="login-subtitle">Thank you for your interest!</p>
+                </div>
+                <p style="text-align: center; color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1.5rem;">
+                    An administrator will review your request and get in touch with you soon. Please check your email for verification.
+                </p>
+                <button class="btn btn-primary" style="width: 100%;" onclick="showAuthView('login')">Back to Sign In</button>
+            </div>
+
+            <!-- Email Verification Required -->
+            <div class="login-card" id="verify-email-card" style="display: none;">
+                <div class="login-header">
+                    <div style="width: 60px; height: 60px; background: #fde68a; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                    </div>
+                    <h1 class="login-title">Verify Your Email</h1>
+                    <p class="login-subtitle">Check your inbox to continue</p>
+                </div>
+                <p style="text-align: center; color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1.5rem;">
+                    We've sent a verification email to <strong id="verify-email-display"></strong>. Click the link in the email to verify your account.
+                </p>
+                <button class="btn btn-secondary" style="width: 100%; margin-bottom: 0.75rem;" onclick="resendVerificationEmail()">Resend Verification Email</button>
+                <button class="btn btn-ghost" style="width: 100%;" onclick="logoutAndShowLogin()">Sign in with different account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App View (shown when authenticated) -->
+    <div id="app-view" style="display: none;">
+        <!-- App Header (Mobile) -->
+        <div class="app-header" id="app-header">
+            <h1 class="app-header-title" id="page-title">Home</h1>
+            <div class="app-header-actions">
+                <button class="btn btn-ghost btn-sm" onclick="openSearchModal()" title="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="openNotificationsModal()" title="Notifications" style="position: relative;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span id="notification-badge" style="display: none; position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: #dc2626; border-radius: 50%;"></span>
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="navigateTo('profile')" title="Profile">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main id="app-main">
+            <!-- Pages rendered by JavaScript -->
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav" style="display: flex;" aria-label="Main navigation">
+            <div class="bottom-nav-inner" role="menubar">
+                <a href="#home" class="bottom-nav-item active" data-page="home" onclick="navigateTo('home')" role="menuitem" aria-label="Home" aria-current="page">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span class="bottom-nav-label">Home</span>
+                </a>
+                <a href="#events" class="bottom-nav-item" data-page="events" onclick="navigateTo('events')" role="menuitem" aria-label="Events">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span class="bottom-nav-label">Events</span>
+                </a>
+                <a href="#groups" class="bottom-nav-item" data-page="groups" onclick="navigateTo('groups')" role="menuitem" aria-label="Groups">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span class="bottom-nav-label">Groups</span>
+                </a>
+                <a href="#kete" class="bottom-nav-item" data-page="kete" onclick="navigateTo('kete')" role="menuitem" aria-label="Kete blog">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <span class="bottom-nav-label">Kete</span>
+                </a>
+                <a href="#profile" class="bottom-nav-item" data-page="profile" onclick="navigateTo('profile')" role="menuitem" aria-label="Profile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span class="bottom-nav-label">Profile</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal" id="modal" tabindex="-1">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Modal Title</h3>
+                <button class="modal-close" onclick="closeModal()" aria-label="Close modal" type="button">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+    <!-- Firebase Configuration & Services -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/storage.js"></script>
+
+    <!-- Portal JavaScript -->
+    <script src="js/main.js"></script>
+    <script src="js/portal.js"></script>
+</body>
+</html>

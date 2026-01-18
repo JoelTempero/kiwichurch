@@ -2,15 +2,38 @@
     "id": "/kiwichurch/",
     "name": "Kiwi Church",
     "short_name": "Kiwi Church",
-    "description": "Welcome to the table - A desire for faith, meaning, community and authentic relationship",
-    "start_url": "./",
+    "description": "Welcome to the table - A network of small group Christian communities in Christchurch, NZ. We gather around tables, share meals, and explore faith together.",
+    "start_url": "./portal.html",
     "display": "standalone",
     "background_color": "#1a3a2f",
     "theme_color": "#1a3a2f",
     "orientation": "portrait-primary",
     "scope": "./",
     "lang": "en-NZ",
+    "categories": ["lifestyle", "social"],
+    "shortcuts": [
+        {
+            "name": "Events",
+            "short_name": "Events",
+            "description": "View upcoming events",
+            "url": "./portal.html#events",
+            "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Communities",
+            "short_name": "Groups",
+            "description": "View communities",
+            "url": "./portal.html#groups",
+            "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }]
+        }
+    ],
     "icons": [
+        {
+            "src": "./icons/icon-144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "any"
+        },
         {
             "src": "./icons/icon-192.png",
             "sizes": "192x192",

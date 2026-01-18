@@ -1,0 +1,139 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check file size (in bytes)
+    function isValidSize(maxSizeMB) {
+      return request.resource.size <= maxSizeMB * 1024 * 1024;
+    }
+
+    // Check if file is an image
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Check if file is a document (PDF, DOC, etc)
+    function isDocument() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*');
+    }
+
+    // Check if file is allowed type (image or document)
+    function isAllowedType() {
+      return isImage() || isDocument();
+    }
+
+    // ============================================
+    // USER PROFILE IMAGES
+    // ============================================
+    match /users/{userId}/profile/{fileName} {
+      // Anyone authenticated can view profile images
+      allow read: if isAuthenticated();
+
+      // Users can upload their own profile image
+      allow write: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        isImage() &&
+        isValidSize(5); // Max 5MB
+    }
+
+    // ============================================
+    // KETE (BLOG) IMAGES
+    // ============================================
+    match /kete/{postId}/{fileName} {
+      // Anyone can read kete images (public blog)
+      allow read: if true;
+
+      // Only authenticated users can upload (will be validated as admin/host in app)
+      allow write: if isAuthenticated() &&
+        isImage() &&
+        isValidSize(10); // Max 10MB
+
+      // Allow delete by uploader or admin
+      allow delete: if isAuthenticated();
+    }
+
+    // ============================================
+    // EVENT IMAGES
+    // ============================================
+    match /events/{eventId}/{fileName} {
+      // Anyone authenticated can view event images
+      allow read: if isAuthenticated();
+
+      // Only authenticated users can upload (validated as admin/host in app)
+      allow write: if isAuthenticated() &&
+        isImage() &&
+        isValidSize(10); // Max 10MB
+
+      allow delete: if isAuthenticated();
+    }
+
+    // ============================================
+    // GATHERING IMAGES
+    // ============================================
+    match /gatherings/{gatheringId}/{fileName} {
+      // Anyone authenticated can view gathering images
+      allow read: if isAuthenticated();
+
+      // Only authenticated users can upload
+      allow write: if isAuthenticated() &&
+        isImage() &&
+        isValidSize(10); // Max 10MB
+
+      allow delete: if isAuthenticated();
+    }
+
+    // ============================================
+    // MESSAGE BOARD ATTACHMENTS
+    // ============================================
+    match /messageBoards/{boardId}/posts/{postId}/{fileName} {
+      // Authenticated users can read (access control via Firestore)
+      allow read: if isAuthenticated();
+
+      // Authenticated users can upload
+      allow write: if isAuthenticated() &&
+        isAllowedType() &&
+        isValidSize(25); // Max 25MB for documents
+
+      allow delete: if isAuthenticated();
+    }
+
+    // ============================================
+    // SHARED RESOURCES
+    // ============================================
+    match /resources/{fileName} {
+      // Anyone can read shared resources
+      allow read: if true;
+
+      // Only admins can upload (validated in app)
+      allow write: if isAuthenticated() &&
+        isAllowedType() &&
+        isValidSize(50); // Max 50MB for resources
+
+      allow delete: if isAuthenticated();
+    }
+
+    // ============================================
+    // TEMPORARY UPLOADS
+    // ============================================
+    match /temp/{userId}/{fileName} {
+      // Users can manage their own temp files
+      allow read, write: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        isAllowedType() &&
+        isValidSize(25);
+
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}

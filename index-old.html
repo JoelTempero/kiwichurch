@@ -1,0 +1,4016 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Kiwi Church - A desire for faith, meaning, community and authentic relationship. Your local small group Christian church in Christchurch, South Island NZ.">
+    <meta name="theme-color" content="#1a3a2f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kiwi Church">
+    
+    <title>Kiwi Church - Welcome to the Table</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Nunito+Sans:ital,opsz,wght@0,6..12,300;0,6..12,400;0,6..12,500;0,6..12,600;1,6..12,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --color-forest: #1a3a2f;
+            --color-forest-light: #2d5a4a;
+            --color-forest-dark: #0f251e;
+            --color-sage: #7d9a87;
+            --color-sage-light: #a8c4b0;
+            --color-cream: #faf8f5;
+            --color-cream-dark: #f0ebe3;
+            --color-terracotta: #c17f59;
+            --color-terracotta-light: #d4a07d;
+            --color-gold: #d4a574;
+            --color-text: #2c3e36;
+            --color-text-light: #5a6b62;
+            --color-white: #ffffff;
+            --color-overlay: rgba(26, 58, 47, 0.85);
+            
+            --font-display: 'Cormorant Garamond', Georgia, serif;
+            --font-body: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            
+            --shadow-sm: 0 2px 8px rgba(26, 58, 47, 0.08);
+            --shadow-md: 0 4px 20px rgba(26, 58, 47, 0.12);
+            --shadow-lg: 0 8px 40px rgba(26, 58, 47, 0.16);
+            --shadow-xl: 0 20px 60px rgba(26, 58, 47, 0.2);
+            
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            
+            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-body);
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--color-text);
+            background: var(--color-cream);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.02;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-display);
+            font-weight: 500;
+            line-height: 1.2;
+            color: var(--color-forest);
+        }
+
+        h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 400; letter-spacing: -0.02em; }
+        h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 400; }
+        h3 { font-size: clamp(1.5rem, 3vw, 2rem); }
+        h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        a {
+            color: var(--color-forest);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        a:hover {
+            color: var(--color-terracotta);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2rem;
+            font-family: var(--font-body);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: none;
+            border-radius: 100px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--color-forest);
+            color: var(--color-white);
+            box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        .btn-primary:hover {
+            background: var(--color-forest-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.1);
+            color: var(--color-white);
+        }
+
+        .btn-secondary {
+            background: var(--color-white);
+            color: var(--color-forest);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-cream);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            color: var(--color-forest);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--color-white);
+            border: 2px solid rgba(255,255,255,0.4);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.8);
+            color: var(--color-white);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-forest);
+            padding: 0.5rem 1rem;
+        }
+
+        .btn-ghost:hover {
+            background: var(--color-sage-light);
+            color: var(--color-forest);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-lg {
+            padding: 1.125rem 2.5rem;
+            font-size: 1rem;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            transition: all var(--transition-base);
+        }
+
+        .header.scrolled {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header.scrolled .header-logo img {
+            filter: none;
+        }
+
+        .header.scrolled .nav-link {
+            color: var(--color-forest);
+        }
+
+        .header.scrolled .nav-link:hover {
+            color: var(--color-terracotta);
+        }
+
+        .header.scrolled .btn-outline {
+            background: var(--color-forest);
+            color: var(--color-white);
+            border-color: var(--color-forest);
+        }
+
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 1001;
+        }
+
+        .header-logo img {
+            height: 50px;
+            width: auto;
+            transition: filter var(--transition-base);
+        }
+
+        .nav-desktop {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: var(--color-white);
+            border-radius: 100px;
+            transition: all var(--transition-fast);
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--color-white);
+        }
+
+        .nav-link.active {
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* User menu dropdown */
+        .user-menu {
+            position: relative;
+        }
+
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 100px;
+            color: var(--color-white);
+            font-family: var(--font-body);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .header.scrolled .user-menu-btn {
+            background: var(--color-sage-light);
+            color: var(--color-forest);
+        }
+
+        .user-menu-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .header.scrolled .user-menu-btn:hover {
+            background: var(--color-sage);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: var(--color-terracotta);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .user-menu-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            min-width: 220px;
+            background: var(--color-white);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-xl);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all var(--transition-fast);
+        }
+
+        .user-menu.open .user-menu-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-menu-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--color-cream-dark);
+        }
+
+        .user-menu-name {
+            font-weight: 600;
+            color: var(--color-forest);
+        }
+
+        .user-menu-role {
+            font-size: 0.8125rem;
+            color: var(--color-text-light);
+            text-transform: capitalize;
+        }
+
+        .user-menu-items {
+            padding: 0.5rem;
+        }
+
+        .user-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--color-text);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .user-menu-item:hover {
+            background: var(--color-cream);
+            color: var(--color-forest);
+        }
+
+        .user-menu-item svg {
+            width: 18px;
+            height: 18px;
+            opacity: 0.7;
+        }
+
+        .user-menu-divider {
+            height: 1px;
+            background: var(--color-cream-dark);
+            margin: 0.5rem 0;
+        }
+
+        /* Mobile menu */
+        .mobile-menu-btn {
+            display: none;
+            width: 44px;
+            height: 44px;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .mobile-menu-btn svg {
+            color: var(--color-white);
+            transition: color var(--transition-fast);
+        }
+
+        .header.scrolled .mobile-menu-btn {
+            background: var(--color-sage-light);
+        }
+
+        .header.scrolled .mobile-menu-btn svg {
+            color: var(--color-forest);
+        }
+
+        .mobile-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--color-forest);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            padding: 100px 2rem 2rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-base);
+        }
+
+        .mobile-nav.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-nav-link {
+            display: block;
+            padding: 1rem 0;
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            color: var(--color-white);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all var(--transition-base);
+        }
+
+        .mobile-nav.open .mobile-nav-link {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .mobile-nav.open .mobile-nav-link:nth-child(1) { transition-delay: 0.1s; }
+        .mobile-nav.open .mobile-nav-link:nth-child(2) { transition-delay: 0.15s; }
+        .mobile-nav.open .mobile-nav-link:nth-child(3) { transition-delay: 0.2s; }
+        .mobile-nav.open .mobile-nav-link:nth-child(4) { transition-delay: 0.25s; }
+        .mobile-nav.open .mobile-nav-link:nth-child(5) { transition-delay: 0.3s; }
+        .mobile-nav.open .mobile-nav-link:nth-child(6) { transition-delay: 0.35s; }
+        .mobile-nav.open .mobile-nav-link:nth-child(7) { transition-delay: 0.4s; }
+        .mobile-nav.open .mobile-nav-link:nth-child(8) { transition-delay: 0.45s; }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        .hero-bg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                180deg,
+                rgba(26, 58, 47, 0.4) 0%,
+                rgba(26, 58, 47, 0.6) 50%,
+                rgba(26, 58, 47, 0.8) 100%
+            );
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 2rem;
+            max-width: 900px;
+        }
+
+        .hero-logo {
+            width: 140px;
+            height: auto;
+            margin-bottom: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 1s ease forwards 0.3s;
+        }
+
+        .hero-title {
+            color: var(--color-white);
+            margin-bottom: 1rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 1s ease forwards 0.5s;
+        }
+
+        .hero-subtitle {
+            font-family: var(--font-display);
+            font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+            font-weight: 400;
+            font-style: italic;
+            color: var(--color-sage-light);
+            margin-bottom: 2.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 1s ease forwards 0.7s;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 1s ease forwards 0.9s;
+        }
+
+        .hero-scroll {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--color-white);
+            opacity: 0.7;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .hero-scroll span {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(10px); }
+        }
+
+        /* Main Content */
+        .main {
+            min-height: 100vh;
+        }
+
+        /* Page transitions */
+        .page {
+            display: none;
+            opacity: 0;
+            animation: pageIn 0.5s ease forwards;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes pageIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Sections */
+        .section {
+            padding: 6rem 2rem;
+        }
+
+        .section-sm {
+            padding: 4rem 2rem;
+        }
+
+        .section-lg {
+            padding: 8rem 2rem;
+        }
+
+        .section-dark {
+            background: var(--color-forest);
+            color: var(--color-white);
+        }
+
+        .section-dark h1,
+        .section-dark h2,
+        .section-dark h3 {
+            color: var(--color-white);
+        }
+
+        .section-sage {
+            background: var(--color-sage-light);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .container-sm {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .container-lg {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Section Headers */
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-label {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--color-terracotta);
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            margin-bottom: 1rem;
+        }
+
+        .section-desc {
+            font-size: 1.125rem;
+            color: var(--color-text-light);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .section-dark .section-desc {
+            color: var(--color-sage-light);
+        }
+
+        /* Feature Cards */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .feature-card {
+            position: relative;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: var(--color-white);
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-base);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .feature-card-image {
+            position: relative;
+            height: 240px;
+            overflow: hidden;
+        }
+
+        .feature-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform var(--transition-slow);
+        }
+
+        .feature-card:hover .feature-card-image img {
+            transform: scale(1.05);
+        }
+
+        .feature-card-content {
+            padding: 1.5rem;
+        }
+
+        .feature-card-title {
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card-text {
+            color: var(--color-text-light);
+            font-size: 0.9375rem;
+        }
+
+        /* Coming Up Section */
+        .coming-up-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .event-card {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1.5rem;
+            align-items: center;
+            padding: 1.5rem;
+            background: var(--color-white);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-base);
+            cursor: pointer;
+        }
+
+        .event-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateX(4px);
+        }
+
+        .event-date {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            height: 70px;
+            background: var(--color-forest);
+            border-radius: var(--radius-md);
+            color: var(--color-white);
+        }
+
+        .event-date-day {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .event-date-month {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+        }
+
+        .event-info h4 {
+            margin-bottom: 0.25rem;
+            color: var(--color-forest);
+        }
+
+        .event-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+
+        .event-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .event-meta-item svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.6;
+        }
+
+        .event-badge {
+            padding: 0.375rem 0.75rem;
+            background: var(--color-sage-light);
+            color: var(--color-forest);
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 100px;
+            white-space: nowrap;
+        }
+
+        .event-badge.private {
+            background: var(--color-terracotta-light);
+            color: var(--color-forest-dark);
+        }
+
+        /* Gathering Cards */
+        .gatherings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .gathering-card {
+            position: relative;
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-base);
+        }
+
+        .gathering-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .gathering-card-header {
+            position: relative;
+            height: 160px;
+            background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+            display: flex;
+            align-items: flex-end;
+            padding: 1.5rem;
+        }
+
+        .gathering-card-header h3 {
+            color: var(--color-white);
+            margin: 0;
+        }
+
+        .gathering-card-body {
+            padding: 1.5rem;
+        }
+
+        .gathering-card-rhythm {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--color-cream);
+            color: var(--color-text-light);
+            font-size: 0.8125rem;
+            border-radius: 100px;
+            margin-bottom: 1rem;
+        }
+
+        .gathering-card-desc {
+            color: var(--color-text-light);
+            font-size: 0.9375rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Calendar */
+        .calendar-container {
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem;
+            background: var(--color-forest);
+            color: var(--color-white);
+        }
+
+        .calendar-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--color-white);
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .calendar-nav-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 50%;
+            color: var(--color-white);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .calendar-nav-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .calendar-day-header {
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-text-light);
+            background: var(--color-cream);
+        }
+
+        .calendar-day {
+            position: relative;
+            min-height: 100px;
+            padding: 0.5rem;
+            border: 1px solid var(--color-cream-dark);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .calendar-day:hover {
+            background: var(--color-cream);
+        }
+
+        .calendar-day.other-month {
+            background: var(--color-cream);
+            opacity: 0.5;
+        }
+
+        .calendar-day.today {
+            background: var(--color-sage-light);
+        }
+
+        .calendar-day.selected {
+            background: var(--color-forest);
+        }
+
+        .calendar-day.selected .calendar-day-number {
+            color: var(--color-white);
+        }
+
+        .calendar-day-number {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--color-forest);
+        }
+
+        .calendar-day-events {
+            margin-top: 0.25rem;
+        }
+
+        .calendar-event-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--color-terracotta);
+            border-radius: 50%;
+            margin-right: 2px;
+        }
+
+        .calendar-event-dot.private {
+            background: var(--color-sage);
+        }
+
+        /* Day Events Panel */
+        .day-events-panel {
+            padding: 1.5rem;
+            background: var(--color-cream);
+            border-top: 1px solid var(--color-cream-dark);
+        }
+
+        .day-events-header {
+            margin-bottom: 1rem;
+        }
+
+        .day-events-date {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--color-forest);
+        }
+
+        .day-event-item {
+            padding: 1rem;
+            background: var(--color-white);
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .day-event-item:hover {
+            box-shadow: var(--shadow-sm);
+        }
+
+        .day-event-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Blog/Kete */
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .blog-card {
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-base);
+        }
+
+        .blog-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .blog-card-image {
+            height: 220px;
+            background: linear-gradient(135deg, var(--color-sage) 0%, var(--color-forest) 100%);
+            overflow: hidden;
+        }
+
+        .blog-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform var(--transition-slow);
+        }
+
+        .blog-card:hover .blog-card-image img {
+            transform: scale(1.05);
+        }
+
+        .blog-card-content {
+            padding: 1.5rem;
+        }
+
+        .blog-card-date {
+            font-size: 0.8125rem;
+            color: var(--color-text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .blog-card-title {
+            margin-bottom: 0.75rem;
+        }
+
+        .blog-card-excerpt {
+            color: var(--color-text-light);
+            font-size: 0.9375rem;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--color-forest);
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            color: var(--color-text);
+            background: var(--color-white);
+            border: 2px solid var(--color-cream-dark);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--color-sage);
+            box-shadow: 0 0 0 4px rgba(125, 154, 135, 0.15);
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+        }
+
+        .form-checkbox input {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--color-forest);
+        }
+
+        /* Login Page */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--color-white);
+            border-radius: var(--radius-xl);
+            padding: 3rem;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-logo {
+            width: 80px;
+            margin-bottom: 1rem;
+        }
+
+        .login-title {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            color: var(--color-text-light);
+        }
+
+        .login-error {
+            padding: 1rem;
+            background: #fef2f2;
+            color: #dc2626;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1.5rem;
+            font-size: 0.9375rem;
+        }
+
+        /* Dashboard */
+        .dashboard-header {
+            padding: 8rem 2rem 4rem;
+            background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+            color: var(--color-white);
+        }
+
+        .dashboard-greeting {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 3rem);
+            color: var(--color-white);
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-subtitle {
+            color: var(--color-sage-light);
+            font-size: 1.125rem;
+        }
+
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: -2rem;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-card {
+            background: var(--color-white);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--color-forest);
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: var(--color-text-light);
+            font-size: 0.9375rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Profile Page */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            background: var(--color-terracotta);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 3rem;
+            color: var(--color-white);
+        }
+
+        .profile-info h2 {
+            margin-bottom: 0.25rem;
+        }
+
+        .profile-role {
+            color: var(--color-text-light);
+            text-transform: capitalize;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-cream-dark);
+        }
+
+        .table th {
+            font-weight: 600;
+            color: var(--color-forest);
+            background: var(--color-cream);
+        }
+
+        .table tbody tr:hover {
+            background: var(--color-cream);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-fast);
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transform: scale(0.9) translateY(20px);
+            transition: all var(--transition-base);
+        }
+
+        .modal-overlay.open .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem;
+            background: var(--color-forest);
+            color: var(--color-white);
+        }
+
+        .modal-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--color-white);
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 50%;
+            color: var(--color-white);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .modal-close:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .modal-body {
+            padding: 2rem;
+            overflow-y: auto;
+            max-height: calc(90vh - 180px);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: var(--color-cream);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--color-forest-dark);
+            color: var(--color-white);
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto 3rem;
+        }
+
+        .footer-brand img {
+            height: 60px;
+            margin-bottom: 1rem;
+        }
+
+        .footer-brand p {
+            color: var(--color-sage-light);
+            font-size: 0.9375rem;
+        }
+
+        .footer-title {
+            font-family: var(--font-display);
+            font-size: 1.125rem;
+            color: var(--color-white);
+            margin-bottom: 1rem;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-links a {
+            color: var(--color-sage-light);
+            font-size: 0.9375rem;
+            transition: color var(--transition-fast);
+        }
+
+        .footer-links a:hover {
+            color: var(--color-white);
+        }
+
+        .footer-contact {
+            color: var(--color-sage-light);
+            font-size: 0.9375rem;
+        }
+
+        .footer-contact p {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-contact a {
+            color: var(--color-sage-light);
+        }
+
+        .footer-contact a:hover {
+            color: var(--color-white);
+        }
+
+        .footer-bottom {
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            color: var(--color-sage);
+            font-size: 0.875rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.25rem;
+            border-bottom: 2px solid var(--color-cream-dark);
+            margin-bottom: 2rem;
+        }
+
+        .tab {
+            padding: 1rem 1.5rem;
+            font-weight: 500;
+            color: var(--color-text-light);
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .tab:hover {
+            color: var(--color-forest);
+        }
+
+        .tab.active {
+            color: var(--color-forest);
+            border-bottom-color: var(--color-forest);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            color: var(--color-sage);
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            color: var(--color-text-light);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            padding: 1rem 1.5rem;
+            background: var(--color-forest);
+            color: var(--color-white);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            background: #059669;
+        }
+
+        .toast.error {
+            background: #dc2626;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* About page specific */
+        .about-hero {
+            position: relative;
+            padding: 10rem 2rem 6rem;
+            background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .about-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .about-hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .about-hero h1 {
+            color: var(--color-white);
+            margin-bottom: 1rem;
+        }
+
+        .about-hero p {
+            color: var(--color-sage-light);
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .value-card {
+            padding: 2rem;
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+            transition: all var(--transition-base);
+        }
+
+        .value-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-4px);
+        }
+
+        .value-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--color-sage-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .value-icon svg {
+            width: 32px;
+            height: 32px;
+            color: var(--color-forest);
+        }
+
+        /* RSVP list */
+        .rsvp-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .rsvp-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--color-cream);
+            border-radius: 100px;
+            font-size: 0.8125rem;
+        }
+
+        .rsvp-chip.you {
+            background: var(--color-sage-light);
+            font-weight: 500;
+        }
+
+        /* Giving page */
+        .giving-card {
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .bank-details {
+            background: var(--color-cream);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            font-family: monospace;
+            font-size: 1.125rem;
+        }
+
+        .bank-details dt {
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+            margin-bottom: 0.25rem;
+        }
+
+        .bank-details dd {
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--color-forest);
+        }
+
+        /* ==========================================
+           APP MODE - Bottom Navigation & Portal UI
+           ========================================== */
+        
+        /* App mode body class */
+        body.app-mode {
+            padding-bottom: 80px;
+        }
+
+        body.app-mode .header {
+            background: var(--color-white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        body.app-mode .header .header-logo img {
+            filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);
+        }
+
+        body.app-mode .mobile-menu-btn {
+            display: none !important;
+        }
+
+        body.app-mode .mobile-nav {
+            display: none !important;
+        }
+
+        body.app-mode .footer {
+            display: none;
+        }
+
+        /* Hide header on mobile in app mode */
+        @media (max-width: 768px) {
+            body.app-mode .header {
+                display: none;
+            }
+
+            body.app-mode .page > div:first-child {
+                padding-top: 0 !important;
+            }
+        }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: var(--color-white);
+            border-top: 1px solid var(--color-cream-dark);
+            display: none;
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        body.app-mode .bottom-nav {
+            display: flex;
+        }
+
+        .bottom-nav-inner {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            flex: 1;
+            padding: 0.5rem;
+            color: var(--color-text-light);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+
+        .bottom-nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%) scaleX(0);
+            width: 40px;
+            height: 3px;
+            background: var(--color-forest);
+            border-radius: 0 0 3px 3px;
+            transition: transform var(--transition-fast);
+        }
+
+        .bottom-nav-item.active::before {
+            transform: translateX(-50%) scaleX(1);
+        }
+
+        .bottom-nav-item.active {
+            color: var(--color-forest);
+        }
+
+        .bottom-nav-item:hover {
+            color: var(--color-forest);
+        }
+
+        .bottom-nav-item svg {
+            width: 24px;
+            height: 24px;
+            stroke-width: 1.75;
+        }
+
+        .bottom-nav-item.active svg {
+            stroke-width: 2.25;
+        }
+
+        .bottom-nav-label {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        }
+
+        /* App Portal Header */
+        .app-header {
+            display: none;
+            padding: 1rem 1.5rem;
+            background: var(--color-white);
+            border-bottom: 1px solid var(--color-cream-dark);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        body.app-mode .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .app-header-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--color-forest);
+        }
+
+        .app-header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* App Dashboard Cards */
+        .app-dashboard {
+            padding: 1rem;
+        }
+
+        .app-quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .app-quick-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1.5rem 1rem;
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            text-decoration: none;
+            color: var(--color-forest);
+            transition: all var(--transition-base);
+        }
+
+        .app-quick-action:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            color: var(--color-forest);
+        }
+
+        .app-quick-action-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--color-sage-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .app-quick-action-icon svg {
+            width: 24px;
+            height: 24px;
+            color: var(--color-forest);
+        }
+
+        .app-quick-action-label {
+            font-weight: 500;
+            font-size: 0.9375rem;
+        }
+
+        /* App Section */
+        .app-section {
+            padding: 0 1rem 1.5rem;
+        }
+
+        .app-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .app-section-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--color-forest);
+        }
+
+        .app-section-link {
+            font-size: 0.875rem;
+            color: var(--color-terracotta);
+            font-weight: 500;
+        }
+
+        /* App Event Card (compact) */
+        .app-event-card {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--color-white);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .app-event-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .app-event-date {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 50px;
+            padding: 0.5rem;
+            background: var(--color-forest);
+            border-radius: var(--radius-sm);
+            color: var(--color-white);
+        }
+
+        .app-event-date-day {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .app-event-date-month {
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+        }
+
+        .app-event-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .app-event-title {
+            font-weight: 600;
+            color: var(--color-forest);
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .app-event-meta {
+            font-size: 0.8125rem;
+            color: var(--color-text-light);
+        }
+
+        /* App mode toast position adjustment */
+        body.app-mode .toast-container {
+            bottom: 90px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-desktop {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: flex;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .event-card {
+                grid-template-columns: auto 1fr;
+            }
+
+            .event-card .event-badge {
+                grid-column: 1 / -1;
+                justify-self: start;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .calendar-day {
+                min-height: 60px;
+            }
+
+            .calendar-day-header {
+                padding: 0.5rem;
+                font-size: 0.625rem;
+            }
+
+            .blog-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-stats {
+                padding: 0 1rem;
+            }
+
+            .section {
+                padding: 4rem 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .hero-actions .btn {
+                width: 100%;
+            }
+
+            .btn {
+                padding: 1rem 1.5rem;
+            }
+
+            .calendar-day-number {
+                font-size: 0.75rem;
+            }
+
+            .login-card {
+                padding: 2rem;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-cream);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-sage);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-forest);
+        }
+
+        /* Selection styling */
+        ::selection {
+            background: var(--color-sage);
+            color: var(--color-white);
+        }
+
+        /* Print styles */
+        @media print {
+            .header,
+            .footer,
+            .mobile-nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="header-inner">
+            <a href="#/" class="header-logo" onclick="navigate('home')">
+                <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church" id="header-logo-img">
+            </a>
+            
+            <nav class="nav-desktop" id="nav-desktop">
+                <!-- Navigation populated by JS -->
+            </nav>
+
+            <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation -->
+    <nav class="mobile-nav" id="mobile-nav">
+        <!-- Mobile nav populated by JS -->
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main" id="main">
+        <!-- Pages rendered here by JS -->
+    </main>
+
+    <!-- Bottom Navigation (App Mode) -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <div class="bottom-nav-inner" id="bottom-nav-inner">
+            <!-- Populated by JS -->
+        </div>
+    </nav>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Modal Title</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Modal content -->
+            </div>
+            <div class="modal-footer" id="modal-footer">
+                <!-- Modal actions -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // DATA STORE (Simulating Firebase)
+        // ============================================
+        
+        const DB = {
+            users: [
+                {
+                    id: 'user-1',
+                    username: 'Utting',
+                    password: 'Freedom',
+                    name: 'Sarah Utting',
+                    email: 'sarah.utting@email.com',
+                    phone: '027-123-4567',
+                    role: 'member',
+                    dependants: ['James Utting', 'Emma Utting'],
+                    rsvps: []
+                },
+                {
+                    id: 'user-2',
+                    username: 'Olds',
+                    password: 'Prestons',
+                    name: 'Michael Olds',
+                    email: 'michael.olds@email.com',
+                    phone: '027-234-5678',
+                    role: 'host',
+                    dependants: ['Lucy Olds'],
+                    assignedGatherings: ['gathering-3', 'gathering-6'],
+                    rsvps: []
+                },
+                {
+                    id: 'user-3',
+                    username: 'Tempero',
+                    password: 'Hansons',
+                    name: 'Darryl Tempero',
+                    email: 'd.tempero@xtra.co.nz',
+                    phone: '027-556-0055',
+                    role: 'admin',
+                    dependants: [],
+                    rsvps: []
+                }
+            ],
+            
+            gatherings: [
+                {
+                    id: 'gathering-1',
+                    name: 'Thin Place',
+                    description: 'A space for allowing our humanity to be held gently. A space for wonder, for being at home, for lamenting, hoping, playing, and encounter.',
+                    rhythm: '2nd & 4th Sunday, 10am',
+                    color: '#1a3a2f',
+                    image: 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=600&h=400&fit=crop'
+                },
+                {
+                    id: 'gathering-2',
+                    name: 'Online Prayer',
+                    description: 'Join us in the Zoom room for prayer and connection. All are welcome to these times of shared spiritual practice.',
+                    rhythm: 'Tues 6:45am & Wed 12:15pm',
+                    color: '#7d9a87',
+                    image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=600&h=400&fit=crop'
+                },
+                {
+                    id: 'gathering-3',
+                    name: 'Prestons Community',
+                    description: 'A geographical community gathering in the Prestons area. We share food, fellowship, and faith together.',
+                    rhythm: '1st Sunday of the month',
+                    color: '#c17f59',
+                    image: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=600&h=400&fit=crop'
+                },
+                {
+                    id: 'gathering-4',
+                    name: 'Rito Shack',
+                    description: 'A gathering space for young adults exploring faith, meaning, and authentic community together.',
+                    rhythm: 'Fortnightly Thursdays',
+                    color: '#2d5a4a',
+                    image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=400&fit=crop'
+                },
+                {
+                    id: 'gathering-5',
+                    name: 'Digging Deeper',
+                    description: 'A time where we go deeper into God\'s story, exploring ways to listen to God\'s word and comprehend it more fully.',
+                    rhythm: '3rd Sunday of the month',
+                    color: '#d4a574',
+                    image: 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=600&h=400&fit=crop'
+                },
+                {
+                    id: 'gathering-6',
+                    name: 'Reel Life',
+                    description: 'For those who love movies, acknowledging God is in all things. We watch together and reflect on what God might be showing us.',
+                    rhythm: 'Friday nights',
+                    color: '#5a6b62',
+                    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=400&fit=crop'
+                }
+            ],
+            
+            events: [],
+            
+            kete: [
+                {
+                    id: 'kete-1',
+                    title: 'Reflections on Advent: Waiting in Hope',
+                    excerpt: 'As we enter this season of anticipation, we explore what it means to wait with hope and expectation in our daily lives.',
+                    content: 'Full article content here...',
+                    date: '2025-12-20',
+                    image: 'https://images.unsplash.com/photo-1512909006721-3d6018887383?w=600&h=400&fit=crop'
+                },
+                {
+                    id: 'kete-2',
+                    title: 'Community Garden Update: Spring Plantings',
+                    excerpt: 'The gardening club has been busy preparing beds and planting seeds. See what\'s growing at 75 Hansons Lane.',
+                    content: 'Full article content here...',
+                    date: '2025-12-15',
+                    image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=400&fit=crop'
+                },
+                {
+                    id: 'kete-3',
+                    title: 'Soul Friends: The Celtic Tradition of Anamchara',
+                    excerpt: 'Exploring the ancient practice of spiritual friendship and how it shapes our community life together.',
+                    content: 'Full article content here...',
+                    date: '2025-12-10',
+                    image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop'
+                }
+            ]
+        };
+
+        // Generate 30 events
+        function generateEvents() {
+            const eventTemplates = [
+                { title: 'Thin Place Worship', gathering: 'gathering-1', location: '75 Hansons Lane', public: true, time: '10:00 AM' },
+                { title: 'Morning Prayer Zoom', gathering: 'gathering-2', location: 'Online (Zoom)', public: true, time: '6:45 AM' },
+                { title: 'Midday Prayer', gathering: 'gathering-2', location: 'Online (Zoom)', public: true, time: '12:15 PM' },
+                { title: 'Prestons Community Lunch', gathering: 'gathering-3', location: '42 Prestons Road', public: false, time: '12:00 PM' },
+                { title: 'Rito Shack Hangout', gathering: 'gathering-4', location: '75 Hansons Lane', public: false, time: '7:00 PM' },
+                { title: 'Digging Deeper Bible Study', gathering: 'gathering-5', location: '75 Hansons Lane', public: true, time: '10:00 AM' },
+                { title: 'Reel Life Movie Night', gathering: 'gathering-6', location: '75 Hansons Lane', public: false, time: '7:30 PM' },
+                { title: 'Girls Dessert Evening', gathering: 'gathering-1', location: '75 Hansons Lane', public: false, time: '7:15 PM' },
+                { title: 'Making Time Creative Session', gathering: 'gathering-1', location: '75 Hansons Lane', public: true, time: '2:00 PM' },
+                { title: 'Gardening Club Meetup', gathering: 'gathering-1', location: '75 Hansons Lane Gardens', public: true, time: '9:00 AM' },
+                { title: 'Outdoors Church - Bottle Lake', gathering: 'gathering-1', location: 'Bottle Lake Forest', public: true, time: '10:00 AM' },
+                { title: 'Families Picnic', gathering: 'gathering-3', location: 'Hagley Park', public: false, time: '11:30 AM' },
+                { title: 'Carers & Pre-schoolers Playdate', gathering: 'gathering-3', location: '75 Hansons Lane', public: false, time: '10:00 AM' },
+                { title: 'Gym (Soul Friends) Evening', gathering: 'gathering-5', location: '75 Hansons Lane', public: false, time: '7:00 PM' },
+                { title: 'West Melton Community Gathering', gathering: 'gathering-3', location: 'West Melton Hall', public: false, time: '10:30 AM' },
+            ];
+
+            const events = [];
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 7); // Start from a week ago
+
+            for (let i = 0; i < 30; i++) {
+                const template = eventTemplates[i % eventTemplates.length];
+                const eventDate = new Date(startDate);
+                eventDate.setDate(eventDate.getDate() + Math.floor(i * 2.5));
+                
+                events.push({
+                    id: `event-${i + 1}`,
+                    title: template.title,
+                    gatheringId: template.gathering,
+                    date: eventDate.toISOString().split('T')[0],
+                    time: template.time,
+                    location: template.location,
+                    description: `Join us for ${template.title.toLowerCase()}. All are welcome to participate in this gathering.`,
+                    isPublic: template.public,
+                    whatToBring: i % 3 === 0 ? 'A plate to share' : '',
+                    rsvps: []
+                });
+            }
+
+            return events;
+        }
+
+        DB.events = generateEvents();
+
+        // ============================================
+        // APP STATE
+        // ============================================
+        
+        let state = {
+            currentUser: null,
+            currentPage: 'home',
+            selectedDate: null,
+            selectedEvent: null
+        };
+
+        // Load state from localStorage
+        function loadState() {
+            const saved = localStorage.getItem('kiwichurch_state');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                state.currentUser = parsed.currentUser;
+            }
+        }
+
+        // Save state to localStorage
+        function saveState() {
+            localStorage.setItem('kiwichurch_state', JSON.stringify({
+                currentUser: state.currentUser
+            }));
+        }
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+        
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-NZ', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long', 
+                year: 'numeric' 
+            });
+        }
+
+        function formatDateShort(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-NZ', { 
+                day: 'numeric', 
+                month: 'short'
+            });
+        }
+
+        function getMonthName(date) {
+            return date.toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' });
+        }
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        function getFirstDayOfMonth(year, month) {
+            return new Date(year, month, 1).getDay();
+        }
+
+        function isToday(dateStr) {
+            const today = new Date().toISOString().split('T')[0];
+            return dateStr === today;
+        }
+
+        function getTimeBasedGreeting() {
+            const hour = new Date().getHours();
+            if (hour < 12) return 'Good morning,';
+            if (hour < 17) return 'Good afternoon,';
+            return 'Good evening,';
+        }
+
+        function getUpcomingEvents(days = 21) {
+            const today = new Date();
+            const endDate = new Date(today);
+            endDate.setDate(endDate.getDate() + days);
+            
+            return DB.events
+                .filter(e => {
+                    const eventDate = new Date(e.date);
+                    return eventDate >= today && eventDate <= endDate;
+                })
+                .filter(e => e.isPublic || state.currentUser)
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(0, 6);
+        }
+
+        function getEventsForDate(dateStr) {
+            return DB.events.filter(e => {
+                if (e.date !== dateStr) return false;
+                if (!state.currentUser && !e.isPublic) return false;
+                return true;
+            });
+        }
+
+        function getGatheringById(id) {
+            return DB.gatherings.find(g => g.id === id);
+        }
+
+        function getUserById(id) {
+            return DB.users.find(u => u.id === id);
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    ${type === 'success' ? '<path d="M20 6L9 17l-5-5"/>' : 
+                      type === 'error' ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' :
+                      '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'}
+                </svg>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        // ============================================
+        // NAVIGATION
+        // ============================================
+        
+        function getNavItems() {
+            const publicNav = [
+                { id: 'home', label: 'Home' },
+                { id: 'about', label: 'About' },
+                { id: 'communities', label: 'Communities & Gatherings' },
+                { id: 'calendar', label: 'Calendar' },
+                { id: 'kete', label: 'Kete' }
+            ];
+
+            if (!state.currentUser) {
+                return publicNav;
+            }
+
+            const memberNav = [
+                { id: 'home', label: 'Home' },
+                { id: 'communities', label: 'My Communities' },
+                { id: 'resources', label: 'Resources' },
+                { id: 'rsvp-calendar', label: 'RSVP Calendar' },
+                { id: 'giving', label: 'Giving' }
+            ];
+
+            if (state.currentUser.role === 'host' || state.currentUser.role === 'admin') {
+                memberNav.push({ id: 'hosting', label: 'Hosting' });
+            }
+
+            if (state.currentUser.role === 'admin') {
+                memberNav.push({ id: 'manage-gatherings', label: 'Gatherings' });
+                memberNav.push({ id: 'edit-kete', label: 'Edit Kete' });
+                memberNav.push({ id: 'settings', label: 'Settings' });
+            }
+
+            return memberNav;
+        }
+
+        function renderNav() {
+            const navItems = getNavItems();
+            const desktopNav = document.getElementById('nav-desktop');
+            const mobileNav = document.getElementById('mobile-nav');
+            const bottomNav = document.getElementById('bottom-nav-inner');
+
+            // Toggle app mode based on login state
+            if (state.currentUser) {
+                document.body.classList.add('app-mode');
+            } else {
+                document.body.classList.remove('app-mode');
+            }
+
+            let desktopHTML = navItems.map(item => `
+                <a href="#/${item.id}" class="nav-link ${state.currentPage === item.id ? 'active' : ''}" 
+                   onclick="navigate('${item.id}')">${item.label}</a>
+            `).join('');
+
+            if (state.currentUser) {
+                desktopHTML += `
+                    <div class="user-menu" id="user-menu">
+                        <button class="user-menu-btn" onclick="toggleUserMenu(event)">
+                            <div class="user-avatar">${state.currentUser.name.charAt(0)}</div>
+                            <span>${state.currentUser.name.split(' ')[0]}</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="user-menu-dropdown">
+                            <div class="user-menu-header">
+                                <div class="user-menu-name">${state.currentUser.name}</div>
+                                <div class="user-menu-role">${state.currentUser.role}</div>
+                            </div>
+                            <div class="user-menu-items">
+                                <a href="#/profile" class="user-menu-item" onclick="navigate('profile'); closeUserMenu();">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    My Profile
+                                </a>
+                                <div class="user-menu-divider"></div>
+                                <a href="#" class="user-menu-item" onclick="logout(); closeUserMenu();">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                        <polyline points="16 17 21 12 16 7"></polyline>
+                                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                                    </svg>
+                                    Sign Out
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                desktopHTML += `<a href="#/login" class="btn btn-outline" onclick="navigate('login')">Sign In</a>`;
+            }
+
+            desktopNav.innerHTML = desktopHTML;
+
+            // Mobile nav (only for public/logged out)
+            let mobileHTML = navItems.map(item => `
+                <a href="#/${item.id}" class="mobile-nav-link" onclick="navigate('${item.id}'); closeMobileMenu();">${item.label}</a>
+            `).join('');
+
+            if (state.currentUser) {
+                mobileHTML += `
+                    <a href="#/profile" class="mobile-nav-link" onclick="navigate('profile'); closeMobileMenu();">My Profile</a>
+                    <a href="#" class="mobile-nav-link" onclick="logout(); closeMobileMenu();">Sign Out</a>
+                `;
+            } else {
+                mobileHTML += `<a href="#/login" class="mobile-nav-link" onclick="navigate('login'); closeMobileMenu();">Sign In</a>`;
+            }
+
+            mobileNav.innerHTML = mobileHTML;
+
+            // Bottom navigation (app mode - logged in users)
+            if (state.currentUser) {
+                const bottomNavItems = [
+                    { id: 'home', label: 'Home', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>' },
+                    { id: 'rsvp-calendar', label: 'Events', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>' },
+                    { id: 'communities', label: 'Groups', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>' },
+                    { id: 'giving', label: 'Giving', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>' },
+                    { id: 'profile', label: 'Profile', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>' }
+                ];
+
+                bottomNav.innerHTML = bottomNavItems.map(item => `
+                    <a href="#/${item.id}" class="bottom-nav-item ${state.currentPage === item.id ? 'active' : ''}" onclick="navigate('${item.id}')">
+                        ${item.icon}
+                        <span class="bottom-nav-label">${item.label}</span>
+                    </a>
+                `).join('');
+            }
+        }
+
+        function navigate(page) {
+            state.currentPage = page;
+            renderNav();
+            renderPage();
+            window.scrollTo(0, 0);
+            closeMobileMenu();
+        }
+
+        function toggleMobileMenu() {
+            const nav = document.getElementById('mobile-nav');
+            nav.classList.toggle('open');
+        }
+
+        function closeMobileMenu() {
+            document.getElementById('mobile-nav').classList.remove('open');
+        }
+
+        function toggleUserMenu(e) {
+            e.stopPropagation();
+            document.getElementById('user-menu').classList.toggle('open');
+        }
+
+        function closeUserMenu() {
+            const menu = document.getElementById('user-menu');
+            if (menu) menu.classList.remove('open');
+        }
+
+        // Close user menu when clicking outside
+        document.addEventListener('click', closeUserMenu);
+
+        // ============================================
+        // AUTH
+        // ============================================
+        
+        function login(username, password) {
+            const user = DB.users.find(u => 
+                u.username.toLowerCase() === username.toLowerCase() && 
+                u.password === password
+            );
+
+            if (user) {
+                state.currentUser = user;
+                saveState();
+                showToast(`Welcome back, ${user.name.split(' ')[0]}!`, 'success');
+                navigate('home');
+                return true;
+            }
+            return false;
+        }
+
+        function logout() {
+            state.currentUser = null;
+            saveState();
+            showToast('You have been signed out', 'info');
+            navigate('home');
+        }
+
+        // ============================================
+        // MODALS
+        // ============================================
+        
+        function openModal(title, bodyHTML, footerHTML = '') {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').innerHTML = bodyHTML;
+            document.getElementById('modal-footer').innerHTML = footerHTML;
+            document.getElementById('modal-overlay').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function closeModalOutside(e) {
+            if (e.target.id === 'modal-overlay') closeModal();
+        }
+
+        function openEventModal(eventId) {
+            const event = DB.events.find(e => e.id === eventId);
+            if (!event) return;
+
+            const gathering = getGatheringById(event.gatheringId);
+            const isRSVPd = state.currentUser && event.rsvps.includes(state.currentUser.id);
+            
+            let rsvpSection = '';
+            if (state.currentUser) {
+                const rsvpNames = event.rsvps.map(id => {
+                    const u = getUserById(id);
+                    return u ? (u.id === state.currentUser.id ? 'You' : u.name.split(' ')[0]) : 'Unknown';
+                });
+
+                rsvpSection = `
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+                        <h4 style="margin-bottom: 0.75rem;">RSVPs (${event.rsvps.length})</h4>
+                        ${rsvpNames.length > 0 ? `
+                            <div class="rsvp-list">
+                                ${rsvpNames.map(n => `<span class="rsvp-chip ${n === 'You' ? 'you' : ''}">${n}</span>`).join('')}
+                            </div>
+                        ` : '<p style="color: var(--color-text-light); font-size: 0.9375rem;">No RSVPs yet</p>'}
+                    </div>
+                `;
+            }
+
+            const bodyHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <span class="event-badge ${event.isPublic ? '' : 'private'}">${event.isPublic ? 'Public Event' : 'Members Only'}</span>
+                </div>
+                <p style="color: var(--color-text-light); margin-bottom: 1.5rem;">${event.description}</p>
+                <div style="display: grid; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>${formatDate(event.date)}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>${event.time}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span>${event.location}</span>
+                    </div>
+                    ${gathering ? `
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            <span>${gathering.name}</span>
+                        </div>
+                    ` : ''}
+                    ${event.whatToBring ? `
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <path d="M16 10a4 4 0 0 1-8 0"></path>
+                            </svg>
+                            <span>Bring: ${event.whatToBring}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                ${rsvpSection}
+            `;
+
+            let footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
+            if (state.currentUser) {
+                if (isRSVPd) {
+                    footerHTML += `<button class="btn btn-primary" onclick="cancelRSVP('${event.id}')">Cancel RSVP</button>`;
+                } else {
+                    footerHTML += `<button class="btn btn-primary" onclick="confirmRSVP('${event.id}')">RSVP</button>`;
+                }
+            }
+
+            openModal(event.title, bodyHTML, footerHTML);
+        }
+
+        function confirmRSVP(eventId) {
+            const event = DB.events.find(e => e.id === eventId);
+            if (event && state.currentUser && !event.rsvps.includes(state.currentUser.id)) {
+                event.rsvps.push(state.currentUser.id);
+                showToast('RSVP confirmed!', 'success');
+                closeModal();
+                renderPage();
+            }
+        }
+
+        function cancelRSVP(eventId) {
+            const event = DB.events.find(e => e.id === eventId);
+            if (event && state.currentUser) {
+                event.rsvps = event.rsvps.filter(id => id !== state.currentUser.id);
+                showToast('RSVP cancelled', 'info');
+                closeModal();
+                renderPage();
+            }
+        }
+
+        // ============================================
+        // PAGE RENDERERS
+        // ============================================
+        
+        function renderPage() {
+            const main = document.getElementById('main');
+            
+            try {
+                switch (state.currentPage) {
+                    case 'home':
+                        main.innerHTML = renderHomePage();
+                        break;
+                    case 'about':
+                        main.innerHTML = renderAboutPage();
+                        break;
+                    case 'communities':
+                        main.innerHTML = renderCommunitiesPage();
+                        break;
+                    case 'calendar':
+                    case 'rsvp-calendar':
+                        main.innerHTML = renderCalendarPage();
+                        break;
+                    case 'kete':
+                        main.innerHTML = renderKetePage();
+                        break;
+                    case 'login':
+                        main.innerHTML = renderLoginPage();
+                        break;
+                    case 'profile':
+                        main.innerHTML = renderProfilePage();
+                        break;
+                    case 'giving':
+                        main.innerHTML = renderGivingPage();
+                        break;
+                    case 'resources':
+                        main.innerHTML = renderResourcesPage();
+                        break;
+                    case 'hosting':
+                        main.innerHTML = renderHostingPage();
+                        break;
+                    case 'manage-gatherings':
+                        main.innerHTML = renderManageGatheringsPage();
+                        break;
+                    case 'edit-kete':
+                        main.innerHTML = renderEditKetePage();
+                        break;
+                    case 'settings':
+                        main.innerHTML = renderSettingsPage();
+                        break;
+                    default:
+                        main.innerHTML = renderHomePage();
+                }
+            } catch (error) {
+                console.error('Render error on page "' + state.currentPage + '":', error);
+                main.innerHTML = '<div style="padding: 100px 20px; text-align: center;"><h2>Error rendering page</h2><p>' + error.message + '</p></div>';
+            }
+        }
+
+        function renderHomePage() {
+            const upcomingEvents = getUpcomingEvents();
+            
+            // APP MODE - Dashboard for logged in users
+            if (state.currentUser) {
+                const userEvents = upcomingEvents.slice(0, 4);
+                const greeting = getTimeBasedGreeting();
+                
+                return `
+                    <div class="page active">
+                        <!-- App Dashboard -->
+                        <div style="padding-top: 70px;">
+                            <!-- Welcome Header -->
+                            <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 2rem 1.5rem; color: white;">
+                                <p style="opacity: 0.8; margin-bottom: 0.25rem; font-size: 0.9375rem;">${greeting}</p>
+                                <h1 style="font-family: var(--font-display); font-size: 1.75rem; color: white; margin: 0;">${state.currentUser.name.split(' ')[0]}</h1>
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div class="app-dashboard">
+                                <div class="app-quick-actions">
+                                    <a href="#/rsvp-calendar" class="app-quick-action" onclick="navigate('rsvp-calendar')">
+                                        <div class="app-quick-action-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                                            </svg>
+                                        </div>
+                                        <span class="app-quick-action-label">Events</span>
+                                    </a>
+                                    <a href="#/communities" class="app-quick-action" onclick="navigate('communities')">
+                                        <div class="app-quick-action-icon" style="background: var(--color-terracotta-light);">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="9" cy="7" r="4"></circle>
+                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="app-quick-action-label">Groups</span>
+                                    </a>
+                                    <a href="#/resources" class="app-quick-action" onclick="navigate('resources')">
+                                        <div class="app-quick-action-icon" style="background: var(--color-cream-dark);">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                <polyline points="14 2 14 8 20 8"></polyline>
+                                            </svg>
+                                        </div>
+                                        <span class="app-quick-action-label">Resources</span>
+                                    </a>
+                                    <a href="#/giving" class="app-quick-action" onclick="navigate('giving')">
+                                        <div class="app-quick-action-icon" style="background: #fde68a;">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="app-quick-action-label">Give</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Upcoming Events -->
+                            <div class="app-section">
+                                <div class="app-section-header">
+                                    <h3 class="app-section-title">Upcoming Events</h3>
+                                    <a href="#/rsvp-calendar" class="app-section-link" onclick="navigate('rsvp-calendar')">See all</a>
+                                </div>
+                                ${userEvents.length > 0 ? userEvents.map(event => {
+                                    const date = new Date(event.date);
+                                    return `
+                                        <div class="app-event-card" onclick="openEventModal('${event.id}')">
+                                            <div class="app-event-date">
+                                                <span class="app-event-date-day">${date.getDate()}</span>
+                                                <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
+                                            </div>
+                                            <div class="app-event-info">
+                                                <div class="app-event-title">${event.title}</div>
+                                                <div class="app-event-meta">${event.time} · ${event.location}</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('') : '<p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No upcoming events</p>'}
+                            </div>
+
+                            <!-- Recent Kete Posts -->
+                            <div class="app-section">
+                                <div class="app-section-header">
+                                    <h3 class="app-section-title">From the Kete</h3>
+                                    <a href="#/kete" class="app-section-link" onclick="navigate('kete')">Read more</a>
+                                </div>
+                                ${DB.kete.slice(0, 2).map(post => `
+                                    <div class="app-event-card" style="cursor: pointer;">
+                                        <div style="width: 60px; height: 60px; border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0;">
+                                            <img src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=120&h=120&fit=crop" 
+                                                 alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                        <div class="app-event-info">
+                                            <div class="app-event-title">${post.title}</div>
+                                            <div class="app-event-meta">${formatDateShort(post.date)}</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            ${(state.currentUser.role === 'host' || state.currentUser.role === 'admin') ? `
+                            <!-- Host/Admin Quick Access -->
+                            <div class="app-section">
+                                <div class="app-section-header">
+                                    <h3 class="app-section-title">Manage</h3>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                    <a href="#/hosting" class="app-event-card" onclick="navigate('hosting')" style="text-decoration: none;">
+                                        <div style="width: 40px; height: 40px; background: var(--color-sage-light); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="app-event-info">
+                                            <div class="app-event-title">Hosting</div>
+                                        </div>
+                                    </a>
+                                    ${state.currentUser.role === 'admin' ? `
+                                    <a href="#/settings" class="app-event-card" onclick="navigate('settings')" style="text-decoration: none;">
+                                        <div style="width: 40px; height: 40px; background: var(--color-cream-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="app-event-info">
+                                            <div class="app-event-title">Settings</div>
+                                        </div>
+                                    </a>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <div style="height: 20px;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // PUBLIC WEBSITE - For visitors
+            return `
+                <div class="page active">
+                    <!-- Hero Section -->
+                    <section class="hero">
+                        <div class="hero-bg">
+                            <img src="HansonsLaneOpening-2131a.jpg" alt="Kiwi Church Community">
+                        </div>
+                        <div class="hero-overlay"></div>
+                        <div class="hero-content">
+                            <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church" class="hero-logo">
+                            <h1 class="hero-title">Welcome to the table</h1>
+                            <p class="hero-subtitle">A desire for faith, meaning, community and authentic relationship</p>
+                            <div class="hero-actions">
+                                <a href="#/communities" class="btn btn-primary btn-lg" onclick="navigate('communities')">Our Communities</a>
+                                <a href="#/about" class="btn btn-outline btn-lg" onclick="navigate('about')">Learn More</a>
+                            </div>
+                        </div>
+                        <div class="hero-scroll">
+                            <span>Scroll</span>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <polyline points="19 12 12 19 5 12"></polyline>
+                            </svg>
+                        </div>
+                    </section>
+
+                    <!-- Introduction -->
+                    <section class="section">
+                        <div class="container">
+                            <div class="section-header">
+                                <span class="section-label">Who We Are</span>
+                                <h2 class="section-title">God's Freedom to Explore This World</h2>
+                                <p class="section-desc">
+                                    Kiwi Church is your local, small group Christian church based in Christchurch and the South Island of NZ, 
+                                    welcoming those seeking faith, quality friendships, conversation and a real sense of community.
+                                </p>
+                            </div>
+
+                            <div class="features-grid">
+                                <div class="feature-card">
+                                    <div class="feature-card-image">
+                                        <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop" alt="Friends gathering together">
+                                    </div>
+                                    <div class="feature-card-content">
+                                        <h3 class="feature-card-title">Relationships First</h3>
+                                        <p class="feature-card-text">We place relationships and hospitality at the centre of all that we do. Our communities are places to belong, to know and be known.</p>
+                                    </div>
+                                </div>
+                                <div class="feature-card">
+                                    <div class="feature-card-image">
+                                        <img src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&h=400&fit=crop" alt="Small group community">
+                                    </div>
+                                    <div class="feature-card-content">
+                                        <h3 class="feature-card-title">Small Communities</h3>
+                                        <p class="feature-card-text">Our small intergenerational community groups enjoy activities and events together throughout Christchurch and the South Island.</p>
+                                    </div>
+                                </div>
+                                <div class="feature-card">
+                                    <div class="feature-card-image">
+                                        <img src="https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=600&h=400&fit=crop" alt="Faith and reflection">
+                                    </div>
+                                    <div class="feature-card-content">
+                                        <h3 class="feature-card-title">Authentic Faith</h3>
+                                        <p class="feature-card-text">A space for wonder, lamenting, hoping, playing, and encounter. We nurture healthy relationships with God and each other.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Coming Up -->
+                    <section class="section section-sage">
+                        <div class="container">
+                            <div class="section-header">
+                                <span class="section-label">What's Happening</span>
+                                <h2 class="section-title">Coming Up</h2>
+                                <p class="section-desc">Events and gatherings over the next few weeks</p>
+                            </div>
+
+                            <div class="coming-up-grid">
+                                ${upcomingEvents.map(event => {
+                                    const date = new Date(event.date);
+                                    const gathering = getGatheringById(event.gatheringId);
+                                    return `
+                                        <div class="event-card" onclick="openEventModal('${event.id}')">
+                                            <div class="event-date">
+                                                <span class="event-date-day">${date.getDate()}</span>
+                                                <span class="event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
+                                            </div>
+                                            <div class="event-info">
+                                                <h4>${event.title}</h4>
+                                                <div class="event-meta">
+                                                    <span class="event-meta-item">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <circle cx="12" cy="12" r="10"></circle>
+                                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                                        </svg>
+                                                        ${event.time}
+                                                    </span>
+                                                    <span class="event-meta-item">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                                            <circle cx="12" cy="10" r="3"></circle>
+                                                        </svg>
+                                                        ${event.location}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <span class="event-badge ${event.isPublic ? '' : 'private'}">${event.isPublic ? 'Public' : 'Members'}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+
+                            <div style="text-align: center; margin-top: 2rem;">
+                                <a href="#/calendar" class="btn btn-primary" onclick="navigate('calendar')">View Full Calendar</a>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Contact / Footer -->
+                    <footer class="footer">
+                        <div class="footer-content">
+                            <div class="footer-brand">
+                                <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church">
+                                <p>A desire for faith, meaning, community and authentic relationship.</p>
+                            </div>
+                            <div>
+                                <h4 class="footer-title">Explore</h4>
+                                <ul class="footer-links">
+                                    <li><a href="#/about" onclick="navigate('about')">About Us</a></li>
+                                    <li><a href="#/communities" onclick="navigate('communities')">Communities</a></li>
+                                    <li><a href="#/calendar" onclick="navigate('calendar')">Calendar</a></li>
+                                    <li><a href="#/kete" onclick="navigate('kete')">Kete</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="footer-title">Connect</h4>
+                                <ul class="footer-links">
+                                    <li><a href="#/login" onclick="navigate('login')">Member Login</a></li>
+                                    <li><a href="mailto:kiwichurchcomms@gmail.com">Email Us</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="footer-title">Contact</h4>
+                                <div class="footer-contact">
+                                    <p><strong>Darryl Tempero</strong><br>Minister</p>
+                                    <p><a href="mailto:d.tempero@xtra.co.nz">d.tempero@xtra.co.nz</a></p>
+                                    <p><a href="tel:+64275560055">027-556-0055</a></p>
+                                    <p style="margin-top: 1rem;">75 Hansons Lane<br>Upper Riccarton<br>Christchurch</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="footer-bottom">
+                            <p>© ${new Date().getFullYear()} Kiwi Church. All rights reserved.</p>
+                        </div>
+                    </footer>
+                </div>
+            `;
+        }
+
+        function renderAboutPage() {
+            return `
+                <div class="page active">
+                    <div class="about-hero">
+                        <div class="about-hero-content">
+                            <h1>About Kiwi Church</h1>
+                            <p>God's Freedom to Explore This World</p>
+                        </div>
+                    </div>
+
+                    <section class="section">
+                        <div class="container-sm">
+                            <div style="text-align: center; margin-bottom: 3rem;">
+                                <p style="font-size: 1.25rem; color: var(--color-text-light); font-style: italic;">
+                                    "Are you searching for some true meaning in your life? Kiwi Church is your local, small group Christian church 
+                                    based in Christchurch and the South Island of NZ, welcoming those seeking faith, quality friendships, 
+                                    conversation and a real sense of community."
+                                </p>
+                            </div>
+
+                            <p>Our small intergenerational community church groups enjoy activities and events together throughout 
+                            Christchurch and the South Island. We place relationships and hospitality at the centre of all that we do.</p>
+
+                            <p>There are a number of communities around the Christchurch area, and in West Otago. Our Christchurch church 
+                            groups and communities enjoy various activities, outings and events together, and you may find one of them 
+                            helpful to nurture your faith or begin your journey.</p>
+                        </div>
+                    </section>
+
+                    <section class="section section-sage">
+                        <div class="container">
+                            <div class="section-header">
+                                <span class="section-label">What We Value</span>
+                                <h2 class="section-title">Our Heart</h2>
+                            </div>
+
+                            <div class="values-grid">
+                                <div class="value-card">
+                                    <div class="value-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="9" cy="7" r="4"></circle>
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                        </svg>
+                                    </div>
+                                    <h3>Community</h3>
+                                    <p style="color: var(--color-text-light);">These communities are the centre of our life together as small churches, where they provide everyone with a place to belong.</p>
+                                </div>
+                                <div class="value-card">
+                                    <div class="value-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                        </svg>
+                                    </div>
+                                    <h3>Hospitality</h3>
+                                    <p style="color: var(--color-text-light);">We experience the deeply spiritual act of eating together, providing a safe and familiar social space for exploration.</p>
+                                </div>
+                                <div class="value-card">
+                                    <div class="value-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                        </svg>
+                                    </div>
+                                    <h3>Authenticity</h3>
+                                    <p style="color: var(--color-text-light);">A space for allowing our humanity to be held gently. For wonder, for being at home, for lamenting, hoping, and encounter.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="section">
+                        <div class="container-sm" style="text-align: center;">
+                            <h2 style="margin-bottom: 1rem;">Get in Touch</h2>
+                            <p style="color: var(--color-text-light); margin-bottom: 2rem;">
+                                We'd love to catch up! Drop us a line to find out about our Kiwi Church groups, 
+                                our community, our Christchurch gatherings and more.
+                            </p>
+                            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                <a href="mailto:d.tempero@xtra.co.nz" class="btn btn-primary">Email Darryl</a>
+                                <a href="mailto:kiwichurchcomms@gmail.com" class="btn btn-secondary">Email Julie</a>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderCommunitiesPage() {
+            // App mode header for logged-in users
+            const pageHeader = state.currentUser ? `
+                <div style="padding-top: 70px;">
+                    <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+                        <h1 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">My Communities</h1>
+                        <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Gatherings you're connected to</p>
+                    </div>
+                </div>
+            ` : `
+                <div class="about-hero">
+                    <div class="about-hero-content">
+                        <h1>Communities & Gatherings</h1>
+                        <p>Rhythms and Relationships</p>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <div class="page active">
+                    ${pageHeader}
+
+                    <section class="section" ${state.currentUser ? 'style="padding-top: 1.5rem;"' : ''}>
+                        <div class="container">
+                            <div class="section-header">
+                                <p class="section-desc" style="font-style: italic;">
+                                    These communities are the centre of our life together as small churches, where they provide everyone 
+                                    with a place to belong, to know and be known, to love and be loved, and to care for each other.
+                                </p>
+                            </div>
+
+                            <div class="gatherings-grid">
+                                ${DB.gatherings.map(g => `
+                                    <div class="gathering-card">
+                                        <div class="gathering-card-header" style="background: linear-gradient(to bottom, transparent 0%, ${g.color}ee 100%), url('${g.image}') center/cover;">
+                                            <h3>${g.name}</h3>
+                                        </div>
+                                        <div class="gathering-card-body">
+                                            <span class="gathering-card-rhythm">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                                </svg>
+                                                ${g.rhythm}
+                                            </span>
+                                            <p class="gathering-card-desc">${g.description}</p>
+                                            <a href="#/${state.currentUser ? 'rsvp-calendar' : 'calendar'}" class="btn btn-sm btn-ghost" onclick="navigate('${state.currentUser ? 'rsvp-calendar' : 'calendar'}')">View Events →</a>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderCalendarPage() {
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            
+            // App mode header for logged-in users
+            const pageHeader = state.currentUser ? `
+                <div style="padding-top: 70px;">
+                    <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+                        <h1 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Events</h1>
+                        <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">View and RSVP to gatherings</p>
+                    </div>
+                </div>
+            ` : `
+                <div class="about-hero" style="padding-bottom: 4rem;">
+                    <div class="about-hero-content">
+                        <h1>Events Calendar</h1>
+                        <p>Public events and gatherings</p>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <div class="page active">
+                    ${pageHeader}
+
+                    <section class="section" style="${state.currentUser ? 'padding-top: 1.5rem;' : 'padding-top: 0; margin-top: -2rem;'}">
+                        <div class="container">
+                            <div class="calendar-container" id="calendar-container">
+                                ${renderCalendar(currentYear, currentMonth)}
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderCalendar(year, month) {
+            const daysInMonth = getDaysInMonth(year, month);
+            const firstDay = getFirstDayOfMonth(year, month);
+            const monthName = new Date(year, month).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' });
+            
+            let calendarHTML = `
+                <div class="calendar-header">
+                    <button class="calendar-nav-btn" onclick="changeMonth(-1)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <h3 class="calendar-title">${monthName}</h3>
+                    <button class="calendar-nav-btn" onclick="changeMonth(1)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-day-header">Sun</div>
+                    <div class="calendar-day-header">Mon</div>
+                    <div class="calendar-day-header">Tue</div>
+                    <div class="calendar-day-header">Wed</div>
+                    <div class="calendar-day-header">Thu</div>
+                    <div class="calendar-day-header">Fri</div>
+                    <div class="calendar-day-header">Sat</div>
+            `;
+
+            // Previous month days
+            const prevMonth = month === 0 ? 11 : month - 1;
+            const prevYear = month === 0 ? year - 1 : year;
+            const daysInPrevMonth = getDaysInMonth(prevYear, prevMonth);
+            
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const day = daysInPrevMonth - i;
+                const dateStr = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                calendarHTML += `<div class="calendar-day other-month" data-date="${dateStr}"><span class="calendar-day-number">${day}</span></div>`;
+            }
+
+            // Current month days
+            const todayStr = new Date().toISOString().split('T')[0];
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEvents = getEventsForDate(dateStr);
+                const isTodayClass = dateStr === todayStr ? 'today' : '';
+                const isSelected = state.selectedDate === dateStr ? 'selected' : '';
+                
+                calendarHTML += `
+                    <div class="calendar-day ${isTodayClass} ${isSelected}" data-date="${dateStr}" onclick="selectDate('${dateStr}')">
+                        <span class="calendar-day-number">${day}</span>
+                        <div class="calendar-day-events">
+                            ${dayEvents.map(e => `<span class="calendar-event-dot ${e.isPublic ? '' : 'private'}"></span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Next month days
+            const totalCells = firstDay + daysInMonth;
+            const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            const nextMonth = month === 11 ? 0 : month + 1;
+            const nextYear = month === 11 ? year + 1 : year;
+            
+            for (let day = 1; day <= remainingCells; day++) {
+                const dateStr = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                calendarHTML += `<div class="calendar-day other-month" data-date="${dateStr}"><span class="calendar-day-number">${day}</span></div>`;
+            }
+
+            calendarHTML += '</div>';
+
+            // Day events panel
+            if (state.selectedDate) {
+                const selectedEvents = getEventsForDate(state.selectedDate);
+                calendarHTML += `
+                    <div class="day-events-panel">
+                        <div class="day-events-header">
+                            <h4 class="day-events-date">${formatDate(state.selectedDate)}</h4>
+                        </div>
+                        ${selectedEvents.length > 0 ? selectedEvents.map(e => `
+                            <div class="day-event-item" onclick="openEventModal('${e.id}')">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div>
+                                        <strong>${e.title}</strong>
+                                        <div style="font-size: 0.875rem; color: var(--color-text-light);">${e.time} · ${e.location}</div>
+                                    </div>
+                                    <span class="event-badge ${e.isPublic ? '' : 'private'}">${e.isPublic ? 'Public' : 'Members'}</span>
+                                </div>
+                            </div>
+                        `).join('') : '<p style="color: var(--color-text-light);">No events on this day</p>'}
+                    </div>
+                `;
+            }
+
+            return calendarHTML;
+        }
+
+        let calendarYear = new Date().getFullYear();
+        let calendarMonth = new Date().getMonth();
+
+        function changeMonth(delta) {
+            calendarMonth += delta;
+            if (calendarMonth > 11) {
+                calendarMonth = 0;
+                calendarYear++;
+            } else if (calendarMonth < 0) {
+                calendarMonth = 11;
+                calendarYear--;
+            }
+            document.getElementById('calendar-container').innerHTML = renderCalendar(calendarYear, calendarMonth);
+        }
+
+        function selectDate(dateStr) {
+            state.selectedDate = dateStr;
+            document.getElementById('calendar-container').innerHTML = renderCalendar(calendarYear, calendarMonth);
+        }
+
+        function renderKetePage() {
+            return `
+                <div class="page active">
+                    <div class="about-hero">
+                        <div class="about-hero-content">
+                            <h1>Kete</h1>
+                            <p>Stories, reflections, and resources from our community</p>
+                        </div>
+                    </div>
+
+                    <section class="section">
+                        <div class="container">
+                            <div class="blog-grid">
+                                ${DB.kete.map(post => `
+                                    <article class="blog-card">
+                                        <div class="blog-card-image">
+                                            <img src="${post.image}" alt="${post.title}">
+                                        </div>
+                                        <div class="blog-card-content">
+                                            <div class="blog-card-date">${formatDate(post.date)}</div>
+                                            <h3 class="blog-card-title">${post.title}</h3>
+                                            <p class="blog-card-excerpt">${post.excerpt}</p>
+                                            <a href="#" class="btn btn-ghost btn-sm">Read More →</a>
+                                        </div>
+                                    </article>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderLoginPage() {
+            if (state.currentUser) {
+                navigate('home');
+                return '';
+            }
+
+            return `
+                <div class="page active">
+                    <div class="login-container">
+                        <div class="login-card">
+                            <div class="login-header">
+                                <img src="KiwiChurch_Old_White.png" alt="Kiwi Church" class="login-logo" style="filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);">
+                                <h2 class="login-title">Welcome back</h2>
+                                <p class="login-subtitle">Sign in to your account</p>
+                            </div>
+                            <div id="login-error" class="login-error" style="display: none;"></div>
+                            <form onsubmit="handleLogin(event)">
+                                <div class="form-group">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" class="form-input" id="login-username" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" class="form-input" id="login-password" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Sign In</button>
+                            </form>
+                            <p style="text-align: center; margin-top: 1.5rem; color: var(--color-text-light); font-size: 0.9375rem;">
+                                Need an account? Contact an administrator.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!login(username, password)) {
+                const errorEl = document.getElementById('login-error');
+                errorEl.textContent = 'Invalid username or password';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        function renderProfilePage() {
+            if (!state.currentUser) {
+                navigate('login');
+                return '';
+            }
+
+            return `
+                <div class="page active">
+                    <div style="padding-top: 70px;">
+                        <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+                            <h1 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">My Profile</h1>
+                            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Manage your account</p>
+                        </div>
+                    </div>
+
+                    <section class="section" style="padding-top: 1.5rem;">
+                        <div class="container-sm">
+                            <div class="profile-header">
+                                <div class="profile-avatar">${state.currentUser.name.charAt(0)}</div>
+                                <div class="profile-info">
+                                    <h2>${state.currentUser.name}</h2>
+                                    <p class="profile-role">${state.currentUser.role}</p>
+                                </div>
+                            </div>
+
+                            <div class="tabs">
+                                <button class="tab active" onclick="switchTab('details', this)">Details</button>
+                                <button class="tab" onclick="switchTab('family', this)">Family</button>
+                                <button class="tab" onclick="switchTab('history', this)">Event History</button>
+                            </div>
+
+                            <div class="tab-content active" id="tab-details">
+                                <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-sm);">
+                                    <div class="form-group">
+                                        <label class="form-label">Full Name</label>
+                                        <input type="text" class="form-input" value="${state.currentUser.name}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-input" value="${state.currentUser.email}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Phone</label>
+                                        <input type="tel" class="form-input" value="${state.currentUser.phone}">
+                                    </div>
+                                    <button class="btn btn-primary" onclick="showToast('Profile updated!', 'success')">Save Changes</button>
+                                </div>
+                            </div>
+
+                            <div class="tab-content" id="tab-family">
+                                <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-sm);">
+                                    <h3 style="margin-bottom: 1rem;">Family Members</h3>
+                                    <p style="color: var(--color-text-light); margin-bottom: 1.5rem;">
+                                        You can RSVP these family members to events instead of them.
+                                    </p>
+                                    ${state.currentUser.dependants.length > 0 ? `
+                                        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+                                            ${state.currentUser.dependants.map(d => `
+                                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                                                    <span>${d}</span>
+                                                    <button class="btn btn-ghost btn-sm">Remove</button>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    ` : '<p style="color: var(--color-text-light); margin-bottom: 1.5rem;">No family members added yet.</p>'}
+                                    <button class="btn btn-secondary">Add Family Member</button>
+                                </div>
+                            </div>
+
+                            <div class="tab-content" id="tab-history">
+                                <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-sm);">
+                                    <h3 style="margin-bottom: 1rem;">Past Events</h3>
+                                    <p style="color: var(--color-text-light);">Your event history will appear here.</p>
+                                </div>
+                            </div>
+
+                            <!-- Sign Out Section -->
+                            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--color-cream-dark);">
+                                <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="logout()">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                        <polyline points="16 17 21 12 16 7"></polyline>
+                                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                                    </svg>
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        }
+
+        function renderGivingPage() {
+            if (!state.currentUser) {
+                navigate('login');
+                return '';
+            }
+
+            return `
+                <div class="page active">
+                    <div style="padding-top: 70px;">
+                        <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+                            <h1 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Giving</h1>
+                            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Support the work of Kiwi Church</p>
+                        </div>
+                    </div>
+
+                    <section class="section" style="padding-top: 1.5rem;">
+                        <div class="container-sm">
+                            <div class="giving-card">
+                                <h3 style="margin-bottom: 1rem;">Bank Transfer</h3>
+                                <p style="color: var(--color-text-light); margin-bottom: 1.5rem;">
+                                    You can give to Kiwi Church via direct bank transfer using the details below.
+                                </p>
+                                <dl class="bank-details">
+                                    <dt>Account Name</dt>
+                                    <dd>Kiwi Church</dd>
+                                    <dt>Bank</dt>
+                                    <dd>ANZ Bank New Zealand</dd>
+                                    <dt>Account Number</dt>
+                                    <dd>01-0000-0000000-00</dd>
+                                    <dt>Reference</dt>
+                                    <dd>Your Name / Giving</dd>
+                                </dl>
+                            </div>
+
+                            <div class="giving-card" style="margin-top: 2rem;">
+                                <h3 style="margin-bottom: 1rem;">Other Ways to Give</h3>
+                                <p style="color: var(--color-text-light);">
+                                    If you'd like to discuss other ways to support our community, please reach out to 
+                                    <a href="mailto:d.tempero@xtra.co.nz">Darryl</a>.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderResourcesPage() {
+            if (!state.currentUser) {
+                navigate('login');
+                return '';
+            }
+
+            return `
+                <div class="page active">
+                    <div class="dashboard-header">
+                        <div class="container">
+                            <h1 class="dashboard-greeting">Resources</h1>
+                            <p class="dashboard-subtitle">Documents and materials for our community</p>
+                        </div>
+                    </div>
+
+                    <section class="section">
+                        <div class="container">
+                            <div class="empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                                <h3>Resources Coming Soon</h3>
+                                <p>Documents, guides, and materials will be available here.</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderHostingPage() {
+            if (!state.currentUser || (state.currentUser.role !== 'host' && state.currentUser.role !== 'admin')) {
+                navigate('home');
+                return '';
+            }
+
+            const assignedGatherings = state.currentUser.role === 'admin' 
+                ? DB.gatherings 
+                : DB.gatherings.filter(g => state.currentUser.assignedGatherings?.includes(g.id));
+
+            return `
+                <div class="page active">
+                    <div class="dashboard-header">
+                        <div class="container">
+                            <h1 class="dashboard-greeting">Hosting</h1>
+                            <p class="dashboard-subtitle">Manage events for your gatherings</p>
+                        </div>
+                    </div>
+
+                    <section class="section">
+                        <div class="container">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                                <h2>Your Gatherings</h2>
+                                <button class="btn btn-primary" onclick="showToast('Event creation coming soon!', 'info')">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    Create Event
+                                </button>
+                            </div>
+
+                            <div class="gatherings-grid">
+                                ${assignedGatherings.map(g => {
+                                    const events = DB.events.filter(e => e.gatheringId === g.id);
+                                    return `
+                                        <div class="gathering-card">
+                                            <div class="gathering-card-header" style="background: linear-gradient(135deg, ${g.color} 0%, ${g.color}dd 100%);">
+                                                <h3>${g.name}</h3>
+                                            </div>
+                                            <div class="gathering-card-body">
+                                                <span class="gathering-card-rhythm">
+                                                    ${events.length} upcoming events
+                                                </span>
+                                                <p class="gathering-card-desc">${g.description}</p>
+                                                <button class="btn btn-sm btn-ghost">Manage Events →</button>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderManageGatheringsPage() {
+            if (!state.currentUser || state.currentUser.role !== 'admin') {
+                navigate('home');
+                return '';
+            }
+
+            return `
+                <div class="page active">
+                    <div class="dashboard-header">
+                        <div class="container">
+                            <h1 class="dashboard-greeting">Manage Gatherings</h1>
+                            <p class="dashboard-subtitle">Create and manage community gatherings</p>
+                        </div>
+                    </div>
+
+                    <section class="section">
+                        <div class="container">
+                            <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+                                <button class="btn btn-primary" onclick="showToast('Gathering creation coming soon!', 'info')">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    New Gathering
+                                </button>
+                            </div>
+
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Rhythm</th>
+                                            <th>Events</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${DB.gatherings.map(g => {
+                                            const eventCount = DB.events.filter(e => e.gatheringId === g.id).length;
+                                            return `
+                                                <tr>
+                                                    <td><strong>${g.name}</strong></td>
+                                                    <td>${g.rhythm}</td>
+                                                    <td>${eventCount}</td>
+                                                    <td>
+                                                        <button class="btn btn-ghost btn-sm">Edit</button>
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderEditKetePage() {
+            if (!state.currentUser || state.currentUser.role !== 'admin') {
+                navigate('home');
+                return '';
+            }
+
+            return `
+                <div class="page active">
+                    <div class="dashboard-header">
+                        <div class="container">
+                            <h1 class="dashboard-greeting">Edit Kete</h1>
+                            <p class="dashboard-subtitle">Manage blog posts and resources</p>
+                        </div>
+                    </div>
+
+                    <section class="section">
+                        <div class="container">
+                            <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+                                <button class="btn btn-primary" onclick="showToast('Post creation coming soon!', 'info')">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    New Post
+                                </button>
+                            </div>
+
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${DB.kete.map(post => `
+                                            <tr>
+                                                <td><strong>${post.title}</strong></td>
+                                                <td>${formatDateShort(post.date)}</td>
+                                                <td>
+                                                    <button class="btn btn-ghost btn-sm">Edit</button>
+                                                    <button class="btn btn-ghost btn-sm" style="color: #dc2626;">Delete</button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function renderSettingsPage() {
+            if (!state.currentUser || state.currentUser.role !== 'admin') {
+                navigate('home');
+                return '';
+            }
+
+            return `
+                <div class="page active">
+                    <div class="dashboard-header">
+                        <div class="container">
+                            <h1 class="dashboard-greeting">Settings</h1>
+                            <p class="dashboard-subtitle">Manage users and system settings</p>
+                        </div>
+                    </div>
+
+                    <section class="section">
+                        <div class="container">
+                            <div class="tabs">
+                                <button class="tab active" onclick="switchTab('users', this)">Users</button>
+                                <button class="tab" onclick="switchTab('system', this)">System</button>
+                            </div>
+
+                            <div class="tab-content active" id="tab-users">
+                                <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+                                    <button class="btn btn-primary" onclick="showToast('User creation coming soon!', 'info')">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        </svg>
+                                        Add User
+                                    </button>
+                                </div>
+
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Username</th>
+                                                <th>Role</th>
+                                                <th>Email</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${DB.users.map(user => `
+                                                <tr>
+                                                    <td><strong>${user.name}</strong></td>
+                                                    <td>${user.username}</td>
+                                                    <td><span class="event-badge" style="text-transform: capitalize;">${user.role}</span></td>
+                                                    <td>${user.email}</td>
+                                                    <td>
+                                                        <button class="btn btn-ghost btn-sm">Edit</button>
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="tab-content" id="tab-system">
+                                <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-sm);">
+                                    <h3 style="margin-bottom: 1rem;">Firebase Connection</h3>
+                                    <p style="color: var(--color-text-light); margin-bottom: 1rem;">
+                                        Firebase integration will be configured here for data persistence and authentication.
+                                    </p>
+                                    <div style="padding: 1rem; background: var(--color-cream); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.75rem;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-terracotta)" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                        </svg>
+                                        <span>Currently using local storage (demo mode)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // HEADER SCROLL EFFECT
+        // ============================================
+        
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            const scrollY = window.scrollY;
+            
+            if (scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+            
+            lastScroll = scrollY;
+        });
+
+        // ============================================
+        // INITIALIZE APP
+        // ============================================
+        
+        function init() {
+            try {
+                loadState();
+                
+                // Handle browser navigation
+                window.addEventListener('hashchange', () => {
+                    const hash = window.location.hash.slice(2) || 'home';
+                    state.currentPage = hash;
+                    renderNav();
+                    renderPage();
+                });
+
+                // Initial render
+                const hash = window.location.hash.slice(2) || 'home';
+                state.currentPage = hash;
+                renderNav();
+                renderPage();
+                console.log('Kiwi Church app initialized successfully');
+            } catch (error) {
+                console.error('Init error:', error);
+                document.getElementById('main').innerHTML = '<div style="padding: 100px 20px; text-align: center;"><h2>Error loading app</h2><p>' + error.message + '</p></div>';
+            }
+        }
+
+        // Start the app
+        init();
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
