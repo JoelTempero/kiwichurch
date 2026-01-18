@@ -330,7 +330,61 @@ So if you've been away for a while, know this: you're still part of us. And when
     gatheringMembers: {
         'gathering-3': ['user-1', 'user-2', 'user-3'], // Prestons Community
         'gathering-5': ['user-1', 'user-3'] // Digging Deeper
-    }
+    },
+
+    // Notifications for users
+    notifications: [
+        {
+            id: 'notif-1',
+            userId: 'user-1',
+            type: 'comment', // comment, post, event, rsvp, mention
+            title: 'New comment on your post',
+            message: 'Darryl replied to your comment in Thin Place',
+            link: { page: 'group', groupId: 'gathering-1' },
+            read: false,
+            createdAt: '2024-01-15T12:00:00'
+        },
+        {
+            id: 'notif-2',
+            userId: 'user-1',
+            type: 'event',
+            title: 'Event tomorrow',
+            message: 'Thin Place Gathering is tomorrow at 6:30pm',
+            link: { page: 'events' },
+            read: false,
+            createdAt: '2024-01-16T09:00:00'
+        },
+        {
+            id: 'notif-3',
+            userId: 'user-1',
+            type: 'post',
+            title: 'New post in Prestons Community',
+            message: 'Michael shared: "Friday dinner this week..."',
+            link: { page: 'group', groupId: 'gathering-3' },
+            read: true,
+            createdAt: '2024-01-16T14:20:00'
+        },
+        {
+            id: 'notif-4',
+            userId: 'user-2',
+            type: 'rsvp',
+            title: 'New RSVP',
+            message: 'Sarah is attending Prestons Dinner',
+            link: { page: 'events' },
+            read: false,
+            createdAt: '2024-01-16T15:30:00'
+        },
+        {
+            id: 'notif-5',
+            userId: 'user-3',
+            type: 'post',
+            title: 'New Kete post published',
+            message: 'Your post "Finding Sacred in the Ordinary" is now live',
+            link: { page: 'kete' },
+            read: true,
+            createdAt: '2024-01-10T10:00:00'
+        }
+    ]
 };
 
 // Generate sample events
@@ -890,6 +944,212 @@ const DataService = {
     // Check if user is admin or host
     isAdminOrHost() {
         return this.isAdmin() || this.isHost();
+    },
+
+    // ============================================
+    // NOTIFICATIONS
+    // ============================================
+
+    // Get notifications for current user
+    getNotifications() {
+        const user = this.getCurrentUser();
+        if (!user) return [];
+
+        return MockDB.notifications
+            .filter(n => n.userId === user.id)
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    },
+
+    // Get unread notification count
+    getUnreadNotificationCount() {
+        const user = this.getCurrentUser();
+        if (!user) return 0;
+
+        return MockDB.notifications.filter(n => n.userId === user.id && !n.read).length;
+    },
+
+    // Mark notification as read
+    markNotificationRead(notifId) {
+        const notif = MockDB.notifications.find(n => n.id === notifId);
+        if (notif) {
+            notif.read = true;
+        }
+    },
+
+    // Mark all notifications as read
+    markAllNotificationsRead() {
+        const user = this.getCurrentUser();
+        if (!user) return;
+
+        MockDB.notifications.forEach(n => {
+            if (n.userId === user.id) {
+                n.read = true;
+            }
+        });
+    },
+
+    // Create notification (for internal use)
+    createNotification(userId, type, title, message, link = null) {
+        const notif = {
+            id: 'notif-' + Date.now(),
+            userId,
+            type,
+            title,
+            message,
+            link,
+            read: false,
+            createdAt: new Date().toISOString()
+        };
+        MockDB.notifications.unshift(notif);
+        return notif;
+    },
+
+    // ============================================
+    // SEARCH
+    // ============================================
+
+    // Search across all content
+    search(query) {
+        if (!query || query.length < 2) return { events: [], posts: [], groups: [], kete: [] };
+
+        const q = query.toLowerCase();
+        const user = this.getCurrentUser();
+
+        // Search events
+        const events = MockDB.events.filter(e =>
+            e.title.toLowerCase().includes(q) ||
+            e.description?.toLowerCase().includes(q) ||
+            e.location?.toLowerCase().includes(q)
+        ).slice(0, 5);
+
+        // Search groups
+        const groups = MockDB.gatherings.filter(g =>
+            g.name.toLowerCase().includes(q) ||
+            g.description?.toLowerCase().includes(q)
+        ).slice(0, 5);
+
+        // Search Kete posts
+        const kete = MockDB.kete.filter(k =>
+            k.published && (
+                k.title.toLowerCase().includes(q) ||
+                k.excerpt?.toLowerCase().includes(q) ||
+                k.content?.toLowerCase().includes(q)
+            )
+        ).slice(0, 5);
+
+        // Search board posts (only from accessible boards)
+        const posts = [];
+        Object.entries(MockDB.messageBoards).forEach(([gatheringId, board]) => {
+            if (this.canAccessBoard(gatheringId)) {
+                board.posts.forEach(post => {
+                    if (post.content.toLowerCase().includes(q)) {
+                        posts.push({ ...post, gatheringId });
+                    }
+                });
+            }
+        });
+
+        return {
+            events,
+            groups,
+            kete,
+            posts: posts.slice(0, 5)
+        };
+    },
+
+    // ============================================
+    // ADMIN STATS
+    // ============================================
+
+    // Get dashboard statistics (admin only)
+    getAdminStats() {
+        if (!this.isAdmin()) return null;
+
+        const now = new Date();
+        const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+
+        // Count active users (users who have RSVPs or posts)
+        const activeUserIds = new Set();
+        MockDB.events.forEach(e => {
+            e.rsvps?.forEach(r => {
+                const userId = typeof r === 'string' ? r : r.userId;
+                activeUserIds.add(userId);
+            });
+        });
+        Object.values(MockDB.messageBoards).forEach(board => {
+            board.posts?.forEach(p => activeUserIds.add(p.authorId));
+        });
+
+        // Count recent events
+        const upcomingEvents = MockDB.events.filter(e => new Date(e.date) >= now).length;
+        const recentRSVPs = MockDB.events.reduce((count, e) => {
+            return count + (e.rsvps?.length || 0);
+        }, 0);
+
+        // Count posts
+        const totalBoardPosts = Object.values(MockDB.messageBoards).reduce((count, board) => {
+            return count + (board.posts?.length || 0);
+        }, 0);
+
+        const totalKetePosts = MockDB.kete.filter(k => k.published).length;
+        const draftPosts = MockDB.kete.filter(k => !k.published).length;
+
+        return {
+            totalUsers: MockDB.users.length,
+            activeUsers: activeUserIds.size,
+            totalGatherings: MockDB.gatherings.length,
+            upcomingEvents,
+            totalRSVPs: recentRSVPs,
+            totalBoardPosts,
+            totalKetePosts,
+            draftPosts,
+            usersByRole: {
+                admin: MockDB.users.filter(u => u.role === 'admin').length,
+                host: MockDB.users.filter(u => u.role === 'host').length,
+                member: MockDB.users.filter(u => u.role === 'member').length
+            }
+        };
+    },
+
+    // Get user's activity summary
+    getUserActivity(userId = null) {
+        const user = userId ? MockDB.users.find(u => u.id === userId) : this.getCurrentUser();
+        if (!user) return null;
+
+        // Get RSVPs
+        const rsvps = [];
+        MockDB.events.forEach(e => {
+            const hasRSVP = e.rsvps?.some(r =>
+                (typeof r === 'string' ? r : r.userId) === user.id
+            );
+            if (hasRSVP) {
+                rsvps.push(e);
+            }
+        });
+
+        // Get board posts
+        const boardPosts = [];
+        Object.entries(MockDB.messageBoards).forEach(([gatheringId, board]) => {
+            board.posts?.forEach(p => {
+                if (p.authorId === user.id) {
+                    boardPosts.push({ ...p, gatheringId });
+                }
+            });
+        });
+
+        // Get Kete posts
+        const ketePosts = MockDB.kete.filter(k => k.authorId === user.id);
+
+        return {
+            rsvpCount: rsvps.length,
+            upcomingRSVPs: rsvps.filter(e => new Date(e.date) >= new Date()),
+            boardPostCount: boardPosts.length,
+            ketePostCount: ketePosts.length,
+            recentActivity: [
+                ...boardPosts.map(p => ({ type: 'post', item: p, date: p.createdAt })),
+                ...ketePosts.map(k => ({ type: 'kete', item: k, date: k.createdAt }))
+            ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5)
+        };
     }
 };
 
@@ -1984,6 +2244,192 @@ function escapeHtml(text) {
 }
 
 // ============================================
+// NOTIFICATIONS MODAL
+// ============================================
+
+function updateNotificationBadge() {
+    const badge = document.getElementById('notification-badge');
+    if (!badge) return;
+
+    const count = DataService.getUnreadNotificationCount();
+    badge.style.display = count > 0 ? 'block' : 'none';
+}
+
+function openNotificationsModal() {
+    const notifications = DataService.getNotifications();
+
+    const notificationIcons = {
+        comment: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+        post: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>',
+        event: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>',
+        rsvp: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+        mention: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg>'
+    };
+
+    const bodyHTML = notifications.length > 0 ? `
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            ${notifications.map(n => `
+                <div onclick="handleNotificationClick('${n.id}', ${JSON.stringify(n.link).replace(/"/g, '&quot;')})"
+                     style="display: flex; gap: 0.75rem; padding: 0.75rem; background: ${n.read ? 'var(--color-cream)' : 'var(--color-sage-light)'}; border-radius: var(--radius-md); cursor: pointer;">
+                    <div style="width: 32px; height: 32px; background: ${n.read ? 'var(--color-cream-dark)' : 'var(--color-sage)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: ${n.read ? 'var(--color-text-light)' : 'white'}; flex-shrink: 0;">
+                        ${notificationIcons[n.type] || notificationIcons.post}
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: ${n.read ? '400' : '500'}; font-size: 0.9375rem;">${n.title}</div>
+                        <div style="color: var(--color-text-light); font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${n.message}</div>
+                        <div style="color: var(--color-text-light); font-size: 0.75rem; margin-top: 0.25rem;">${formatRelativeTime(n.createdAt)}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    ` : `
+        <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <p style="margin: 0;">No notifications</p>
+            <p style="font-size: 0.875rem; margin-top: 0.5rem;">You're all caught up!</p>
+        </div>
+    `;
+
+    const unreadCount = DataService.getUnreadNotificationCount();
+    const footerHTML = `
+        ${unreadCount > 0 ? `<button class="btn btn-ghost" onclick="markAllNotificationsRead()">Mark all as read</button>` : ''}
+        <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+    `;
+
+    openModal('Notifications', bodyHTML, footerHTML);
+}
+
+function handleNotificationClick(notifId, link) {
+    DataService.markNotificationRead(notifId);
+    updateNotificationBadge();
+    closeModal();
+
+    if (link) {
+        if (link.groupId) {
+            navigateToGroup(link.groupId);
+        } else if (link.page) {
+            navigateTo(link.page);
+        }
+    }
+}
+
+function markAllNotificationsRead() {
+    DataService.markAllNotificationsRead();
+    updateNotificationBadge();
+    openNotificationsModal(); // Refresh modal
+    showToast('All notifications marked as read', 'default');
+}
+
+// ============================================
+// SEARCH MODAL
+// ============================================
+
+function openSearchModal() {
+    const bodyHTML = `
+        <div style="margin-bottom: 1rem;">
+            <input type="text" class="form-input" id="search-input" placeholder="Search events, groups, posts..."
+                   oninput="performSearch(this.value)" autofocus style="font-size: 1rem;">
+        </div>
+        <div id="search-results" style="max-height: 400px; overflow-y: auto;">
+            <p style="color: var(--color-text-light); text-align: center; padding: 1rem;">
+                Type to search...
+            </p>
+        </div>
+    `;
+
+    openModal('Search', bodyHTML, '');
+
+    // Focus the input after modal opens
+    setTimeout(() => {
+        document.getElementById('search-input')?.focus();
+    }, 100);
+}
+
+function performSearch(query) {
+    const resultsContainer = document.getElementById('search-results');
+    if (!resultsContainer) return;
+
+    if (!query || query.length < 2) {
+        resultsContainer.innerHTML = `<p style="color: var(--color-text-light); text-align: center; padding: 1rem;">Type at least 2 characters to search...</p>`;
+        return;
+    }
+
+    const results = DataService.search(query);
+    const hasResults = results.events.length > 0 || results.groups.length > 0 || results.kete.length > 0 || results.posts.length > 0;
+
+    if (!hasResults) {
+        resultsContainer.innerHTML = `<p style="color: var(--color-text-light); text-align: center; padding: 1rem;">No results found for "${escapeHtml(query)}"</p>`;
+        return;
+    }
+
+    let html = '';
+
+    if (results.events.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <h4 style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; margin-bottom: 0.5rem;">Events</h4>
+                ${results.events.map(e => `
+                    <div onclick="closeModal(); openEventModal('${e.id}')" style="padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
+                        <div style="font-weight: 500;">${escapeHtml(e.title)}</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(e.date)} • ${e.location}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    if (results.groups.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <h4 style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; margin-bottom: 0.5rem;">Groups</h4>
+                ${results.groups.map(g => `
+                    <div onclick="closeModal(); navigateToGroup('${g.id}')" style="padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
+                        <div style="font-weight: 500;">${escapeHtml(g.name)}</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-light);">${g.rhythm}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    if (results.kete.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <h4 style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; margin-bottom: 0.5rem;">Kete Posts</h4>
+                ${results.kete.map(k => `
+                    <div onclick="closeModal(); openKetePostModal('${k.id}')" style="padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
+                        <div style="font-weight: 500;">${escapeHtml(k.title)}</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-light);">${k.authorName}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    if (results.posts.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <h4 style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; margin-bottom: 0.5rem;">Board Posts</h4>
+                ${results.posts.map(p => {
+                    const group = DataService.getGatheringById(p.gatheringId);
+                    return `
+                        <div onclick="closeModal(); navigateToGroup('${p.gatheringId}')" style="padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
+                            <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.content.substring(0, 50))}...</div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light);">${p.authorName} in ${group?.name || 'Unknown'}</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    resultsContainer.innerHTML = html;
+}
+
+// ============================================
 // PAGE RENDERERS
 // ============================================
 
@@ -2803,6 +3249,8 @@ function renderKetePage() {
 
 function renderProfilePage() {
     const currentUser = DataService.getCurrentUser();
+    const activity = DataService.getUserActivity();
+    const userGatherings = DataService.getUserGatherings();
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 2rem 1.5rem; color: white; text-align: center;">
@@ -2813,7 +3261,70 @@ function renderProfilePage() {
             <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem; text-transform: capitalize;">${currentUser.role}</p>
         </div>
 
-        <div class="app-section" style="padding-top: 1.5rem;">
+        <!-- Activity Stats -->
+        <div class="app-section" style="padding-top: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-forest);">${activity?.upcomingRSVPs?.length || 0}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Upcoming</div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-sage);">${userGatherings.length}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Groups</div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-terracotta);">${activity?.boardPostCount || 0}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Posts</div>
+                </div>
+            </div>
+        </div>
+
+        ${activity?.recentActivity?.length > 0 ? `
+        <div class="app-section">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Recent Activity</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    ${activity.recentActivity.map(a => {
+                        if (a.type === 'post') {
+                            const group = DataService.getGatheringById(a.item.gatheringId);
+                            return `
+                                <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                                    <div style="width: 32px; height: 32px; background: var(--color-sage-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-size: 0.875rem;">Posted in <strong>${group?.name || 'Unknown'}</strong></div>
+                                        <div style="font-size: 0.75rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(a.item.content.substring(0, 40))}...</div>
+                                        <div style="font-size: 0.625rem; color: var(--color-text-light); margin-top: 0.25rem;">${formatRelativeTime(a.date)}</div>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (a.type === 'kete') {
+                            return `
+                                <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                                    <div style="width: 32px; height: 32px; background: var(--color-terracotta-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-terracotta)" stroke-width="2">
+                                            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                                        </svg>
+                                    </div>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-size: 0.875rem;">Published <strong>${escapeHtml(a.item.title)}</strong></div>
+                                        <div style="font-size: 0.625rem; color: var(--color-text-light); margin-top: 0.25rem;">${formatRelativeTime(a.date)}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        return '';
+                    }).join('')}
+                </div>
+            </div>
+        </div>
+        ` : ''}
+
+        <div class="app-section">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3 style="margin: 0; font-size: 1.125rem;">Contact Details</h3>
@@ -3022,14 +3533,51 @@ function renderHostingPage() {
 function renderSettingsPage() {
     const firebaseStatus = PortalConfig.useFirebase ? 'Connected' : 'Demo Mode';
     const statusColor = PortalConfig.useFirebase ? 'var(--color-sage)' : 'var(--color-terracotta)';
+    const stats = DataService.getAdminStats();
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
-            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Settings</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Admin controls</p>
+            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Admin Dashboard</h2>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Settings and statistics</p>
         </div>
 
-        <div class="app-section" style="padding-top: 1.5rem;">
+        <!-- Dashboard Stats -->
+        ${stats ? `
+        <div class="app-section" style="padding-top: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 2rem; font-weight: 600; color: var(--color-forest);">${stats.totalUsers}</div>
+                    <div style="font-size: 0.875rem; color: var(--color-text-light);">Total Users</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">
+                        ${stats.usersByRole.admin} admin, ${stats.usersByRole.host} hosts, ${stats.usersByRole.member} members
+                    </div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 2rem; font-weight: 600; color: var(--color-sage);">${stats.upcomingEvents}</div>
+                    <div style="font-size: 0.875rem; color: var(--color-text-light);">Upcoming Events</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">
+                        ${stats.totalRSVPs} total RSVPs
+                    </div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 2rem; font-weight: 600; color: var(--color-terracotta);">${stats.totalBoardPosts}</div>
+                    <div style="font-size: 0.875rem; color: var(--color-text-light);">Board Posts</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">
+                        across ${stats.totalGatherings} groups
+                    </div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 2rem; font-weight: 600; color: #7c3aed;">${stats.totalKetePosts}</div>
+                    <div style="font-size: 0.875rem; color: var(--color-text-light);">Kete Posts</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">
+                        ${stats.draftPosts} drafts pending
+                    </div>
+                </div>
+            </div>
+        </div>
+        ` : ''}
+
+        <div class="app-section">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
                 <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">User Management</h3>
                 <p style="color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1rem;">
@@ -3092,7 +3640,7 @@ function renderSettingsPage() {
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 7: Advanced Features</span>
-                        <span style="color: var(--color-text-light);">Pending</span>
+                        <span style="color: var(--color-sage);">Complete</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 8: Final Polish</span>
@@ -3538,6 +4086,7 @@ function showAppState() {
         appView.style.display = 'block';
         document.body.classList.add('app-mode');
         renderPage();
+        updateNotificationBadge();
     } else {
         authView.style.display = 'block';
         appView.style.display = 'none';
