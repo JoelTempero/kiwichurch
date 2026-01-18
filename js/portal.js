@@ -212,7 +212,125 @@ So if you've been away for a while, know this: you're still part of us. And when
         }
     ],
 
-    messages: []
+    // Message boards - one per gathering
+    messageBoards: {
+        'gathering-1': { // Thin Place - public gathering, public board
+            posts: [
+                {
+                    id: 'post-1',
+                    authorId: 'user-3',
+                    authorName: 'Darryl Tempero',
+                    content: 'Looking forward to seeing everyone this Wednesday! We\'ll be exploring the theme of "rest" together. Bring a cushion if you like - we\'ll have some floor time.',
+                    createdAt: '2024-01-15T10:30:00',
+                    comments: [
+                        {
+                            id: 'comment-1',
+                            authorId: 'user-1',
+                            authorName: 'Sarah Utting',
+                            content: 'Can\'t wait! Should we bring anything to share for supper?',
+                            createdAt: '2024-01-15T11:45:00'
+                        },
+                        {
+                            id: 'comment-2',
+                            authorId: 'user-3',
+                            authorName: 'Darryl Tempero',
+                            content: 'Just yourselves! We\'ve got food sorted this week.',
+                            createdAt: '2024-01-15T12:00:00'
+                        }
+                    ]
+                },
+                {
+                    id: 'post-2',
+                    authorId: 'user-1',
+                    authorName: 'Sarah Utting',
+                    content: 'That was such a beautiful evening last week. The silence at the end was exactly what I needed. Thank you all for holding that space together.',
+                    createdAt: '2024-01-12T09:15:00',
+                    comments: []
+                }
+            ]
+        },
+        'gathering-2': { // Online Prayer - public gathering
+            posts: [
+                {
+                    id: 'post-3',
+                    authorId: 'user-3',
+                    authorName: 'Darryl Tempero',
+                    content: 'Zoom link for this week\'s prayer sessions: https://zoom.us/j/example\n\nTuesday and Thursday at 7am as usual. All welcome!',
+                    createdAt: '2024-01-14T18:00:00',
+                    comments: []
+                }
+            ]
+        },
+        'gathering-3': { // Prestons Community - private gathering, members only
+            posts: [
+                {
+                    id: 'post-4',
+                    authorId: 'user-2',
+                    authorName: 'Michael Olds',
+                    content: 'Friday dinner this week at our place! We\'re doing a Mexican theme. Let me know if you have any dietary requirements.',
+                    createdAt: '2024-01-16T14:20:00',
+                    comments: [
+                        {
+                            id: 'comment-3',
+                            authorId: 'user-1',
+                            authorName: 'Sarah Utting',
+                            content: 'Yum! We\'ll be there. James is vegetarian now (this week at least 😄)',
+                            createdAt: '2024-01-16T15:30:00'
+                        }
+                    ]
+                },
+                {
+                    id: 'post-5',
+                    authorId: 'user-2',
+                    authorName: 'Michael Olds',
+                    content: 'Quick reminder that we\'re collecting for the local food bank this month. Bring any non-perishables to Friday\'s dinner if you can.',
+                    createdAt: '2024-01-10T09:00:00',
+                    comments: []
+                }
+            ]
+        },
+        'gathering-4': { // Rito Shack - public gathering
+            posts: []
+        },
+        'gathering-5': { // Digging Deeper - private gathering
+            posts: [
+                {
+                    id: 'post-6',
+                    authorId: 'user-3',
+                    authorName: 'Darryl Tempero',
+                    content: 'This Tuesday we\'re looking at the book of Ruth. If you get a chance, read through it beforehand - it\'s only 4 short chapters!',
+                    createdAt: '2024-01-15T08:00:00',
+                    comments: []
+                }
+            ]
+        },
+        'gathering-6': { // Reel Life - public gathering
+            posts: [
+                {
+                    id: 'post-7',
+                    authorId: 'user-2',
+                    authorName: 'Michael Olds',
+                    content: 'Next movie night: "The Way" (2010) - a beautiful film about pilgrimage and finding yourself. Friday the 19th at 7pm. Popcorn provided!',
+                    createdAt: '2024-01-13T16:45:00',
+                    comments: [
+                        {
+                            id: 'comment-4',
+                            authorId: 'user-1',
+                            authorName: 'Sarah Utting',
+                            content: 'I\'ve heard great things about this one. See you there!',
+                            createdAt: '2024-01-13T17:30:00'
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+
+    // Track which users are members of which private gatherings
+    gatheringMembers: {
+        'gathering-3': ['user-1', 'user-2', 'user-3'], // Prestons Community
+        'gathering-5': ['user-1', 'user-3'] // Digging Deeper
+    }
 };
 
 // Generate sample events
@@ -262,6 +380,7 @@ let state = {
     currentUserData: null,
     currentPage: 'home',
     selectedDate: null,
+    selectedGroupId: null, // For group detail page
     calendarYear: new Date().getFullYear(),
     calendarMonth: new Date().getMonth(),
     eventsViewMode: 'list', // 'list' or 'calendar'
@@ -587,6 +706,175 @@ const DataService = {
         return false;
     },
 
+    // ============================================
+    // MESSAGE BOARDS
+    // ============================================
+
+    // Check if user can access a gathering's message board
+    canAccessBoard(gatheringId) {
+        const user = this.getCurrentUser();
+        if (!user) return false;
+
+        const gathering = this.getGatheringById(gatheringId);
+        if (!gathering) return false;
+
+        // Public gatherings - all authenticated users can access
+        if (gathering.isPublic) return true;
+
+        // Private gatherings - check membership
+        const members = MockDB.gatheringMembers[gatheringId] || [];
+        return members.includes(user.id) || user.role === 'admin';
+    },
+
+    // Check if user is member of a private gathering
+    isMemberOfGathering(gatheringId) {
+        const user = this.getCurrentUser();
+        if (!user) return false;
+        if (user.role === 'admin') return true;
+
+        const members = MockDB.gatheringMembers[gatheringId] || [];
+        return members.includes(user.id);
+    },
+
+    // Get message board for a gathering
+    getMessageBoard(gatheringId) {
+        if (!this.canAccessBoard(gatheringId)) return null;
+
+        const board = MockDB.messageBoards[gatheringId];
+        if (!board) {
+            // Initialize empty board if none exists
+            MockDB.messageBoards[gatheringId] = { posts: [] };
+            return MockDB.messageBoards[gatheringId];
+        }
+        return board;
+    },
+
+    // Get posts for a gathering, sorted by newest first
+    getBoardPosts(gatheringId) {
+        const board = this.getMessageBoard(gatheringId);
+        if (!board) return [];
+
+        return [...board.posts].sort((a, b) =>
+            new Date(b.createdAt) - new Date(a.createdAt)
+        );
+    },
+
+    // Create a new board post
+    async createBoardPost(gatheringId, content) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.createBoardPost(gatheringId, content);
+        }
+
+        const user = this.getCurrentUser();
+        if (!user || !this.canAccessBoard(gatheringId)) {
+            throw new Error('Cannot post to this board');
+        }
+
+        const board = this.getMessageBoard(gatheringId);
+        const newPost = {
+            id: 'post-' + Date.now(),
+            authorId: user.id,
+            authorName: user.displayName,
+            content,
+            createdAt: new Date().toISOString(),
+            comments: []
+        };
+
+        board.posts.unshift(newPost);
+        return newPost;
+    },
+
+    // Delete a board post
+    async deleteBoardPost(gatheringId, postId) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.deleteBoardPost(gatheringId, postId);
+        }
+
+        const user = this.getCurrentUser();
+        const board = this.getMessageBoard(gatheringId);
+        if (!board) throw new Error('Board not found');
+
+        const postIndex = board.posts.findIndex(p => p.id === postId);
+        if (postIndex === -1) throw new Error('Post not found');
+
+        const post = board.posts[postIndex];
+        // Only author or admin can delete
+        if (post.authorId !== user.id && user.role !== 'admin') {
+            throw new Error('Cannot delete this post');
+        }
+
+        board.posts.splice(postIndex, 1);
+        return true;
+    },
+
+    // Add comment to a post
+    async addComment(gatheringId, postId, content) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.addComment(gatheringId, postId, content);
+        }
+
+        const user = this.getCurrentUser();
+        if (!user || !this.canAccessBoard(gatheringId)) {
+            throw new Error('Cannot comment on this board');
+        }
+
+        const board = this.getMessageBoard(gatheringId);
+        if (!board) throw new Error('Board not found');
+
+        const post = board.posts.find(p => p.id === postId);
+        if (!post) throw new Error('Post not found');
+
+        const newComment = {
+            id: 'comment-' + Date.now(),
+            authorId: user.id,
+            authorName: user.displayName,
+            content,
+            createdAt: new Date().toISOString()
+        };
+
+        post.comments.push(newComment);
+        return newComment;
+    },
+
+    // Delete a comment
+    async deleteComment(gatheringId, postId, commentId) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.deleteComment(gatheringId, postId, commentId);
+        }
+
+        const user = this.getCurrentUser();
+        const board = this.getMessageBoard(gatheringId);
+        if (!board) throw new Error('Board not found');
+
+        const post = board.posts.find(p => p.id === postId);
+        if (!post) throw new Error('Post not found');
+
+        const commentIndex = post.comments.findIndex(c => c.id === commentId);
+        if (commentIndex === -1) throw new Error('Comment not found');
+
+        const comment = post.comments[commentIndex];
+        // Only author or admin can delete
+        if (comment.authorId !== user.id && user.role !== 'admin') {
+            throw new Error('Cannot delete this comment');
+        }
+
+        post.comments.splice(commentIndex, 1);
+        return true;
+    },
+
+    // Get user's gatherings (public + private memberships)
+    getUserGatherings() {
+        const user = this.getCurrentUser();
+        if (!user) return [];
+
+        return MockDB.gatherings.filter(g => {
+            if (g.isPublic) return true;
+            if (user.role === 'admin') return true;
+            const members = MockDB.gatheringMembers[g.id] || [];
+            return members.includes(user.id);
+        });
+    },
+
     // Check if user is admin
     isAdmin() {
         const user = this.getCurrentUser();
@@ -746,9 +1034,14 @@ function demoLogin(username, password) {
 function navigateTo(page) {
     state.currentPage = page;
 
+    // Clear group selection when leaving group page
+    if (page !== 'group') {
+        state.selectedGroupId = null;
+    }
+
     // Update bottom nav
     document.querySelectorAll('.bottom-nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.page === page);
+        item.classList.toggle('active', item.dataset.page === page || (page === 'group' && item.dataset.page === 'groups'));
     });
 
     // Update page title
@@ -762,11 +1055,28 @@ function navigateTo(page) {
         settings: 'Settings',
         users: 'Users'
     };
-    document.getElementById('page-title').textContent = titles[page] || 'Portal';
+
+    // For group page, show group name
+    if (page === 'group' && state.selectedGroupId) {
+        const group = DataService.getGatheringById(state.selectedGroupId);
+        document.getElementById('page-title').textContent = group?.name || 'Group';
+    } else {
+        document.getElementById('page-title').textContent = titles[page] || 'Portal';
+    }
 
     // Render page
     renderPage();
     window.scrollTo(0, 0);
+}
+
+// Navigate to a specific group's message board
+function navigateToGroup(groupId) {
+    if (!DataService.canAccessBoard(groupId)) {
+        showToast('You don\'t have access to this group', 'error');
+        return;
+    }
+    state.selectedGroupId = groupId;
+    navigateTo('group');
 }
 
 // ============================================
@@ -1705,6 +2015,9 @@ function renderPage() {
         case 'users':
             main.innerHTML = renderUsersPage();
             break;
+        case 'group':
+            main.innerHTML = renderGroupPage();
+            break;
         default:
             main.innerHTML = renderHomePage();
     }
@@ -2067,6 +2380,15 @@ function showDayEvents(dateStr) {
 }
 
 function renderGroupsPage() {
+    const userGatherings = DataService.getUserGatherings();
+    const currentUser = DataService.getCurrentUser();
+
+    // Separate into groups user can access and public groups they can't access (private)
+    const accessibleGroups = userGatherings;
+    const privateGroups = MockDB.gatherings.filter(g =>
+        !g.isPublic && !userGatherings.find(ug => ug.id === g.id)
+    );
+
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Communities</h2>
@@ -2074,29 +2396,323 @@ function renderGroupsPage() {
         </div>
 
         <div class="app-section" style="padding-top: 1.5rem;">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Your Groups</h3>
+            </div>
             <div class="gatherings-grid">
-                ${MockDB.gatherings.map(g => `
-                    <div class="gathering-card">
-                        <div class="gathering-card-header" style="background: linear-gradient(135deg, ${g.color} 0%, ${g.color}cc 100%); height: 100px;">
-                            <h3 style="font-size: 1.25rem;">${g.name}</h3>
+                ${accessibleGroups.map(g => {
+                    const board = MockDB.messageBoards[g.id];
+                    const postCount = board?.posts?.length || 0;
+                    const isMember = !g.isPublic && DataService.isMemberOfGathering(g.id);
+                    return `
+                        <div class="gathering-card" onclick="navigateToGroup('${g.id}')" style="cursor: pointer;">
+                            <div class="gathering-card-header" style="background: linear-gradient(135deg, ${g.color} 0%, ${g.color}cc 100%); height: 100px;">
+                                <h3 style="font-size: 1.25rem;">${g.name}</h3>
+                            </div>
+                            <div class="gathering-card-body">
+                                <span class="gathering-card-rhythm">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    ${g.rhythm}
+                                </span>
+                                <p class="gathering-card-desc" style="font-size: 0.875rem;">${g.description}</p>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                                    <span class="event-badge ${g.isPublic ? '' : 'private'}">${g.isPublic ? 'Open' : isMember ? 'Member' : 'Members'}</span>
+                                    ${postCount > 0 ? `
+                                        <span style="font-size: 0.75rem; color: var(--color-text-light);">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                            </svg>
+                                            ${postCount} post${postCount !== 1 ? 's' : ''}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
                         </div>
-                        <div class="gathering-card-body">
-                            <span class="gathering-card-rhythm">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                ${g.rhythm}
-                            </span>
-                            <p class="gathering-card-desc" style="font-size: 0.875rem;">${g.description}</p>
-                            <span class="event-badge ${g.isPublic ? '' : 'private'}">${g.isPublic ? 'Open' : 'Members'}</span>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+
+        ${privateGroups.length > 0 && currentUser?.role !== 'admin' ? `
+        <div class="app-section">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Other Communities</h3>
+            </div>
+            <p style="color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1rem;">
+                These are private gatherings. Contact a host or admin to request membership.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                ${privateGroups.map(g => `
+                    <span style="padding: 0.5rem 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); font-size: 0.875rem; color: var(--color-text-light);">
+                        ${g.name}
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
+        <div style="height: 20px;"></div>
+    `;
+}
+
+function renderGroupPage() {
+    const groupId = state.selectedGroupId;
+    if (!groupId) {
+        navigateTo('groups');
+        return '';
+    }
+
+    const group = DataService.getGatheringById(groupId);
+    if (!group) {
+        navigateTo('groups');
+        return '';
+    }
+
+    const canAccess = DataService.canAccessBoard(groupId);
+    if (!canAccess) {
+        return `
+            <div style="padding: 2rem; text-align: center;">
+                <p style="color: var(--color-text-light);">You don't have access to this group's message board.</p>
+                <button class="btn btn-secondary" onclick="navigateTo('groups')">Back to Groups</button>
+            </div>
+        `;
+    }
+
+    const currentUser = DataService.getCurrentUser();
+    const posts = DataService.getBoardPosts(groupId);
+    const isMember = DataService.isMemberOfGathering(groupId);
+
+    // Get upcoming events for this group
+    const groupEvents = MockDB.events
+        .filter(e => e.gatheringId === groupId && new Date(e.date) >= new Date())
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(0, 3);
+
+    return `
+        <div style="background: linear-gradient(135deg, ${group.color} 0%, ${group.color}cc 100%); padding: 1.5rem; color: white;">
+            <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: white; opacity: 0.8; margin: -0.5rem 0 0.5rem -0.5rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                All Groups
+            </button>
+            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${group.name}</h2>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">
+                ${group.rhythm}
+                ${!group.isPublic ? ' • Members Only' : ''}
+            </p>
+        </div>
+
+        ${groupEvents.length > 0 ? `
+        <div class="app-section" style="padding-top: 1rem;">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Upcoming</h3>
+            </div>
+            <div style="display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                ${groupEvents.map(event => {
+                    const date = new Date(event.date);
+                    return `
+                        <div onclick="openEventModal('${event.id}')" style="flex-shrink: 0; background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; box-shadow: var(--shadow-sm); cursor: pointer; min-width: 140px;">
+                            <div style="font-size: 0.75rem; color: var(--color-text-light);">${date.toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+                            <div style="font-weight: 500; margin-top: 0.25rem;">${event.title}</div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">${formatTime(event.time)}</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+        ` : ''}
+
+        <div class="app-section" style="padding-top: ${groupEvents.length > 0 ? '0.5rem' : '1rem'};">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Message Board</h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">${posts.length} post${posts.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            <!-- New Post Form -->
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem;">
+                <div style="display: flex; gap: 0.75rem;">
+                    <div style="width: 36px; height: 36px; background: ${group.color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); flex-shrink: 0;">
+                        ${currentUser.displayName.charAt(0)}
+                    </div>
+                    <div style="flex: 1;">
+                        <textarea id="new-post-content" class="form-input" rows="2" placeholder="Share something with the group..." style="resize: none;"></textarea>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+                            <button class="btn btn-primary btn-sm" onclick="submitBoardPost('${groupId}')">Post</button>
                         </div>
                     </div>
-                `).join('')}
+                </div>
+            </div>
+
+            <!-- Posts -->
+            ${posts.length > 0 ? posts.map(post => {
+                const isAuthor = post.authorId === currentUser?.id;
+                const isAdmin = currentUser?.role === 'admin';
+                const canDelete = isAuthor || isAdmin;
+
+                return `
+                    <div class="board-post" style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 0.75rem;">
+                        <div style="display: flex; gap: 0.75rem;">
+                            <div style="width: 36px; height: 36px; background: var(--color-sage); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); flex-shrink: 0;">
+                                ${post.authorName.charAt(0)}
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div>
+                                        <span style="font-weight: 500;">${post.authorName}</span>
+                                        <span style="color: var(--color-text-light); font-size: 0.75rem; margin-left: 0.5rem;">${formatRelativeTime(post.createdAt)}</span>
+                                    </div>
+                                    ${canDelete ? `
+                                        <button class="btn btn-ghost btn-sm" onclick="deleteBoardPost('${groupId}', '${post.id}')" style="padding: 0.25rem; margin: -0.25rem -0.25rem 0 0;">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                                <p style="margin: 0.5rem 0 0; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(post.content)}</p>
+
+                                <!-- Comments -->
+                                ${post.comments.length > 0 ? `
+                                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-cream);">
+                                        ${post.comments.map(comment => {
+                                            const canDeleteComment = comment.authorId === currentUser?.id || isAdmin;
+                                            return `
+                                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                                    <div style="width: 24px; height: 24px; background: var(--color-cream-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--color-text); font-size: 0.625rem; font-family: var(--font-display); flex-shrink: 0;">
+                                                        ${comment.authorName.charAt(0)}
+                                                    </div>
+                                                    <div style="flex: 1; min-width: 0;">
+                                                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                                            <div>
+                                                                <span style="font-weight: 500; font-size: 0.875rem;">${comment.authorName}</span>
+                                                                <span style="color: var(--color-text-light); font-size: 0.625rem; margin-left: 0.5rem;">${formatRelativeTime(comment.createdAt)}</span>
+                                                            </div>
+                                                            ${canDeleteComment ? `
+                                                                <button class="btn btn-ghost" onclick="deleteBoardComment('${groupId}', '${post.id}', '${comment.id}')" style="padding: 0.125rem; margin: -0.125rem -0.125rem 0 0;">
+                                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2">
+                                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                                    </svg>
+                                                                </button>
+                                                            ` : ''}
+                                                        </div>
+                                                        <p style="margin: 0.25rem 0 0; font-size: 0.875rem; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(comment.content)}</p>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                ` : ''}
+
+                                <!-- Add Comment -->
+                                <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                                    <input type="text" class="form-input" id="comment-${post.id}" placeholder="Write a comment..." style="flex: 1; padding: 0.5rem 0.75rem; font-size: 0.875rem;" onkeypress="if(event.key === 'Enter') { submitComment('${groupId}', '${post.id}'); }">
+                                    <button class="btn btn-ghost btn-sm" onclick="submitComment('${groupId}', '${post.id}')">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('') : `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <p style="margin: 0;">No posts yet.</p>
+                    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Be the first to share something!</p>
+                </div>
+            `}
+        </div>
+
+        <div class="app-section">
+            <div style="background: var(--color-cream); border-radius: var(--radius-lg); padding: 1rem;">
+                <h4 style="margin: 0 0 0.5rem; font-size: 1rem;">About this group</h4>
+                <p style="margin: 0; color: var(--color-text-light); font-size: 0.9375rem;">${group.description}</p>
             </div>
         </div>
         <div style="height: 20px;"></div>
     `;
+}
+
+// Format relative time (e.g., "2 hours ago")
+function formatRelativeTime(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return formatDateShort(dateStr);
+}
+
+// Board post actions
+async function submitBoardPost(groupId) {
+    const textarea = document.getElementById('new-post-content');
+    const content = textarea?.value.trim();
+
+    if (!content) {
+        showToast('Please write something to post', 'error');
+        return;
+    }
+
+    try {
+        await DataService.createBoardPost(groupId, content);
+        textarea.value = '';
+        showToast('Posted!', 'success');
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not create post', 'error');
+    }
+}
+
+async function deleteBoardPost(groupId, postId) {
+    if (!confirm('Delete this post?')) return;
+
+    try {
+        await DataService.deleteBoardPost(groupId, postId);
+        showToast('Post deleted', 'default');
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not delete post', 'error');
+    }
+}
+
+async function submitComment(groupId, postId) {
+    const input = document.getElementById(`comment-${postId}`);
+    const content = input?.value.trim();
+
+    if (!content) return;
+
+    try {
+        await DataService.addComment(groupId, postId, content);
+        input.value = '';
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not add comment', 'error');
+    }
+}
+
+async function deleteBoardComment(groupId, postId, commentId) {
+    try {
+        await DataService.deleteComment(groupId, postId, commentId);
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not delete comment', 'error');
+    }
 }
 
 function renderKetePage() {
@@ -2472,7 +3088,7 @@ function renderSettingsPage() {
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 6: Group Messaging</span>
-                        <span style="color: var(--color-text-light);">Pending</span>
+                        <span style="color: var(--color-sage);">Complete</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 7: Advanced Features</span>
