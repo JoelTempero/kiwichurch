@@ -468,7 +468,8 @@ function navigateTo(page) {
         kete: 'Kete',
         profile: 'Profile',
         hosting: 'Hosting',
-        settings: 'Settings'
+        settings: 'Settings',
+        users: 'Users'
     };
     document.getElementById('page-title').textContent = titles[page] || 'Portal';
 
@@ -620,6 +621,9 @@ function renderPage() {
             break;
         case 'settings':
             main.innerHTML = renderSettingsPage();
+            break;
+        case 'users':
+            main.innerHTML = renderUsersPage();
             break;
         default:
             main.innerHTML = renderHomePage();
@@ -870,7 +874,16 @@ function renderProfilePage() {
 
         <div class="app-section" style="padding-top: 1.5rem;">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
-                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Contact Details</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-size: 1.125rem;">Contact Details</h3>
+                    <button class="btn btn-ghost btn-sm" onclick="openEditProfileModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit
+                    </button>
+                </div>
                 <div style="display: grid; gap: 1rem;">
                     <div>
                         <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Email</label>
@@ -878,16 +891,26 @@ function renderProfilePage() {
                     </div>
                     <div>
                         <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Phone</label>
-                        <p style="margin: 0;">${currentUser.phone}</p>
+                        <p style="margin: 0;">${currentUser.phone || '<span style="color: var(--color-text-light);">Not set</span>'}</p>
                     </div>
-                    ${currentUser.username ? `
                     <div>
                         <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Username</label>
-                        <p style="margin: 0;">@${currentUser.username}</p>
+                        <p style="margin: 0;">${currentUser.username ? '@' + currentUser.username : '<span style="color: var(--color-text-light);">Not set</span>'}</p>
                     </div>
-                    ` : ''}
                 </div>
-                <button class="btn btn-secondary btn-sm" style="margin-top: 1rem;" onclick="showToast('Profile editing coming in Stage 3!', 'default')">Edit Profile</button>
+            </div>
+        </div>
+
+        <div class="app-section">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Account Security</h3>
+                <button class="btn btn-secondary btn-sm" onclick="openChangePasswordModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    Change Password
+                </button>
             </div>
         </div>
 
@@ -970,6 +993,24 @@ function renderSettingsPage() {
 
         <div class="app-section" style="padding-top: 1.5rem;">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">User Management</h3>
+                <p style="color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1rem;">
+                    Manage user accounts, roles, and permissions.
+                </p>
+                <button class="btn btn-primary btn-sm" onclick="navigateTo('users')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Manage Users
+                </button>
+            </div>
+        </div>
+
+        <div class="app-section">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
                 <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Database Status</h3>
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
                     <span style="width: 10px; height: 10px; border-radius: 50%; background: ${statusColor};"></span>
@@ -980,16 +1021,6 @@ function renderSettingsPage() {
                         ? 'Firebase Firestore is connected and syncing data.'
                         : 'Currently using local demo data. Firebase integration available.'}
                 </p>
-            </div>
-        </div>
-
-        <div class="app-section">
-            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
-                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">User Management</h3>
-                <p style="color: var(--color-text-light); font-size: 0.9375rem;">
-                    User management features will be available in Stage 3: Authentication & User Management.
-                </p>
-                <button class="btn btn-secondary btn-sm" style="margin-top: 1rem;" onclick="showToast('Coming in Stage 3!', 'default')">Manage Users</button>
             </div>
         </div>
 
@@ -1007,7 +1038,7 @@ function renderSettingsPage() {
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 3: Authentication</span>
-                        <span style="color: var(--color-text-light);">Pending</span>
+                        <span style="color: var(--color-sage);">Complete</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Stage 4: Events & RSVP</span>
@@ -1040,20 +1071,440 @@ function renderSettingsPage() {
 // APP INITIALIZATION
 // ============================================
 
+// ============================================
+// AUTH VIEW MANAGEMENT
+// ============================================
+
+function showAuthView(view) {
+    const cards = ['login-card', 'register-card', 'forgot-card', 'reset-sent-card', 'register-success-card', 'verify-email-card'];
+    cards.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    const targetCard = document.getElementById(view + '-card');
+    if (targetCard) {
+        targetCard.style.display = 'block';
+    }
+
+    // Clear error messages
+    ['login-error', 'register-message', 'forgot-message'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = 'none';
+            el.textContent = '';
+        }
+    });
+}
+
+function showMessage(elementId, message, isError = true) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.textContent = message;
+        el.style.display = 'block';
+        el.style.background = isError ? '#fef2f2' : '#f0fdf4';
+        el.style.color = isError ? '#dc2626' : '#16a34a';
+        el.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
+    }
+}
+
+function setButtonLoading(buttonId, loading) {
+    const btn = document.getElementById(buttonId);
+    if (!btn) return;
+
+    const textEl = btn.querySelector('.btn-text');
+    const loadingEl = btn.querySelector('.btn-loading');
+
+    if (textEl) textEl.style.display = loading ? 'none' : '';
+    if (loadingEl) loadingEl.style.display = loading ? '' : 'none';
+    btn.disabled = loading;
+}
+
+async function handleRegistration(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('register-name').value.trim();
+    const email = document.getElementById('register-email').value.trim();
+    const username = document.getElementById('register-username').value.trim();
+    const password = document.getElementById('register-password').value;
+    const confirmPassword = document.getElementById('register-password-confirm').value;
+    const message = document.getElementById('register-message-text').value.trim();
+
+    // Validation
+    if (password !== confirmPassword) {
+        showMessage('register-message', 'Passwords do not match');
+        return;
+    }
+
+    if (password.length < 6) {
+        showMessage('register-message', 'Password must be at least 6 characters');
+        return;
+    }
+
+    if (username && !/^[a-zA-Z0-9_]+$/.test(username)) {
+        showMessage('register-message', 'Username can only contain letters, numbers, and underscores');
+        return;
+    }
+
+    setButtonLoading('register-submit', true);
+
+    try {
+        if (PortalConfig.useFirebase && window.Auth) {
+            // Check username availability
+            if (username) {
+                const isAvailable = await DB.checkUsernameAvailable(username);
+                if (!isAvailable) {
+                    showMessage('register-message', 'Username is already taken');
+                    setButtonLoading('register-submit', false);
+                    return;
+                }
+            }
+
+            // Create account
+            await Auth.signUp(email, password, {
+                displayName: name,
+                username: username || null,
+                registrationMessage: message
+            });
+
+            // Send verification email
+            await Auth.sendEmailVerification();
+
+            showAuthView('register-success');
+        } else {
+            // Demo mode - just show success
+            showAuthView('register-success');
+        }
+    } catch (error) {
+        showMessage('register-message', error.message);
+    } finally {
+        setButtonLoading('register-submit', false);
+    }
+}
+
+async function handleForgotPassword(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('forgot-email').value.trim();
+
+    setButtonLoading('forgot-submit', true);
+
+    try {
+        if (PortalConfig.useFirebase && window.Auth) {
+            await Auth.sendPasswordResetEmail(email);
+        }
+
+        // Always show success (don't reveal if email exists)
+        document.getElementById('reset-email-display').textContent = email;
+        showAuthView('reset-sent');
+    } catch (error) {
+        // Still show success for security (don't reveal if email exists)
+        document.getElementById('reset-email-display').textContent = email;
+        showAuthView('reset-sent');
+    } finally {
+        setButtonLoading('forgot-submit', false);
+    }
+}
+
+async function resendVerificationEmail() {
+    try {
+        if (PortalConfig.useFirebase && window.Auth && Auth.currentUser) {
+            await Auth.sendEmailVerification();
+            showToast('Verification email sent!', 'success');
+        }
+    } catch (error) {
+        showToast('Could not send email. Please try again.', 'error');
+    }
+}
+
+function logoutAndShowLogin() {
+    logout();
+    showAuthView('login');
+}
+
+// ============================================
+// PROFILE EDITING
+// ============================================
+
+function openEditProfileModal() {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    const bodyHTML = `
+        <form id="edit-profile-form">
+            <div class="form-group">
+                <label class="form-label" for="edit-name">Display Name</label>
+                <input type="text" class="form-input" id="edit-name" value="${currentUser.displayName || ''}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="edit-phone">Phone</label>
+                <input type="tel" class="form-input" id="edit-phone" value="${currentUser.phone || ''}" placeholder="027-123-4567">
+            </div>
+            ${!currentUser.username ? `
+            <div class="form-group">
+                <label class="form-label" for="edit-username">Username (optional)</label>
+                <input type="text" class="form-input" id="edit-username" pattern="[a-zA-Z0-9_]+" placeholder="your_username">
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Letters, numbers, and underscores only</small>
+            </div>
+            ` : ''}
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+    `;
+
+    openModal('Edit Profile', bodyHTML, footerHTML);
+}
+
+async function saveProfile() {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    const name = document.getElementById('edit-name').value.trim();
+    const phone = document.getElementById('edit-phone').value.trim();
+    const usernameEl = document.getElementById('edit-username');
+    const username = usernameEl ? usernameEl.value.trim() : null;
+
+    if (!name) {
+        showToast('Name is required', 'error');
+        return;
+    }
+
+    try {
+        if (PortalConfig.useFirebase && window.Auth) {
+            const updates = {
+                displayName: name,
+                phone: phone
+            };
+
+            if (username && !currentUser.username) {
+                // Check availability and set username
+                const isAvailable = await DB.checkUsernameAvailable(username);
+                if (!isAvailable) {
+                    showToast('Username is already taken', 'error');
+                    return;
+                }
+                await Auth.setUsername(username);
+            }
+
+            await Auth.updateProfile(updates);
+        } else {
+            // Demo mode
+            currentUser.displayName = name;
+            currentUser.phone = phone;
+            if (username && !currentUser.username) {
+                currentUser.username = username;
+            }
+        }
+
+        showToast('Profile updated!', 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not update profile', 'error');
+    }
+}
+
+function openChangePasswordModal() {
+    const bodyHTML = `
+        <form id="change-password-form">
+            <div class="form-group">
+                <label class="form-label" for="current-password">Current Password</label>
+                <input type="password" class="form-input" id="current-password" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new-password">New Password</label>
+                <input type="password" class="form-input" id="new-password" required minlength="6">
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">At least 6 characters</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="confirm-new-password">Confirm New Password</label>
+                <input type="password" class="form-input" id="confirm-new-password" required>
+            </div>
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="changePassword()">Change Password</button>
+    `;
+
+    openModal('Change Password', bodyHTML, footerHTML);
+}
+
+async function changePassword() {
+    const currentPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-new-password').value;
+
+    if (newPassword !== confirmPassword) {
+        showToast('New passwords do not match', 'error');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        showToast('Password must be at least 6 characters', 'error');
+        return;
+    }
+
+    try {
+        if (PortalConfig.useFirebase && window.Auth) {
+            await Auth.updatePassword(currentPassword, newPassword);
+            showToast('Password changed successfully!', 'success');
+            closeModal();
+        } else {
+            showToast('Password change available in Firebase mode', 'default');
+            closeModal();
+        }
+    } catch (error) {
+        showToast(error.message || 'Could not change password', 'error');
+    }
+}
+
+// ============================================
+// USER MANAGEMENT (Admin)
+// ============================================
+
+function renderUsersPage() {
+    if (!DataService.isAdmin()) {
+        navigateTo('home');
+        return '';
+    }
+
+    const users = MockDB.users;
+
+    return `
+        <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">User Management</h2>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">${users.length} registered users</p>
+        </div>
+
+        <div class="app-section" style="padding-top: 1.5rem;">
+            <div class="app-section-header">
+                <h3 class="app-section-title">All Users</h3>
+            </div>
+            ${users.map(user => `
+                <div class="app-event-card" style="cursor: pointer;" onclick="openUserModal('${user.id}')">
+                    <div style="width: 45px; height: 45px; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 1.25rem; color: white; flex-shrink: 0;">
+                        ${user.displayName.charAt(0)}
+                    </div>
+                    <div class="app-event-info">
+                        <div class="app-event-title">${user.displayName}</div>
+                        <div class="app-event-meta">${user.email} &middot; <span style="text-transform: capitalize;">${user.role}</span></div>
+                    </div>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2" style="flex-shrink: 0;">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </div>
+            `).join('')}
+        </div>
+        <div style="height: 20px;"></div>
+    `;
+}
+
+function openUserModal(userId) {
+    const user = MockDB.users.find(u => u.id === userId);
+    if (!user) return;
+
+    const currentUser = DataService.getCurrentUser();
+    const isCurrentUser = currentUser.id === user.id;
+
+    const bodyHTML = `
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="width: 60px; height: 60px; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 1.5rem; color: white;">
+                ${user.displayName.charAt(0)}
+            </div>
+            <div>
+                <h3 style="margin: 0; font-size: 1.125rem;">${user.displayName}</h3>
+                <p style="margin: 0.25rem 0 0; color: var(--color-text-light); font-size: 0.875rem;">${user.email}</p>
+            </div>
+        </div>
+
+        <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Role</label>
+                <select class="form-input" id="user-role" ${isCurrentUser ? 'disabled' : ''}>
+                    <option value="member" ${user.role === 'member' ? 'selected' : ''}>Member</option>
+                    <option value="host" ${user.role === 'host' ? 'selected' : ''}>Host</option>
+                    <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                </select>
+                ${isCurrentUser ? '<small style="color: var(--color-text-light); font-size: 0.75rem;">Cannot change your own role</small>' : ''}
+            </div>
+            ${user.phone ? `
+            <div>
+                <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Phone</label>
+                <p style="margin: 0;">${user.phone}</p>
+            </div>
+            ` : ''}
+            ${user.username ? `
+            <div>
+                <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Username</label>
+                <p style="margin: 0;">@${user.username}</p>
+            </div>
+            ` : ''}
+        </div>
+    `;
+
+    let footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
+    if (!isCurrentUser) {
+        footerHTML += `<button class="btn btn-primary" onclick="saveUserRole('${user.id}')">Save Changes</button>`;
+    }
+
+    openModal('User Details', bodyHTML, footerHTML);
+}
+
+async function saveUserRole(userId) {
+    const newRole = document.getElementById('user-role').value;
+    const user = MockDB.users.find(u => u.id === userId);
+
+    if (!user) return;
+
+    try {
+        if (PortalConfig.useFirebase && window.DB) {
+            await DB.updateUser(userId, { role: newRole });
+        } else {
+            user.role = newRole;
+        }
+
+        showToast(`${user.displayName}'s role updated to ${newRole}`, 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not update role', 'error');
+    }
+}
+
+// ============================================
+// APP STATE MANAGEMENT
+// ============================================
+
 function showAppState() {
-    const loginView = document.getElementById('login-view');
+    const authView = document.getElementById('auth-view');
     const appView = document.getElementById('app-view');
     const currentUser = DataService.getCurrentUser();
 
     if (currentUser) {
-        loginView.style.display = 'none';
+        // Check if email verification is required (Firebase mode)
+        if (PortalConfig.useFirebase && window.Auth && Auth.currentUser && !Auth.currentUser.emailVerified) {
+            authView.style.display = 'block';
+            appView.style.display = 'none';
+            document.body.classList.remove('app-mode');
+            document.getElementById('verify-email-display').textContent = Auth.currentUser.email;
+            showAuthView('verify-email');
+            return;
+        }
+
+        authView.style.display = 'none';
         appView.style.display = 'block';
         document.body.classList.add('app-mode');
         renderPage();
     } else {
-        loginView.style.display = 'block';
+        authView.style.display = 'block';
         appView.style.display = 'none';
         document.body.classList.remove('app-mode');
+        showAuthView('login');
     }
 }
 
@@ -1076,21 +1527,40 @@ function initPortal() {
     // Handle login form
     document.getElementById('login-form').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const identifier = document.getElementById('login-username').value;
+        const identifier = document.getElementById('login-identifier').value;
         const password = document.getElementById('login-password').value;
 
-        const success = await login(identifier, password);
+        setButtonLoading('login-submit', true);
+        document.getElementById('login-error').style.display = 'none';
 
-        if (success) {
-            const currentUser = DataService.getCurrentUser();
-            showToast(`Welcome back, ${currentUser.displayName.split(' ')[0]}!`, 'success');
-            showAppState();
-        } else {
-            const errorEl = document.getElementById('login-error');
-            errorEl.textContent = 'Invalid username/email or password';
-            errorEl.style.display = 'block';
+        try {
+            const success = await login(identifier, password);
+
+            if (success) {
+                const currentUser = DataService.getCurrentUser();
+                showToast(`Welcome back, ${currentUser.displayName.split(' ')[0]}!`, 'success');
+                showAppState();
+            } else {
+                showMessage('login-error', 'Invalid username/email or password');
+            }
+        } catch (error) {
+            showMessage('login-error', error.message || 'Invalid username/email or password');
+        } finally {
+            setButtonLoading('login-submit', false);
         }
     });
+
+    // Handle registration form
+    const registerForm = document.getElementById('register-form');
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegistration);
+    }
+
+    // Handle forgot password form
+    const forgotForm = document.getElementById('forgot-form');
+    if (forgotForm) {
+        forgotForm.addEventListener('submit', handleForgotPassword);
+    }
 
     // Handle keyboard shortcuts
     document.addEventListener('keydown', function(e) {

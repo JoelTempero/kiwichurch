@@ -32,10 +32,11 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- Login View (shown when not authenticated) -->
-    <div id="login-view">
+    <!-- Auth Views (shown when not authenticated) -->
+    <div id="auth-view">
         <div class="login-container">
-            <div class="login-card">
+            <!-- Login Card -->
+            <div class="login-card" id="login-card">
                 <div class="login-header">
                     <a href="index.html">
                         <img src="KiwiChurch_Old_White.png" alt="Kiwi Church" class="login-logo" style="filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);">
@@ -46,24 +47,30 @@
                 <div id="login-error" class="login-error" style="display: none;"></div>
                 <form id="login-form">
                     <div class="form-group">
-                        <label class="form-label" for="login-username">Username or Email</label>
-                        <input type="text" class="form-input" id="login-username" required autocomplete="username">
+                        <label class="form-label" for="login-identifier">Username or Email</label>
+                        <input type="text" class="form-input" id="login-identifier" required autocomplete="username">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="login-password">Password</label>
                         <input type="password" class="form-input" id="login-password" required autocomplete="current-password">
                     </div>
-                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Sign In</button>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="login-submit">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-loading" style="display: none;">Signing in...</span>
+                    </button>
                 </form>
+                <p style="text-align: center; margin-top: 1rem;">
+                    <a href="#" onclick="showAuthView('forgot'); return false;" style="font-size: 0.875rem; color: var(--color-sage);">Forgot your password?</a>
+                </p>
                 <p style="text-align: center; margin-top: 1.5rem; color: var(--color-text-light); font-size: 0.9375rem;">
-                    Need an account? Contact an administrator.
+                    Need an account? <a href="#" onclick="showAuthView('register'); return false;" style="color: var(--color-forest); font-weight: 500;">Request access</a>
                 </p>
                 <p style="text-align: center; margin-top: 1rem;">
                     <a href="index.html" style="font-size: 0.875rem;">Back to website</a>
                 </p>
 
                 <!-- Demo Credentials -->
-                <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+                <div id="demo-credentials" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
                     <p style="font-size: 0.75rem; color: var(--color-text-light); text-align: center; margin-bottom: 0.75rem;">Demo Accounts:</p>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem;">
                         <button type="button" class="btn btn-ghost btn-sm" onclick="demoLogin('Utting', 'Freedom')" style="justify-content: space-between;">
@@ -80,6 +87,135 @@
                         </button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Registration Request Card -->
+            <div class="login-card" id="register-card" style="display: none;">
+                <div class="login-header">
+                    <a href="index.html">
+                        <img src="KiwiChurch_Old_White.png" alt="Kiwi Church" class="login-logo" style="filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);">
+                    </a>
+                    <h1 class="login-title">Request Access</h1>
+                    <p class="login-subtitle">Join our community</p>
+                </div>
+                <div id="register-message" class="login-error" style="display: none;"></div>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label class="form-label" for="register-name">Full Name</label>
+                        <input type="text" class="form-input" id="register-name" required autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-email">Email</label>
+                        <input type="email" class="form-input" id="register-email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-username">Preferred Username</label>
+                        <input type="text" class="form-input" id="register-username" autocomplete="username" pattern="[a-zA-Z0-9_]+" title="Letters, numbers, and underscores only">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-password">Password</label>
+                        <input type="password" class="form-input" id="register-password" required autocomplete="new-password" minlength="6">
+                        <small style="color: var(--color-text-light); font-size: 0.75rem;">At least 6 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-password-confirm">Confirm Password</label>
+                        <input type="password" class="form-input" id="register-password-confirm" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="register-message-text">Message (optional)</label>
+                        <textarea class="form-input" id="register-message-text" rows="2" placeholder="Tell us a bit about yourself or how you heard about us"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="register-submit">
+                        <span class="btn-text">Request Access</span>
+                        <span class="btn-loading" style="display: none;">Submitting...</span>
+                    </button>
+                </form>
+                <p style="text-align: center; margin-top: 1.5rem;">
+                    <a href="#" onclick="showAuthView('login'); return false;" style="font-size: 0.875rem;">Already have an account? Sign in</a>
+                </p>
+            </div>
+
+            <!-- Forgot Password Card -->
+            <div class="login-card" id="forgot-card" style="display: none;">
+                <div class="login-header">
+                    <a href="index.html">
+                        <img src="KiwiChurch_Old_White.png" alt="Kiwi Church" class="login-logo" style="filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);">
+                    </a>
+                    <h1 class="login-title">Reset Password</h1>
+                    <p class="login-subtitle">We'll send you a reset link</p>
+                </div>
+                <div id="forgot-message" class="login-error" style="display: none;"></div>
+                <form id="forgot-form">
+                    <div class="form-group">
+                        <label class="form-label" for="forgot-email">Email Address</label>
+                        <input type="email" class="form-input" id="forgot-email" required autocomplete="email">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="forgot-submit">
+                        <span class="btn-text">Send Reset Link</span>
+                        <span class="btn-loading" style="display: none;">Sending...</span>
+                    </button>
+                </form>
+                <p style="text-align: center; margin-top: 1.5rem;">
+                    <a href="#" onclick="showAuthView('login'); return false;" style="font-size: 0.875rem;">Back to sign in</a>
+                </p>
+            </div>
+
+            <!-- Reset Sent Confirmation -->
+            <div class="login-card" id="reset-sent-card" style="display: none;">
+                <div class="login-header">
+                    <div style="width: 60px; height: 60px; background: var(--color-sage-light); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <h1 class="login-title">Check Your Email</h1>
+                    <p class="login-subtitle">We've sent a password reset link to <strong id="reset-email-display"></strong></p>
+                </div>
+                <p style="text-align: center; color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1.5rem;">
+                    Didn't receive the email? Check your spam folder or try again.
+                </p>
+                <button class="btn btn-secondary" style="width: 100%;" onclick="showAuthView('forgot')">Try Again</button>
+                <p style="text-align: center; margin-top: 1.5rem;">
+                    <a href="#" onclick="showAuthView('login'); return false;" style="font-size: 0.875rem;">Back to sign in</a>
+                </p>
+            </div>
+
+            <!-- Registration Success -->
+            <div class="login-card" id="register-success-card" style="display: none;">
+                <div class="login-header">
+                    <div style="width: 60px; height: 60px; background: var(--color-sage-light); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <h1 class="login-title">Request Submitted</h1>
+                    <p class="login-subtitle">Thank you for your interest!</p>
+                </div>
+                <p style="text-align: center; color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1.5rem;">
+                    An administrator will review your request and get in touch with you soon. Please check your email for verification.
+                </p>
+                <button class="btn btn-primary" style="width: 100%;" onclick="showAuthView('login')">Back to Sign In</button>
+            </div>
+
+            <!-- Email Verification Required -->
+            <div class="login-card" id="verify-email-card" style="display: none;">
+                <div class="login-header">
+                    <div style="width: 60px; height: 60px; background: #fde68a; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                    </div>
+                    <h1 class="login-title">Verify Your Email</h1>
+                    <p class="login-subtitle">Check your inbox to continue</p>
+                </div>
+                <p style="text-align: center; color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1.5rem;">
+                    We've sent a verification email to <strong id="verify-email-display"></strong>. Click the link in the email to verify your account.
+                </p>
+                <button class="btn btn-secondary" style="width: 100%; margin-bottom: 0.75rem;" onclick="resendVerificationEmail()">Resend Verification Email</button>
+                <button class="btn btn-ghost" style="width: 100%;" onclick="logoutAndShowLogin()">Sign in with different account</button>
             </div>
         </div>
     </div>
