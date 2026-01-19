@@ -6229,15 +6229,72 @@ function renderHostingPage() {
     `;
 }
 
+// Activity log storage
+let activityLogs = [];
+
+// Log admin activity
+function logActivity(action, details, type = 'admin') {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    activityLogs.unshift({
+        id: 'log-' + Date.now(),
+        userId: currentUser.id,
+        userName: currentUser.displayName,
+        action,
+        details,
+        type,
+        createdAt: new Date().toISOString()
+    });
+
+    // Keep only last 50 logs
+    activityLogs = activityLogs.slice(0, 50);
+}
+
+// Flagged content storage
+let flaggedContent = [];
+
+// Flag content for review
+function flagContent(contentType, contentId, reason, reporterId) {
+    const existing = flaggedContent.find(f => f.contentType === contentType && f.contentId === contentId);
+    if (existing) {
+        existing.reports.push({ reporterId, reason, createdAt: new Date().toISOString() });
+    } else {
+        flaggedContent.push({
+            id: 'flag-' + Date.now(),
+            contentType,
+            contentId,
+            reports: [{ reporterId, reason, createdAt: new Date().toISOString() }],
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        });
+    }
+    logActivity('Content flagged', `${contentType} reported for: ${reason}`, 'moderation');
+}
+
+// Site settings
+const siteSettings = {
+    siteName: 'Kiwi Church',
+    siteDescription: 'A welcoming community in Aotearoa',
+    allowPublicRegistration: false,
+    requireEmailVerification: false,
+    moderationEnabled: true,
+    maintenanceMode: false
+};
+
 function renderSettingsPage() {
     const firebaseStatus = PortalConfig.useFirebase ? 'Connected' : 'Demo Mode';
     const statusColor = PortalConfig.useFirebase ? 'var(--color-sage)' : 'var(--color-terracotta)';
     const stats = DataService.getAdminStats();
 
+    // Calculate growth (demo data - in real app would compare to previous period)
+    const newUsersThisWeek = Math.floor(Math.random() * 3) + 1;
+    const newPostsThisWeek = Math.floor(Math.random() * 10) + 5;
+
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Admin Dashboard</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Settings and statistics</p>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Settings, statistics and moderation</p>
         </div>
 
         <!-- Dashboard Stats -->
@@ -6245,7 +6302,10 @@ function renderSettingsPage() {
         <div class="app-section" style="padding-top: 1rem;">
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
                 <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm);">
-                    <div style="font-size: 2rem; font-weight: 600; color: var(--color-forest);">${stats.totalUsers}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="font-size: 2rem; font-weight: 600; color: var(--color-forest);">${stats.totalUsers}</div>
+                        <span style="font-size: 0.6875rem; background: var(--color-sage-light); color: var(--color-forest); padding: 0.125rem 0.375rem; border-radius: 999px;">+${newUsersThisWeek} this week</span>
+                    </div>
                     <div style="font-size: 0.875rem; color: var(--color-text-light);">Total Users</div>
                     <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">
                         ${stats.usersByRole.admin} admin, ${stats.usersByRole.host} hosts, ${stats.usersByRole.member} members
@@ -6259,7 +6319,10 @@ function renderSettingsPage() {
                     </div>
                 </div>
                 <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm);">
-                    <div style="font-size: 2rem; font-weight: 600; color: var(--color-terracotta);">${stats.totalBoardPosts}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="font-size: 2rem; font-weight: 600; color: var(--color-terracotta);">${stats.totalBoardPosts}</div>
+                        <span style="font-size: 0.6875rem; background: var(--color-cream); color: var(--color-text-light); padding: 0.125rem 0.375rem; border-radius: 999px;">+${newPostsThisWeek}</span>
+                    </div>
                     <div style="font-size: 0.875rem; color: var(--color-text-light);">Board Posts</div>
                     <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">
                         across ${stats.totalGatherings} groups
@@ -6276,21 +6339,73 @@ function renderSettingsPage() {
         </div>
         ` : ''}
 
+        <!-- Quick Actions -->
         <div class="app-section">
-            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
-                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">User Management</h3>
-                <p style="color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1rem;">
-                    Manage user accounts, roles, and permissions.
-                </p>
-                <button class="btn btn-primary btn-sm" onclick="navigateTo('users')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                <button class="btn btn-ghost" onclick="navigateTo('users')" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                         <circle cx="9" cy="7" r="4"></circle>
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                     </svg>
-                    Manage Users
+                    <span style="font-size: 0.875rem; font-weight: 500;">Users</span>
                 </button>
+                <button class="btn btn-ghost" onclick="openActivityLogsModal()" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    <span style="font-size: 0.875rem; font-weight: 500;">Activity Log</span>
+                </button>
+                <button class="btn btn-ghost" onclick="openModerationModal()" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); position: relative;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-terracotta)" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <span style="font-size: 0.875rem; font-weight: 500;">Moderation</span>
+                    ${flaggedContent.filter(f => f.status === 'pending').length > 0 ? `
+                        <span style="position: absolute; top: 0.5rem; right: 0.5rem; width: 18px; height: 18px; background: #dc2626; color: white; border-radius: 50%; font-size: 0.625rem; display: flex; align-items: center; justify-content: center;">${flaggedContent.filter(f => f.status === 'pending').length}</span>
+                    ` : ''}
+                </button>
+                <button class="btn btn-ghost" onclick="openSiteSettingsModal()" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span style="font-size: 0.875rem; font-weight: 500;">Settings</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="app-section">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-size: 1.125rem;">Recent Activity</h3>
+                    <button class="btn btn-ghost btn-sm" onclick="openActivityLogsModal()">View All</button>
+                </div>
+                ${activityLogs.length > 0 ? `
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        ${activityLogs.slice(0, 5).map(log => `
+                            <div style="display: flex; gap: 0.75rem; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                                <div style="width: 32px; height: 32px; background: ${log.type === 'moderation' ? 'var(--color-terracotta-light)' : 'var(--color-sage-light)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    ${log.type === 'moderation'
+                                        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-terracotta)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>'
+                                        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+                                    }
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-size: 0.875rem;"><strong>${escapeHtml(log.userName)}</strong> ${escapeHtml(log.action)}</div>
+                                    <div style="font-size: 0.75rem; color: var(--color-text-light);">${escapeHtml(log.details)} • ${formatRelativeTime(log.createdAt)}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <p style="color: var(--color-text-light); text-align: center; padding: 1rem; font-size: 0.9375rem;">No activity yet. Actions will be logged here.</p>
+                `}
             </div>
         </div>
 
@@ -6308,48 +6423,207 @@ function renderSettingsPage() {
                 </p>
             </div>
         </div>
-
-        <div class="app-section">
-            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
-                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Development Progress</h3>
-                <div style="display: grid; gap: 0.5rem; font-size: 0.875rem;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Stage 1: Multi-Page Architecture</span>
-                        <span style="color: var(--color-sage);">Complete</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Stage 2: Firebase Core Setup</span>
-                        <span style="color: var(--color-sage);">Complete</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Stage 3: Authentication</span>
-                        <span style="color: var(--color-sage);">Complete</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Stage 4: Events & RSVP</span>
-                        <span style="color: var(--color-sage);">Complete</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Stage 5: Kete Blog System</span>
-                        <span style="color: var(--color-sage);">Complete</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Stage 6: Group Messaging</span>
-                        <span style="color: var(--color-sage);">Complete</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Stage 7: Advanced Features</span>
-                        <span style="color: var(--color-sage);">Complete</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Stage 8: Final Polish</span>
-                        <span style="color: var(--color-sage);">Complete</span>
-                    </div>
-                </div>
-            </div>
-        </div>
         <div style="height: 20px;"></div>
     `;
+}
+
+// Activity Logs Modal
+function openActivityLogsModal() {
+    document.getElementById('modal-title').textContent = 'Activity Log';
+    document.getElementById('modal-body').innerHTML = `
+        <div style="max-height: 400px; overflow-y: auto;">
+            ${activityLogs.length > 0 ? `
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    ${activityLogs.map(log => `
+                        <div style="display: flex; gap: 0.75rem; padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                            <div style="width: 32px; height: 32px; background: ${log.type === 'moderation' ? 'var(--color-terracotta-light)' : log.type === 'user' ? 'var(--color-forest-light)' : 'var(--color-sage-light)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${log.type === 'moderation'
+                                    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-terracotta)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>'
+                                    : log.type === 'user'
+                                    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'
+                                    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+                                }
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.9375rem;"><strong>${escapeHtml(log.userName)}</strong> ${escapeHtml(log.action)}</div>
+                                <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: 0.125rem;">${escapeHtml(log.details)}</div>
+                                <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">${formatDate(log.createdAt)}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <p style="margin: 0;">No activity logged yet</p>
+                </div>
+            `}
+        </div>
+        <div style="margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()" style="width: 100%;">Close</button>
+        </div>
+    `;
+    openModal();
+}
+
+// Moderation Modal
+function openModerationModal() {
+    const pendingContent = flaggedContent.filter(f => f.status === 'pending');
+
+    document.getElementById('modal-title').textContent = 'Content Moderation';
+    document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom: 1rem;">
+            <span style="font-size: 0.875rem; color: var(--color-text-light);">${pendingContent.length} item${pendingContent.length !== 1 ? 's' : ''} pending review</span>
+        </div>
+
+        ${pendingContent.length > 0 ? `
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 350px; overflow-y: auto;">
+                ${pendingContent.map(item => {
+                    let content = null;
+                    let contentPreview = '';
+
+                    if (item.contentType === 'post') {
+                        // Find the post
+                        for (const [gid, board] of Object.entries(MockDB.messageBoards)) {
+                            const post = board.posts.find(p => p.id === item.contentId);
+                            if (post) {
+                                content = post;
+                                contentPreview = post.content.substring(0, 100);
+                                break;
+                            }
+                        }
+                    } else if (item.contentType === 'comment') {
+                        // Find comment
+                        contentPreview = 'Comment';
+                    }
+
+                    return `
+                        <div style="padding: 1rem; background: var(--color-cream); border-radius: var(--radius-md);">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.75rem; color: var(--color-terracotta); font-weight: 500; text-transform: uppercase;">${item.contentType}</span>
+                                <span style="font-size: 0.75rem; color: var(--color-text-light);">${item.reports.length} report${item.reports.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            <p style="margin: 0 0 0.5rem; font-size: 0.9375rem;">${escapeHtml(contentPreview)}${contentPreview.length >= 100 ? '...' : ''}</p>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light); margin-bottom: 0.75rem;">
+                                Reasons: ${item.reports.map(r => escapeHtml(r.reason)).join(', ')}
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-ghost btn-sm" onclick="moderateContent('${item.id}', 'approve')" style="flex: 1;">Approve</button>
+                                <button class="btn btn-ghost btn-sm" onclick="moderateContent('${item.id}', 'remove')" style="flex: 1; color: #dc2626;">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        ` : `
+            <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <p style="margin: 0;">No content pending review</p>
+                <p style="font-size: 0.875rem; margin-top: 0.5rem;">All clear!</p>
+            </div>
+        `}
+
+        <div style="margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()" style="width: 100%;">Close</button>
+        </div>
+    `;
+    openModal();
+}
+
+// Moderate content
+function moderateContent(flagId, action) {
+    const item = flaggedContent.find(f => f.id === flagId);
+    if (!item) return;
+
+    if (action === 'approve') {
+        item.status = 'approved';
+        logActivity('Content approved', `Marked ${item.contentType} as acceptable`, 'moderation');
+        showToast('Content approved', 'success');
+    } else if (action === 'remove') {
+        item.status = 'removed';
+        // In a real app, would actually delete the content
+        logActivity('Content removed', `Removed flagged ${item.contentType}`, 'moderation');
+        showToast('Content removed', 'default');
+    }
+
+    openModerationModal(); // Refresh
+}
+
+// Site Settings Modal
+function openSiteSettingsModal() {
+    document.getElementById('modal-title').textContent = 'Site Settings';
+    document.getElementById('modal-body').innerHTML = `
+        <form id="site-settings-form" onsubmit="event.preventDefault(); saveSiteSettings();">
+            <div class="form-group">
+                <label class="form-label">Site Name</label>
+                <input type="text" class="form-input" id="setting-site-name" value="${escapeHtml(siteSettings.siteName)}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Site Description</label>
+                <input type="text" class="form-input" id="setting-site-description" value="${escapeHtml(siteSettings.siteDescription)}">
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+                <h4 style="font-size: 0.9375rem; margin: 0 0 0.75rem;">Registration Settings</h4>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                        <input type="checkbox" id="setting-public-registration" ${siteSettings.allowPublicRegistration ? 'checked' : ''}>
+                        <span style="font-size: 0.9375rem;">Allow public registration</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                        <input type="checkbox" id="setting-email-verification" ${siteSettings.requireEmailVerification ? 'checked' : ''}>
+                        <span style="font-size: 0.9375rem;">Require email verification</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+                <h4 style="font-size: 0.9375rem; margin: 0 0 0.75rem;">Moderation</h4>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                        <input type="checkbox" id="setting-moderation" ${siteSettings.moderationEnabled ? 'checked' : ''}>
+                        <span style="font-size: 0.9375rem;">Enable content moderation</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin: 1.5rem 0; padding: 1rem; background: var(--color-terracotta-light); border-radius: var(--radius-md);">
+                <h4 style="font-size: 0.9375rem; margin: 0 0 0.5rem; color: var(--color-terracotta);">Danger Zone</h4>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" id="setting-maintenance" ${siteSettings.maintenanceMode ? 'checked' : ''}>
+                    <span style="font-size: 0.9375rem;">Enable maintenance mode</span>
+                </label>
+                <p style="font-size: 0.75rem; color: var(--color-terracotta); margin: 0.25rem 0 0;">This will show a maintenance message to all non-admin users.</p>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </div>
+        </form>
+    `;
+    openModal();
+}
+
+// Save site settings
+function saveSiteSettings() {
+    siteSettings.siteName = document.getElementById('setting-site-name')?.value || 'Kiwi Church';
+    siteSettings.siteDescription = document.getElementById('setting-site-description')?.value || '';
+    siteSettings.allowPublicRegistration = document.getElementById('setting-public-registration')?.checked || false;
+    siteSettings.requireEmailVerification = document.getElementById('setting-email-verification')?.checked || false;
+    siteSettings.moderationEnabled = document.getElementById('setting-moderation')?.checked || true;
+    siteSettings.maintenanceMode = document.getElementById('setting-maintenance')?.checked || false;
+
+    logActivity('Settings updated', 'Site settings were modified', 'admin');
+    showToast('Settings saved', 'success');
+    closeModal();
+    renderPage();
 }
 
 // ============================================
