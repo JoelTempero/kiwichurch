@@ -2591,3 +2591,383 @@ a:focus-visible {
         border: 1px solid var(--color-text-light);
     }
 }
+
+/* Hide desktop sidebar on mobile */
+.desktop-sidebar {
+    display: none;
+}
+
+/* Hide elements on desktop */
+@media (min-width: 768px) {
+    .desktop-hide {
+        display: none !important;
+    }
+}
+
+/* ============================================
+   DESKTOP PORTAL LAYOUT (768px+)
+   ============================================ */
+
+@media (min-width: 768px) {
+    .desktop-sidebar {
+        display: flex;
+    }
+    /* Desktop App Layout with Sidebar */
+    body.app-mode {
+        padding-bottom: 0;
+    }
+
+    /* Hide bottom nav on desktop */
+    body.app-mode .bottom-nav {
+        display: none;
+    }
+
+    /* Desktop App Container */
+    #app-view {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        grid-template-rows: auto 1fr;
+        min-height: 100vh;
+    }
+
+    /* Desktop Sidebar Navigation */
+    .desktop-sidebar {
+        grid-row: 1 / -1;
+        background: var(--color-white);
+        border-right: 1px solid var(--color-cream-dark);
+        padding: 1.5rem 0;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .desktop-sidebar-logo {
+        padding: 0 1.5rem 1.5rem;
+        border-bottom: 1px solid var(--color-cream-dark);
+        margin-bottom: 1rem;
+    }
+
+    .desktop-sidebar-logo img {
+        height: 40px;
+        width: auto;
+        filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);
+    }
+
+    .desktop-sidebar-nav {
+        flex: 1;
+        padding: 0.5rem 0;
+    }
+
+    .desktop-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1.5rem;
+        color: var(--color-text-light);
+        text-decoration: none;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        transition: all var(--transition-fast);
+        border-left: 3px solid transparent;
+    }
+
+    .desktop-nav-item:hover {
+        background: var(--color-cream);
+        color: var(--color-forest);
+    }
+
+    .desktop-nav-item.active {
+        background: var(--color-sage-light);
+        color: var(--color-forest);
+        border-left-color: var(--color-forest);
+    }
+
+    .desktop-nav-item svg {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+    }
+
+    .desktop-nav-section {
+        padding: 1rem 1.5rem 0.5rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-light);
+    }
+
+    .desktop-sidebar-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--color-cream-dark);
+        margin-top: auto;
+    }
+
+    .desktop-user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: var(--radius-sm);
+        transition: background var(--transition-fast);
+    }
+
+    .desktop-user-info:hover {
+        background: var(--color-cream);
+    }
+
+    .desktop-user-avatar {
+        width: 36px;
+        height: 36px;
+        background: var(--color-forest);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-size: 1rem;
+        color: white;
+    }
+
+    .desktop-user-name {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--color-forest);
+    }
+
+    .desktop-user-role {
+        font-size: 0.75rem;
+        color: var(--color-text-light);
+        text-transform: capitalize;
+    }
+
+    /* Desktop App Header */
+    .app-header {
+        grid-column: 2;
+        padding: 1.25rem 2rem;
+        background: var(--color-white);
+        border-bottom: 1px solid var(--color-cream-dark);
+    }
+
+    .app-header-title {
+        font-size: 1.75rem;
+    }
+
+    /* Desktop Main Content */
+    #app-main {
+        grid-column: 2;
+        padding: 2rem;
+        background: var(--color-cream);
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Content Width Constraint */
+    .page-transition {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* Desktop Dashboard Grid */
+    .app-dashboard {
+        padding: 0;
+        margin-bottom: 2rem;
+    }
+
+    .app-quick-actions {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+    }
+
+    .app-quick-action {
+        padding: 2rem 1.5rem;
+    }
+
+    /* Desktop Sections */
+    .app-section {
+        padding: 0 0 2rem;
+    }
+
+    .app-section-title {
+        font-size: 1.375rem;
+    }
+
+    /* Desktop Event Cards Grid */
+    .events-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1rem;
+    }
+
+    .events-grid .app-event-card {
+        margin-bottom: 0;
+    }
+
+    /* Desktop Groups Grid */
+    .groups-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .gathering-card {
+        margin-bottom: 0;
+    }
+
+    /* Desktop Kete Grid */
+    .kete-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    /* Desktop Form Layouts */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem 1.5rem;
+    }
+
+    .form-grid .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    /* Desktop Modal */
+    .modal {
+        max-width: 600px;
+        width: 90%;
+        max-height: 85vh;
+    }
+
+    .modal-wide {
+        max-width: 800px;
+    }
+
+    .modal-body {
+        max-height: calc(85vh - 140px);
+        overflow-y: auto;
+    }
+
+    /* Desktop Profile Layout */
+    .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        padding: 2rem !important;
+    }
+
+    .profile-avatar {
+        width: 100px !important;
+        height: 100px !important;
+        font-size: 2.5rem !important;
+    }
+
+    .profile-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+    }
+
+    /* Desktop Settings Layout */
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .settings-card {
+        background: var(--color-white);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* Desktop Admin Stats */
+    .admin-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+
+    /* Desktop Calendar */
+    .calendar-grid {
+        gap: 0.5rem;
+    }
+
+    .calendar-day {
+        padding: 0.75rem;
+        font-size: 0.9375rem;
+    }
+
+    /* Desktop Message Board */
+    .board-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .board-post {
+        padding: 1.5rem;
+    }
+
+    /* Desktop Kete Post View */
+    .kete-content {
+        max-width: 700px;
+        margin: 0 auto;
+        font-size: 1.0625rem;
+        line-height: 1.8;
+    }
+
+    /* Desktop Toast Position */
+    body.app-mode .toast-container {
+        bottom: 2rem;
+        right: 2rem;
+        left: auto;
+        transform: none;
+    }
+}
+
+/* Extra Large Desktop (1200px+) */
+@media (min-width: 1200px) {
+    #app-view {
+        grid-template-columns: 280px 1fr;
+    }
+
+    #app-main {
+        padding: 2.5rem 3rem;
+    }
+
+    .app-quick-actions {
+        gap: 1.5rem;
+    }
+
+    .admin-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .modal {
+        max-width: 700px;
+    }
+
+    .modal-wide {
+        max-width: 900px;
+    }
+}
+
+/* Ultra Wide Desktop (1600px+) */
+@media (min-width: 1600px) {
+    .page-transition {
+        max-width: 1400px;
+    }
+
+    .events-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .groups-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
