@@ -634,12 +634,8 @@ So if you've been away for a while, know this: you're still part of us. And when
                     uid: adminUserId
                 });
 
-                // Create setup document to lock down admin self-creation
-                await db.collection('settings').doc('setup').set({
-                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    adminUserId: adminUserId,
-                    version: '1.0'
-                });
+                // NOTE: Don't create setup document here - do it after seeding
+                // so that isInitialSetup() remains true during seeding
 
                 // Move to step 2
                 showStep(2);
@@ -661,7 +657,18 @@ So if you've been away for a while, know this: you're still part of us. And when
             }
         });
 
-        function skipSeeding() {
+        async function skipSeeding() {
+            // Create setup document to lock down admin self-creation
+            try {
+                await db.collection('settings').doc('setup').set({
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    adminUserId: adminUserId,
+                    seeded: false,
+                    version: '1.0'
+                });
+            } catch (error) {
+                console.error('Error creating setup doc:', error);
+            }
             showStep('complete');
         }
 
@@ -749,6 +756,16 @@ So if you've been away for a while, know this: you're still part of us. And when
 
                 updateSeedStatus('seed-members', 'done');
                 progress.style.width = '100%';
+                status.textContent = 'Finalizing...';
+
+                // Create setup document to lock down admin self-creation
+                await db.collection('settings').doc('setup').set({
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    adminUserId: adminUserId,
+                    seeded: true,
+                    version: '1.0'
+                });
+
                 status.textContent = 'Complete!';
 
                 // Show complete after a brief delay
