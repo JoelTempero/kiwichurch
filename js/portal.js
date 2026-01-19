@@ -2684,6 +2684,9 @@ function renderPage() {
         case 'users':
             content = renderUsersPage();
             break;
+        case 'directory':
+            content = renderUserDirectory();
+            break;
         case 'group':
             content = renderGroupPage();
             break;
@@ -3480,11 +3483,23 @@ function renderProfilePage() {
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 2rem 1.5rem; color: white; text-align: center;">
-            <div style="width: 80px; height: 80px; background: var(--color-terracotta); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 2rem; color: white;">
-                ${currentUser.displayName.charAt(0)}
+            <div style="position: relative; width: 80px; height: 80px; margin: 0 auto 1rem;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; background: var(--color-terracotta); display: flex; align-items: center; justify-content: center;">
+                    ${currentUser.photoURL
+                        ? `<img src="${currentUser.photoURL}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">`
+                        : `<span style="font-family: var(--font-display); font-size: 2rem; color: white;">${currentUser.displayName.charAt(0)}</span>`
+                    }
+                </div>
+                <button onclick="openProfilePictureModal()" style="position: absolute; bottom: -4px; right: -4px; width: 28px; height: 28px; border-radius: 50%; background: white; border: 2px solid var(--color-forest); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </button>
             </div>
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${currentUser.displayName}</h2>
             <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem; text-transform: capitalize;">${currentUser.role}</p>
+            ${currentUser.username ? `<p style="opacity: 0.7; margin: 0.25rem 0 0; font-size: 0.875rem;">@${currentUser.username}</p>` : ''}
         </div>
 
         <!-- Activity Stats -->
@@ -3553,6 +3568,25 @@ function renderProfilePage() {
         <div class="app-section">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-size: 1.125rem;">About</h3>
+                    <button class="btn btn-ghost btn-sm" onclick="openEditBioModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit
+                    </button>
+                </div>
+                ${currentUser.bio
+                    ? `<p style="margin: 0; color: var(--color-text); line-height: 1.5;">${escapeHtml(currentUser.bio)}</p>`
+                    : `<p style="margin: 0; color: var(--color-text-light); font-style: italic;">No bio yet. Click Edit to add one!</p>`
+                }
+            </div>
+        </div>
+
+        <div class="app-section">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3 style="margin: 0; font-size: 1.125rem;">Contact Details</h3>
                     <button class="btn btn-ghost btn-sm" onclick="openEditProfileModal()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -3606,6 +3640,21 @@ function renderProfilePage() {
             </div>
         </div>
         ` : ''}
+
+        <div class="app-section">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Community</h3>
+                <button class="btn btn-secondary btn-sm" onclick="navigateTo('directory')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Member Directory
+                </button>
+            </div>
+        </div>
 
         <div class="app-section">
             <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="logout()">
@@ -4186,25 +4235,64 @@ function renderUsersPage() {
     }
 
     const users = MockDB.users;
+    const activeUsers = users.filter(u => u.status !== 'deactivated');
+    const deactivatedUsers = users.filter(u => u.status === 'deactivated');
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">User Management</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">${users.length} registered users</p>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">${activeUsers.length} active users${deactivatedUsers.length > 0 ? `, ${deactivatedUsers.length} deactivated` : ''}</p>
         </div>
 
         <div class="app-section" style="padding-top: 1.5rem;">
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="openCreateUserModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Create User
+                </button>
+                <button class="btn btn-secondary" onclick="openBulkImportModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Bulk Import
+                </button>
+                <button class="btn btn-ghost" onclick="navigateTo('directory')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Member Directory
+                </button>
+            </div>
+        </div>
+
+        <div class="app-section">
             <div class="app-section-header">
                 <h3 class="app-section-title">All Users</h3>
             </div>
             ${users.map(user => `
-                <div class="app-event-card" style="cursor: pointer;" onclick="openUserModal('${user.id}')">
-                    <div style="width: 45px; height: 45px; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 1.25rem; color: white; flex-shrink: 0;">
-                        ${user.displayName.charAt(0)}
+                <div class="app-event-card" style="cursor: pointer; ${user.status === 'deactivated' ? 'opacity: 0.5;' : ''}" onclick="openUserModal('${user.id}')">
+                    <div style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        ${user.photoURL
+                            ? `<img src="${user.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                            : `<span style="font-family: var(--font-display); font-size: 1.25rem; color: white;">${user.displayName.charAt(0)}</span>`
+                        }
                     </div>
                     <div class="app-event-info">
-                        <div class="app-event-title">${user.displayName}</div>
-                        <div class="app-event-meta">${user.email} &middot; <span style="text-transform: capitalize;">${user.role}</span></div>
+                        <div class="app-event-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                            ${escapeHtml(user.displayName)}
+                            ${user.status === 'deactivated' ? '<span style="font-size: 0.625rem; background: #fee2e2; color: #dc2626; padding: 0.125rem 0.375rem; border-radius: 4px;">Inactive</span>' : ''}
+                        </div>
+                        <div class="app-event-meta">${escapeHtml(user.email)} &middot; <span style="text-transform: capitalize;">${user.role}</span></div>
                     </div>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2" style="flex-shrink: 0;">
                         <polyline points="9 18 15 12 9 6"></polyline>
@@ -4225,14 +4313,26 @@ function openUserModal(userId) {
 
     const bodyHTML = `
         <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-            <div style="width: 60px; height: 60px; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 1.5rem; color: white;">
-                ${user.displayName.charAt(0)}
+            <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; display: flex; align-items: center; justify-content: center;">
+                ${user.photoURL
+                    ? `<img src="${user.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                    : `<span style="font-family: var(--font-display); font-size: 1.5rem; color: white;">${user.displayName.charAt(0)}</span>`
+                }
             </div>
             <div>
-                <h3 style="margin: 0; font-size: 1.125rem;">${user.displayName}</h3>
-                <p style="margin: 0.25rem 0 0; color: var(--color-text-light); font-size: 0.875rem;">${user.email}</p>
+                <h3 style="margin: 0; font-size: 1.125rem; display: flex; align-items: center; gap: 0.5rem;">
+                    ${escapeHtml(user.displayName)}
+                    ${user.status === 'deactivated' ? '<span style="font-size: 0.625rem; background: #fee2e2; color: #dc2626; padding: 0.125rem 0.375rem; border-radius: 4px;">Inactive</span>' : ''}
+                </h3>
+                <p style="margin: 0.25rem 0 0; color: var(--color-text-light); font-size: 0.875rem;">${escapeHtml(user.email)}</p>
             </div>
         </div>
+
+        ${user.bio ? `
+        <div style="background: var(--color-cream); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem;">
+            <p style="margin: 0; font-size: 0.875rem; color: var(--color-text);">${escapeHtml(user.bio)}</p>
+        </div>
+        ` : ''}
 
         <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
             <div>
@@ -4247,16 +4347,23 @@ function openUserModal(userId) {
             ${user.phone ? `
             <div>
                 <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Phone</label>
-                <p style="margin: 0;">${user.phone}</p>
+                <p style="margin: 0;">${escapeHtml(user.phone)}</p>
             </div>
             ` : ''}
             ${user.username ? `
             <div>
                 <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Username</label>
-                <p style="margin: 0;">@${user.username}</p>
+                <p style="margin: 0;">@${escapeHtml(user.username)}</p>
             </div>
             ` : ''}
         </div>
+        ${!isCurrentUser ? `
+        <div style="padding-top: 1rem; border-top: 1px solid var(--color-cream-dark);">
+            <button class="btn btn-${user.status === 'deactivated' ? 'secondary' : 'ghost'} btn-sm" onclick="toggleUserStatus('${user.id}')" style="${user.status !== 'deactivated' ? 'color: #ef4444;' : ''}">
+                ${user.status === 'deactivated' ? 'Reactivate Account' : 'Deactivate Account'}
+            </button>
+        </div>
+        ` : ''}
     `;
 
     let footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
@@ -4286,6 +4393,841 @@ async function saveUserRole(userId) {
     } catch (error) {
         showToast(error.message || 'Could not update role', 'error');
     }
+}
+
+// ============================================
+// ADMIN USER CREATION (Feature #1)
+// ============================================
+
+function openCreateUserModal() {
+    if (!DataService.isAdmin()) {
+        showToast('Only admins can create users', 'error');
+        return;
+    }
+
+    const bodyHTML = `
+        <form id="create-user-form">
+            <div class="form-group">
+                <label class="form-label" for="new-user-name">Full Name *</label>
+                <input type="text" class="form-input" id="new-user-name" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new-user-email">Email *</label>
+                <input type="email" class="form-input" id="new-user-email" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new-user-username">Username (optional)</label>
+                <input type="text" class="form-input" id="new-user-username" pattern="[a-zA-Z0-9_]+" placeholder="username">
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Letters, numbers, and underscores only</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new-user-password">Password *</label>
+                <input type="password" class="form-input" id="new-user-password" required minlength="6" autocomplete="new-password" oninput="updatePasswordStrength(this.value)">
+                <div id="password-strength-meter" style="margin-top: 0.5rem;">
+                    <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+                        <div class="strength-bar" style="flex: 1; height: 4px; background: var(--color-cream-dark); border-radius: 2px; transition: background 0.3s;"></div>
+                        <div class="strength-bar" style="flex: 1; height: 4px; background: var(--color-cream-dark); border-radius: 2px; transition: background 0.3s;"></div>
+                        <div class="strength-bar" style="flex: 1; height: 4px; background: var(--color-cream-dark); border-radius: 2px; transition: background 0.3s;"></div>
+                        <div class="strength-bar" style="flex: 1; height: 4px; background: var(--color-cream-dark); border-radius: 2px; transition: background 0.3s;"></div>
+                    </div>
+                    <small id="password-strength-text" style="color: var(--color-text-light); font-size: 0.75rem;">At least 6 characters</small>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new-user-role">Role *</label>
+                <select class="form-input" id="new-user-role">
+                    <option value="member">Member</option>
+                    <option value="host">Host</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new-user-phone">Phone (optional)</label>
+                <input type="tel" class="form-input" id="new-user-phone" placeholder="027-123-4567">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new-user-bio">Bio (optional)</label>
+                <textarea class="form-input" id="new-user-bio" rows="2" placeholder="A short bio about this person"></textarea>
+            </div>
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="createNewUser()">Create User</button>
+    `;
+
+    openModal('Create New User', bodyHTML, footerHTML);
+}
+
+async function createNewUser() {
+    const name = document.getElementById('new-user-name').value.trim();
+    const email = document.getElementById('new-user-email').value.trim().toLowerCase();
+    const username = document.getElementById('new-user-username').value.trim();
+    const password = document.getElementById('new-user-password').value;
+    const role = document.getElementById('new-user-role').value;
+    const phone = document.getElementById('new-user-phone').value.trim();
+    const bio = document.getElementById('new-user-bio').value.trim();
+
+    if (!name || !email || !password) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    if (password.length < 6) {
+        showToast('Password must be at least 6 characters', 'error');
+        return;
+    }
+
+    try {
+        if (PortalConfig.useFirebase && window.Auth) {
+            // Check username availability
+            if (username) {
+                const isAvailable = await DB.checkUsernameAvailable(username);
+                if (!isAvailable) {
+                    showToast('Username is already taken', 'error');
+                    return;
+                }
+            }
+
+            // Store current admin credentials for re-authentication
+            const adminEmail = Auth.currentUser.email;
+
+            // Create new user with Firebase Auth
+            const result = await auth.createUserWithEmailAndPassword(email, password);
+            const newUserId = result.user.uid;
+
+            // Update display name
+            await result.user.updateProfile({ displayName: name });
+
+            // Create user document in Firestore with specified role
+            await db.collection('users').doc(newUserId).set({
+                email: email,
+                displayName: name,
+                username: username || null,
+                role: role,
+                phone: phone || null,
+                bio: bio || null,
+                photoURL: null,
+                status: 'active',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdBy: Auth.uid
+            });
+
+            // Create username mapping if provided
+            if (username) {
+                await db.collection('usernames').doc(username.toLowerCase()).set({
+                    uid: newUserId,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            // Create public profile
+            await db.collection('userProfiles').doc(newUserId).set({
+                displayName: name,
+                photoURL: null,
+                bio: bio || null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Sign out the newly created user
+            await auth.signOut();
+
+            // Prompt admin to sign back in
+            showToast(`User "${name}" created successfully! Please sign in again.`, 'success');
+            closeModal();
+
+        } else {
+            // Demo mode
+            const newUser = {
+                id: 'user-' + Date.now(),
+                username: username || null,
+                displayName: name,
+                email: email,
+                phone: phone || null,
+                bio: bio || null,
+                role: role,
+                status: 'active',
+                dependants: [],
+                rsvps: []
+            };
+            MockDB.users.push(newUser);
+            showToast(`User "${name}" created successfully!`, 'success');
+            closeModal();
+            renderPage();
+        }
+    } catch (error) {
+        console.error('Create user error:', error);
+        showToast(error.message || 'Could not create user', 'error');
+    }
+}
+
+// ============================================
+// PASSWORD STRENGTH METER (Feature #3)
+// ============================================
+
+function calculatePasswordStrength(password) {
+    let strength = 0;
+
+    if (password.length >= 6) strength++;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+    return Math.min(strength, 4);
+}
+
+function updatePasswordStrength(password) {
+    const strength = calculatePasswordStrength(password);
+    const bars = document.querySelectorAll('#password-strength-meter .strength-bar');
+    const textEl = document.getElementById('password-strength-text');
+
+    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e'];
+    const texts = ['Weak', 'Fair', 'Good', 'Strong'];
+
+    bars.forEach((bar, index) => {
+        if (index < strength) {
+            bar.style.background = colors[Math.min(strength - 1, 3)];
+        } else {
+            bar.style.background = 'var(--color-cream-dark)';
+        }
+    });
+
+    if (password.length === 0) {
+        textEl.textContent = 'At least 6 characters';
+        textEl.style.color = 'var(--color-text-light)';
+    } else if (password.length < 6) {
+        textEl.textContent = 'Too short';
+        textEl.style.color = '#ef4444';
+    } else {
+        textEl.textContent = texts[strength - 1] || 'Weak';
+        textEl.style.color = colors[strength - 1] || colors[0];
+    }
+}
+
+// ============================================
+// ACCOUNT DEACTIVATION (Feature #4)
+// ============================================
+
+async function toggleUserStatus(userId) {
+    if (!DataService.isAdmin()) {
+        showToast('Only admins can change user status', 'error');
+        return;
+    }
+
+    const user = MockDB.users.find(u => u.id === userId);
+    if (!user) return;
+
+    const currentUser = DataService.getCurrentUser();
+    if (currentUser.id === userId) {
+        showToast('You cannot deactivate your own account', 'error');
+        return;
+    }
+
+    const newStatus = user.status === 'active' ? 'deactivated' : 'active';
+    const action = newStatus === 'active' ? 'reactivate' : 'deactivate';
+
+    if (!confirm(`Are you sure you want to ${action} ${user.displayName}'s account?`)) {
+        return;
+    }
+
+    try {
+        if (PortalConfig.useFirebase && window.DB) {
+            await DB.updateUser(userId, { status: newStatus });
+        }
+        user.status = newStatus;
+
+        showToast(`${user.displayName}'s account has been ${newStatus === 'active' ? 'reactivated' : 'deactivated'}`, 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not update user status', 'error');
+    }
+}
+
+// ============================================
+// PROFILE PICTURE UPLOAD (Feature #5)
+// ============================================
+
+function openProfilePictureModal() {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    const currentPhoto = currentUser.photoURL;
+
+    const bodyHTML = `
+        <div style="text-align: center;">
+            <div id="profile-preview" style="width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 1.5rem; overflow: hidden; background: var(--color-cream); display: flex; align-items: center; justify-content: center;">
+                ${currentPhoto
+                    ? `<img src="${currentPhoto}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">`
+                    : `<span style="font-family: var(--font-display); font-size: 3rem; color: var(--color-terracotta);">${currentUser.displayName.charAt(0)}</span>`
+                }
+            </div>
+            <input type="file" id="profile-image-input" accept="image/*" style="display: none;" onchange="previewProfileImage(this)">
+            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('profile-image-input').click()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Upload Photo
+                </button>
+                ${currentPhoto ? `
+                <button class="btn btn-ghost btn-sm" onclick="removeProfilePicture()" style="color: #ef4444;">
+                    Remove
+                </button>
+                ` : ''}
+            </div>
+            <div id="upload-progress" style="display: none; margin-top: 1rem;">
+                <div style="background: var(--color-cream-dark); border-radius: 4px; overflow: hidden;">
+                    <div id="upload-progress-bar" style="height: 4px; background: var(--color-forest); width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <small style="color: var(--color-text-light);">Uploading...</small>
+            </div>
+        </div>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="save-photo-btn" onclick="saveProfilePicture()" disabled>Save Photo</button>
+    `;
+
+    openModal('Profile Picture', bodyHTML, footerHTML);
+}
+
+let pendingProfileImage = null;
+
+function previewProfileImage(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+
+        if (!Storage.isValidImage(file)) {
+            showToast('Please select a valid image (JPEG, PNG, GIF, or WebP)', 'error');
+            return;
+        }
+
+        if (!Storage.isValidSize(file, 5)) {
+            showToast('Image must be smaller than 5MB', 'error');
+            return;
+        }
+
+        pendingProfileImage = file;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('profile-preview').innerHTML = `
+                <img src="${e.target.result}" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">
+            `;
+            document.getElementById('save-photo-btn').disabled = false;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+async function saveProfilePicture() {
+    if (!pendingProfileImage) return;
+
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    const progressEl = document.getElementById('upload-progress');
+    const progressBar = document.getElementById('upload-progress-bar');
+    const saveBtn = document.getElementById('save-photo-btn');
+
+    progressEl.style.display = 'block';
+    saveBtn.disabled = true;
+
+    try {
+        // Resize image before upload
+        const resizedImage = await Storage.resizeImage(pendingProfileImage, 400, 400, 0.85);
+
+        // Upload to Firebase Storage
+        const result = await Storage.uploadProfileImage(
+            PortalConfig.useFirebase ? Auth.uid : currentUser.id,
+            resizedImage,
+            (progress) => {
+                progressBar.style.width = progress + '%';
+            }
+        );
+
+        // Update user profile with new photo URL
+        if (PortalConfig.useFirebase && window.Auth) {
+            await Auth.updateProfile({ photoURL: result.url });
+        } else {
+            currentUser.photoURL = result.url;
+        }
+
+        pendingProfileImage = null;
+        showToast('Profile picture updated!', 'success');
+        closeModal();
+        renderPage();
+        renderDesktopSidebar();
+    } catch (error) {
+        showToast(error.message || 'Could not upload image', 'error');
+        progressEl.style.display = 'none';
+        saveBtn.disabled = false;
+    }
+}
+
+async function removeProfilePicture() {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    if (!confirm('Remove your profile picture?')) return;
+
+    try {
+        if (PortalConfig.useFirebase && window.Auth) {
+            await Auth.updateProfile({ photoURL: null });
+        } else {
+            currentUser.photoURL = null;
+        }
+
+        showToast('Profile picture removed', 'success');
+        closeModal();
+        renderPage();
+        renderDesktopSidebar();
+    } catch (error) {
+        showToast(error.message || 'Could not remove image', 'error');
+    }
+}
+
+// ============================================
+// USER BIO (Feature #6)
+// ============================================
+
+function openEditBioModal() {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    const bodyHTML = `
+        <form id="edit-bio-form">
+            <div class="form-group">
+                <label class="form-label" for="edit-bio">About You</label>
+                <textarea class="form-input" id="edit-bio" rows="4" maxlength="500" placeholder="Tell others a bit about yourself...">${currentUser.bio || ''}</textarea>
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">
+                    <span id="bio-char-count">${(currentUser.bio || '').length}</span>/500 characters
+                </small>
+            </div>
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveBio()">Save Bio</button>
+    `;
+
+    openModal('Edit Bio', bodyHTML, footerHTML);
+
+    // Add character counter
+    setTimeout(() => {
+        const bioEl = document.getElementById('edit-bio');
+        if (bioEl) {
+            bioEl.addEventListener('input', function() {
+                document.getElementById('bio-char-count').textContent = this.value.length;
+            });
+        }
+    }, 100);
+}
+
+async function saveBio() {
+    const bio = document.getElementById('edit-bio').value.trim();
+    const currentUser = DataService.getCurrentUser();
+
+    if (!currentUser) return;
+
+    try {
+        if (PortalConfig.useFirebase && window.Auth) {
+            await DB.updateUser(Auth.uid, { bio: bio || null });
+            Auth.currentUserData.bio = bio || null;
+        } else {
+            currentUser.bio = bio || null;
+        }
+
+        showToast('Bio updated!', 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not update bio', 'error');
+    }
+}
+
+// ============================================
+// BULK USER IMPORT (Feature #7)
+// ============================================
+
+function openBulkImportModal() {
+    if (!DataService.isAdmin()) {
+        showToast('Only admins can import users', 'error');
+        return;
+    }
+
+    const bodyHTML = `
+        <div>
+            <p style="color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1rem;">
+                Import multiple users from a CSV file. The file should have columns: name, email, role (optional), phone (optional).
+            </p>
+            <div style="background: var(--color-cream); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem; font-family: monospace; font-size: 0.75rem;">
+                name,email,role,phone<br>
+                John Smith,john@example.com,member,027-123-4567<br>
+                Jane Doe,jane@example.com,host,
+            </div>
+            <div class="form-group">
+                <input type="file" id="csv-file-input" accept=".csv" class="form-input">
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" id="send-welcome-email" checked>
+                    <span style="font-size: 0.9375rem;">Send welcome emails with temporary passwords</span>
+                </label>
+            </div>
+            <div id="import-preview" style="display: none; margin-top: 1rem;">
+                <h4 style="font-size: 0.875rem; margin-bottom: 0.5rem;">Preview:</h4>
+                <div id="import-preview-list" style="max-height: 200px; overflow-y: auto;"></div>
+            </div>
+            <div id="import-progress" style="display: none; margin-top: 1rem;">
+                <div style="background: var(--color-cream-dark); border-radius: 4px; overflow: hidden; margin-bottom: 0.5rem;">
+                    <div id="import-progress-bar" style="height: 4px; background: var(--color-forest); width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <small id="import-progress-text" style="color: var(--color-text-light);">Importing...</small>
+            </div>
+        </div>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-secondary" id="preview-import-btn" onclick="previewCSVImport()">Preview</button>
+        <button class="btn btn-primary" id="start-import-btn" onclick="startBulkImport()" disabled>Import Users</button>
+    `;
+
+    openModal('Bulk Import Users', bodyHTML, footerHTML);
+}
+
+let parsedCSVData = [];
+
+function previewCSVImport() {
+    const fileInput = document.getElementById('csv-file-input');
+    if (!fileInput.files || !fileInput.files[0]) {
+        showToast('Please select a CSV file', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const csv = e.target.result;
+        const lines = csv.split('\n').filter(line => line.trim());
+
+        if (lines.length < 2) {
+            showToast('CSV file must have at least one data row', 'error');
+            return;
+        }
+
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const nameIdx = headers.indexOf('name');
+        const emailIdx = headers.indexOf('email');
+        const roleIdx = headers.indexOf('role');
+        const phoneIdx = headers.indexOf('phone');
+
+        if (nameIdx === -1 || emailIdx === -1) {
+            showToast('CSV must have "name" and "email" columns', 'error');
+            return;
+        }
+
+        parsedCSVData = [];
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            if (values[emailIdx]) {
+                parsedCSVData.push({
+                    name: values[nameIdx] || '',
+                    email: values[emailIdx].toLowerCase(),
+                    role: (roleIdx !== -1 && values[roleIdx]) ? values[roleIdx] : 'member',
+                    phone: (phoneIdx !== -1 && values[phoneIdx]) ? values[phoneIdx] : ''
+                });
+            }
+        }
+
+        if (parsedCSVData.length === 0) {
+            showToast('No valid users found in CSV', 'error');
+            return;
+        }
+
+        // Show preview
+        const previewEl = document.getElementById('import-preview');
+        const listEl = document.getElementById('import-preview-list');
+
+        listEl.innerHTML = parsedCSVData.map((user, idx) => `
+            <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: ${idx % 2 ? 'var(--color-cream)' : 'white'}; font-size: 0.875rem;">
+                <span>${escapeHtml(user.name)}</span>
+                <span style="color: var(--color-text-light);">${escapeHtml(user.email)}</span>
+                <span style="text-transform: capitalize;">${user.role}</span>
+            </div>
+        `).join('');
+
+        previewEl.style.display = 'block';
+        document.getElementById('start-import-btn').disabled = false;
+    };
+    reader.readAsText(fileInput.files[0]);
+}
+
+async function startBulkImport() {
+    if (parsedCSVData.length === 0) {
+        showToast('No users to import', 'error');
+        return;
+    }
+
+    const sendEmails = document.getElementById('send-welcome-email').checked;
+    const progressEl = document.getElementById('import-progress');
+    const progressBar = document.getElementById('import-progress-bar');
+    const progressText = document.getElementById('import-progress-text');
+
+    progressEl.style.display = 'block';
+    document.getElementById('start-import-btn').disabled = true;
+    document.getElementById('preview-import-btn').disabled = true;
+
+    let imported = 0;
+    let errors = 0;
+    const results = [];
+
+    for (let i = 0; i < parsedCSVData.length; i++) {
+        const user = parsedCSVData[i];
+        const progress = ((i + 1) / parsedCSVData.length) * 100;
+        progressBar.style.width = progress + '%';
+        progressText.textContent = `Importing ${i + 1} of ${parsedCSVData.length}...`;
+
+        try {
+            // Generate temporary password
+            const tempPassword = generateTempPassword();
+
+            if (PortalConfig.useFirebase) {
+                // For Firebase, we'd need Cloud Functions for bulk import
+                // For now, add to MockDB
+                const newUser = {
+                    id: 'user-' + Date.now() + '-' + i,
+                    username: null,
+                    displayName: user.name,
+                    email: user.email,
+                    phone: user.phone || null,
+                    role: user.role,
+                    status: 'active',
+                    dependants: [],
+                    rsvps: [],
+                    tempPassword: tempPassword
+                };
+                MockDB.users.push(newUser);
+            } else {
+                const newUser = {
+                    id: 'user-' + Date.now() + '-' + i,
+                    username: null,
+                    displayName: user.name,
+                    email: user.email,
+                    phone: user.phone || null,
+                    role: user.role,
+                    status: 'active',
+                    dependants: [],
+                    rsvps: []
+                };
+                MockDB.users.push(newUser);
+            }
+
+            results.push({ user, success: true, password: tempPassword });
+            imported++;
+        } catch (error) {
+            results.push({ user, success: false, error: error.message });
+            errors++;
+        }
+
+        // Small delay to prevent overwhelming
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    progressText.textContent = `Complete! ${imported} imported, ${errors} errors.`;
+
+    if (sendEmails && imported > 0) {
+        // In a real app, this would send emails via Cloud Functions
+        console.log('Would send welcome emails to:', results.filter(r => r.success));
+    }
+
+    showToast(`Imported ${imported} users${errors > 0 ? ` (${errors} errors)` : ''}`, imported > 0 ? 'success' : 'error');
+
+    setTimeout(() => {
+        closeModal();
+        renderPage();
+    }, 1500);
+}
+
+function generateTempPassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let password = '';
+    for (let i = 0; i < 10; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+}
+
+// ============================================
+// USER DIRECTORY (Feature #8)
+// ============================================
+
+let userDirectorySearch = '';
+let userDirectoryFilter = 'all';
+
+function renderUserDirectory() {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return '';
+
+    let users = [...MockDB.users].filter(u => u.status !== 'deactivated' || DataService.isAdmin());
+
+    // Apply search
+    if (userDirectorySearch) {
+        const search = userDirectorySearch.toLowerCase();
+        users = users.filter(u =>
+            u.displayName.toLowerCase().includes(search) ||
+            u.email.toLowerCase().includes(search) ||
+            (u.username && u.username.toLowerCase().includes(search))
+        );
+    }
+
+    // Apply role filter
+    if (userDirectoryFilter !== 'all') {
+        users = users.filter(u => u.role === userDirectoryFilter);
+    }
+
+    // Sort alphabetically
+    users.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    return `
+        <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
+            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Member Directory</h2>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">${users.length} members</p>
+        </div>
+
+        <div class="app-section" style="padding-top: 1rem;">
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <input type="text" class="form-input" placeholder="Search members..." value="${escapeHtml(userDirectorySearch)}" oninput="updateDirectorySearch(this.value)" style="padding: 0.625rem 1rem;">
+                </div>
+                <select class="form-input" style="width: auto;" onchange="updateDirectoryFilter(this.value)">
+                    <option value="all" ${userDirectoryFilter === 'all' ? 'selected' : ''}>All Roles</option>
+                    <option value="admin" ${userDirectoryFilter === 'admin' ? 'selected' : ''}>Admins</option>
+                    <option value="host" ${userDirectoryFilter === 'host' ? 'selected' : ''}>Hosts</option>
+                    <option value="member" ${userDirectoryFilter === 'member' ? 'selected' : ''}>Members</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="app-section">
+            <div style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+                ${users.map(user => `
+                    <div class="app-event-card" style="cursor: pointer; ${user.status === 'deactivated' ? 'opacity: 0.5;' : ''}" onclick="openUserProfileModal('${user.id}')">
+                        <div style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; display: flex; align-items: center; justify-content: center;">
+                            ${user.photoURL
+                                ? `<img src="${user.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                                : `<span style="font-family: var(--font-display); font-size: 1.25rem; color: white;">${user.displayName.charAt(0)}</span>`
+                            }
+                        </div>
+                        <div class="app-event-info" style="min-width: 0;">
+                            <div class="app-event-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                ${escapeHtml(user.displayName)}
+                                ${user.status === 'deactivated' ? '<span style="font-size: 0.625rem; background: #fee2e2; color: #dc2626; padding: 0.125rem 0.375rem; border-radius: 4px;">Inactive</span>' : ''}
+                            </div>
+                            <div class="app-event-meta">
+                                ${user.username ? '@' + escapeHtml(user.username) + ' · ' : ''}
+                                <span style="text-transform: capitalize;">${user.role}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            ${users.length === 0 ? `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                    <p>No members found matching your search.</p>
+                </div>
+            ` : ''}
+        </div>
+        <div style="height: 20px;"></div>
+    `;
+}
+
+function updateDirectorySearch(value) {
+    userDirectorySearch = value;
+    // Debounce the search
+    clearTimeout(window.directorySearchTimeout);
+    window.directorySearchTimeout = setTimeout(() => {
+        renderPage();
+    }, 300);
+}
+
+function updateDirectoryFilter(value) {
+    userDirectoryFilter = value;
+    renderPage();
+}
+
+function openUserProfileModal(userId) {
+    const user = MockDB.users.find(u => u.id === userId);
+    if (!user) return;
+
+    const currentUser = DataService.getCurrentUser();
+    const isAdmin = DataService.isAdmin();
+    const isOwnProfile = currentUser.id === user.id;
+
+    const bodyHTML = `
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin: 0 auto 1rem; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; display: flex; align-items: center; justify-content: center;">
+                ${user.photoURL
+                    ? `<img src="${user.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                    : `<span style="font-family: var(--font-display); font-size: 2rem; color: white;">${user.displayName.charAt(0)}</span>`
+                }
+            </div>
+            <h3 style="margin: 0; font-size: 1.25rem;">${escapeHtml(user.displayName)}</h3>
+            <p style="margin: 0.25rem 0 0; color: var(--color-text-light);">
+                ${user.username ? '@' + escapeHtml(user.username) + ' · ' : ''}
+                <span style="text-transform: capitalize;">${user.role}</span>
+            </p>
+            ${user.status === 'deactivated' ? '<span style="display: inline-block; margin-top: 0.5rem; font-size: 0.75rem; background: #fee2e2; color: #dc2626; padding: 0.25rem 0.5rem; border-radius: 4px;">Account Deactivated</span>' : ''}
+        </div>
+
+        ${user.bio ? `
+        <div style="background: var(--color-cream); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem;">
+            <p style="margin: 0; font-size: 0.9375rem; color: var(--color-text);">${escapeHtml(user.bio)}</p>
+        </div>
+        ` : ''}
+
+        <div style="display: grid; gap: 0.75rem;">
+            ${user.email && (isAdmin || isOwnProfile) ? `
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <span style="font-size: 0.9375rem;">${escapeHtml(user.email)}</span>
+            </div>
+            ` : ''}
+            ${user.phone ? `
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                <span style="font-size: 0.9375rem;">${escapeHtml(user.phone)}</span>
+            </div>
+            ` : ''}
+        </div>
+
+        ${isAdmin && !isOwnProfile ? `
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+            <h4 style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: 0.75rem;">Admin Actions</h4>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm" onclick="closeModal(); openUserModal('${user.id}')">Edit User</button>
+                <button class="btn btn-${user.status === 'deactivated' ? 'primary' : 'ghost'} btn-sm" onclick="toggleUserStatus('${user.id}')" style="${user.status !== 'deactivated' ? 'color: #ef4444;' : ''}">
+                    ${user.status === 'deactivated' ? 'Reactivate' : 'Deactivate'}
+                </button>
+            </div>
+        </div>
+        ` : ''}
+    `;
+
+    openModal('Member Profile', bodyHTML, `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`);
 }
 
 // ============================================
