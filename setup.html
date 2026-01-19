@@ -512,17 +512,14 @@ So if you've been away for a while, know this: you're still part of us. And when
 
         async function checkSetupStatus() {
             try {
-                // Check if any admin user exists
-                const adminsSnapshot = await db.collection('users')
-                    .where('role', '==', 'admin')
-                    .limit(1)
-                    .get();
+                // Check if setup document exists (indicates setup is complete)
+                const setupDoc = await db.collection('settings').doc('setup').get();
 
-                if (!adminsSnapshot.empty) {
-                    // Already has an admin, show already setup screen
+                if (setupDoc.exists) {
+                    // Setup already complete
                     showStep('already-setup');
                 } else {
-                    // No admin exists, start setup
+                    // No setup document, start setup
                     showStep(1);
                 }
             } catch (error) {
@@ -635,6 +632,13 @@ So if you've been away for a while, know this: you're still part of us. And when
                 // Create username mapping
                 await db.collection('usernames').doc(username.toLowerCase()).set({
                     uid: adminUserId
+                });
+
+                // Create setup document to lock down admin self-creation
+                await db.collection('settings').doc('setup').set({
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    adminUserId: adminUserId,
+                    version: '1.0'
                 });
 
                 // Move to step 2

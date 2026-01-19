@@ -49,6 +49,11 @@ service cloud.firestore {
       return gathering.isPublic == true;
     }
 
+    // Check if this is the initial setup (no setup doc exists)
+    function isInitialSetup() {
+      return !exists(/databases/$(database)/documents/settings/setup);
+    }
+
     // ============================================
     // USERS COLLECTION
     // ============================================
@@ -56,14 +61,28 @@ service cloud.firestore {
       // Users can read their own profile, admins can read all
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
 
+      // Users can create their own profile during registration
+      // During initial setup, first user can be admin
+      // Otherwise, new users default to member role
+      allow create: if isAuthenticated() && request.auth.uid == userId &&
+        (
+          // Initial setup: first user can be admin
+          (isInitialSetup() && request.resource.data.role == 'admin') ||
+          // Normal registration: must be member role
+          (request.resource.data.role == 'member') ||
+          // Admins can create any user
+          isAdmin()
+        );
+
       // Users can update their own profile (limited fields)
       allow update: if isAuthenticated() && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName', 'photoURL', 'preferences', 'updatedAt']);
+          .hasOnly(['displayName', 'phone', 'photoURL', 'preferences', 'dependants', 'updatedAt']);
 
-      // Only admins can create users or update roles
-      allow create: if isAdmin();
+      // Admins can update any user (including role)
       allow update: if isAdmin();
+
+      // Only admins can delete users
       allow delete: if isAdmin();
     }
 
@@ -80,8 +99,10 @@ service cloud.firestore {
       // All authenticated users can read gatherings
       allow read: if isAuthenticated();
 
-      // Only admins can create/update/delete gatherings
-      allow create, update, delete: if isAdmin();
+      // Admins can create/update/delete gatherings
+      // During initial setup, allow creation
+      allow create: if isAdmin() || isInitialSetup();
+      allow update, delete: if isAdmin();
 
       // Gathering members subcollection
       match /members/{memberId} {
@@ -89,7 +110,43 @@ service cloud.firestore {
         allow read: if isHostOfGathering(gatheringId) || isAdmin();
 
         // Admins and gathering hosts can manage members
-        allow write: if isHostOfGathering(gatheringId) || isAdmin();
+        // During initial setup, allow adding members
+        allow write: if isHostOfGathering(gatheringId) || isAdmin() || isInitialSetup();
+      }
+
+      // Posts within a gathering's message board
+      match /posts/{postId} {
+        // Read based on gathering visibility
+        allow read: if isAuthenticated() &&
+          (isPublicGathering(gatheringId) || isMemberOfGathering(gatheringId) || isAdmin());
+
+        // During initial setup, allow seeding posts
+        allow create: if isInitialSetup() ||
+          (isAuthenticated() &&
+           request.resource.data.authorId == request.auth.uid &&
+           (isPublicGathering(gatheringId) || isMemberOfGathering(gatheringId)));
+
+        // Authors can update their own posts
+        allow update: if isAuthenticated() &&
+          (resource.data.authorId == request.auth.uid || isAdmin());
+
+        // Authors and admins can delete posts
+        allow delete: if isAuthenticated() &&
+          (resource.data.authorId == request.auth.uid || isAdmin());
+
+        // Comments on posts
+        match /comments/{commentId} {
+          allow read: if isAuthenticated() &&
+            (isPublicGathering(gatheringId) || isMemberOfGathering(gatheringId) || isAdmin());
+
+          allow create: if isInitialSetup() ||
+            (isAuthenticated() &&
+             request.resource.data.authorId == request.auth.uid &&
+             (isPublicGathering(gatheringId) || isMemberOfGathering(gatheringId)));
+
+          allow update, delete: if isAuthenticated() &&
+            (resource.data.authorId == request.auth.uid || isAdmin());
+        }
       }
     }
 
@@ -128,8 +185,9 @@ service cloud.firestore {
       allow read: if true;
 
       // Only admins and hosts can create posts
-      allow create: if isAdminOrHost() &&
-        request.resource.data.authorId == request.auth.uid;
+      // During initial setup, allow seeding
+      allow create: if isInitialSetup() ||
+        (isAdminOrHost() && request.resource.data.authorId == request.auth.uid);
 
       // Authors can update their own posts, admins can update any
       allow update: if isAuthenticated() &&
@@ -223,6 +281,8 @@ service cloud.firestore {
     // ============================================
     match /settings/{settingId} {
       allow read: if true; // Public settings readable
+      // Allow creating setup document during initial setup to lock it down
+      allow create: if isInitialSetup() && settingId == 'setup';
       allow write: if isAdmin();
     }
 
