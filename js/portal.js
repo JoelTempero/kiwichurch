@@ -4238,7 +4238,9 @@ function showAppState() {
     const currentUser = DataService.getCurrentUser();
 
     if (currentUser) {
-        // Check if email verification is required (Firebase mode)
+        // Email verification disabled - accounts are created manually by admin
+        // If you want to re-enable, uncomment the block below:
+        /*
         if (PortalConfig.useFirebase && window.Auth && Auth.currentUser && !Auth.currentUser.emailVerified) {
             authView.style.display = 'block';
             appView.style.display = 'none';
@@ -4247,6 +4249,7 @@ function showAppState() {
             showAuthView('verify-email');
             return;
         }
+        */
 
         authView.style.display = 'none';
         appView.style.display = 'block';
