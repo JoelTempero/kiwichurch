@@ -2762,6 +2762,9 @@ async function submitRSVP(eventId) {
 // ============================================
 
 function openCreateKetePostModal() {
+    // Get existing series for suggestions
+    const existingSeries = [...new Set(MockDB.kete.filter(k => k.series).map(k => k.series))];
+
     const bodyHTML = `
         <form id="kete-form">
             <div class="form-group">
@@ -2773,6 +2776,26 @@ function openCreateKetePostModal() {
                 <label class="form-label" for="kete-excerpt">Excerpt *</label>
                 <input type="text" class="form-input" id="kete-excerpt" required placeholder="A brief summary (shown in listings)" maxlength="200">
                 <small style="color: var(--color-text-light); font-size: 0.75rem;">Max 200 characters</small>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="kete-category">Category</label>
+                    <select class="form-input" id="kete-category">
+                        <option value="">Select category...</option>
+                        ${KETE_CATEGORIES.map(cat => `
+                            <option value="${cat.id}">${cat.name}</option>
+                        `).join('')}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="kete-series">Series (optional)</label>
+                    <input type="text" class="form-input" id="kete-series" list="series-list" placeholder="e.g., Advent 2024">
+                    <datalist id="series-list">
+                        ${existingSeries.map(s => `<option value="${escapeHtml(s)}">`).join('')}
+                    </datalist>
+                </div>
             </div>
 
             <div class="form-group">
@@ -2798,6 +2821,13 @@ You can use simple formatting:
             </div>
 
             <div class="form-group">
+                <label class="form-label">Media Attachments (optional)</label>
+                <input type="file" class="form-input" id="kete-attachments" multiple accept="image/*,.pdf,.doc,.docx" onchange="previewKeteAttachments(this)">
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Add images or documents to include in your post</small>
+                <div id="kete-attachments-preview" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+            </div>
+
+            <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
                     <input type="checkbox" id="kete-published" checked>
                     <span>Publish immediately</span>
@@ -2814,6 +2844,62 @@ You can use simple formatting:
     `;
 
     openModal('New Kete Post', bodyHTML, footerHTML);
+}
+
+// Preview Kete attachments
+function previewKeteAttachments(input) {
+    const preview = document.getElementById('kete-attachments-preview');
+    if (!preview) return;
+    preview.innerHTML = '';
+
+    if (!input.files || input.files.length === 0) return;
+
+    Array.from(input.files).forEach((file, index) => {
+        const isImage = file.type.startsWith('image/');
+
+        if (isImage) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'position: relative; display: inline-block;';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Attachment" style="width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm);">
+                    <button type="button" onclick="removeKeteAttachment(${index})" style="position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: #dc2626; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                `;
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            const div = document.createElement('div');
+            div.style.cssText = 'position: relative; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); font-size: 0.75rem;';
+            div.innerHTML = `
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                ${escapeHtml(file.name.substring(0, 15))}${file.name.length > 15 ? '...' : ''}
+                <button type="button" onclick="removeKeteAttachment(${index})" style="padding: 0; background: none; border: none; cursor: pointer; margin-left: 0.25rem;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            `;
+            preview.appendChild(div);
+        }
+    });
+}
+
+function removeKeteAttachment(index) {
+    const input = document.getElementById('kete-attachments');
+    // Note: Can't truly remove from FileList, so we'd need a different approach in production
+    // For now, just provide visual feedback
+    showToast('Attachment will be removed on next file selection', 'default');
 }
 
 function previewKeteImage(input) {
@@ -2839,7 +2925,10 @@ async function saveKetePost(publish = true) {
     const title = document.getElementById('kete-title').value.trim();
     const excerpt = document.getElementById('kete-excerpt').value.trim();
     const content = document.getElementById('kete-content').value.trim();
+    const category = document.getElementById('kete-category')?.value || null;
+    const series = document.getElementById('kete-series')?.value.trim() || null;
     const imageInput = document.getElementById('kete-image');
+    const attachmentsInput = document.getElementById('kete-attachments');
 
     // Validation
     if (!title || !excerpt || !content) {
@@ -2849,16 +2938,42 @@ async function saveKetePost(publish = true) {
 
     try {
         let featuredImage = null;
+        let attachments = [];
 
-        // Handle image upload (demo mode - store as data URL)
+        // Handle featured image upload
         if (imageInput.files && imageInput.files[0]) {
             if (PortalConfig.useFirebase && window.Storage) {
-                // Upload to Firebase Storage
                 const result = await Storage.uploadKeteImage('temp', imageInput.files[0]);
                 featuredImage = result.url;
             } else {
-                // Demo mode - store as data URL
                 featuredImage = document.getElementById('kete-image-preview').querySelector('img').src;
+            }
+        }
+
+        // Handle attachments
+        if (attachmentsInput?.files && attachmentsInput.files.length > 0) {
+            for (const file of attachmentsInput.files) {
+                const isImage = file.type.startsWith('image/');
+                if (PortalConfig.useFirebase && window.Storage) {
+                    const result = await Storage.uploadKeteImage('temp-attachment', file);
+                    attachments.push({
+                        type: isImage ? 'image' : 'file',
+                        url: result.url,
+                        name: file.name
+                    });
+                } else {
+                    // Demo mode
+                    const dataUrl = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+                    attachments.push({
+                        type: isImage ? 'image' : 'file',
+                        url: dataUrl,
+                        name: file.name
+                    });
+                }
             }
         }
 
@@ -2866,7 +2981,10 @@ async function saveKetePost(publish = true) {
             title,
             excerpt,
             content,
+            category,
+            series,
             featuredImage,
+            attachments,
             published: publish
         });
 
@@ -2882,6 +3000,9 @@ function openEditKetePostModal(postId) {
     const post = DataService.getKetePostById(postId);
     if (!post) return;
 
+    // Get existing series for suggestions
+    const existingSeries = [...new Set(MockDB.kete.filter(k => k.series).map(k => k.series))];
+
     const bodyHTML = `
         <form id="edit-kete-form">
             <div class="form-group">
@@ -2892,6 +3013,26 @@ function openEditKetePostModal(postId) {
             <div class="form-group">
                 <label class="form-label" for="edit-kete-excerpt">Excerpt *</label>
                 <input type="text" class="form-input" id="edit-kete-excerpt" required value="${escapeHtml(post.excerpt)}" maxlength="200">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="edit-kete-category">Category</label>
+                    <select class="form-input" id="edit-kete-category">
+                        <option value="">Select category...</option>
+                        ${KETE_CATEGORIES.map(cat => `
+                            <option value="${cat.id}" ${post.category === cat.id ? 'selected' : ''}>${cat.name}</option>
+                        `).join('')}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="edit-kete-series">Series (optional)</label>
+                    <input type="text" class="form-input" id="edit-kete-series" list="edit-series-list" value="${escapeHtml(post.series || '')}" placeholder="e.g., Advent 2024">
+                    <datalist id="edit-series-list">
+                        ${existingSeries.map(s => `<option value="${escapeHtml(s)}">`).join('')}
+                    </datalist>
+                </div>
             </div>
 
             <div class="form-group">
@@ -2912,6 +3053,26 @@ function openEditKetePostModal(postId) {
                     <img src="" alt="Preview" style="max-width: 100%; max-height: 150px; border-radius: var(--radius-sm);">
                 </div>
             </div>
+
+            ${post.attachments && post.attachments.length > 0 ? `
+            <div class="form-group">
+                <label class="form-label">Current Attachments</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    ${post.attachments.map((att, idx) => `
+                        ${att.type === 'image'
+                            ? `<img src="${att.url}" alt="${escapeHtml(att.name)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm);">`
+                            : `<div style="display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); font-size: 0.75rem;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                ${escapeHtml(att.name)}
+                            </div>`
+                        }
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
 
             <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
@@ -2969,6 +3130,8 @@ async function updateKetePost(postId) {
     const title = document.getElementById('edit-kete-title').value.trim();
     const excerpt = document.getElementById('edit-kete-excerpt').value.trim();
     const content = document.getElementById('edit-kete-content').value.trim();
+    const category = document.getElementById('edit-kete-category')?.value || null;
+    const series = document.getElementById('edit-kete-series')?.value.trim() || null;
     const published = document.getElementById('edit-kete-published').checked;
     const imageInput = document.getElementById('edit-kete-image');
     const currentImageContainer = document.getElementById('current-kete-image');
@@ -2980,7 +3143,7 @@ async function updateKetePost(postId) {
     }
 
     try {
-        const updates = { title, excerpt, content, published };
+        const updates = { title, excerpt, content, category, series, published };
 
         // Handle image changes
         if (imageInput.files && imageInput.files[0]) {
@@ -3042,6 +3205,25 @@ function openKetePostModal(postId) {
     if (!post) return;
 
     const canManage = DataService.canManageKetePost(post);
+    const readingTime = calculateReadingTime(post.content);
+    const category = KETE_CATEGORIES.find(c => c.id === post.category);
+
+    // Get related posts (same category or series, excluding current)
+    let relatedPosts = [];
+    if (post.series) {
+        // Same series first
+        relatedPosts = MockDB.kete.filter(k =>
+            k.published && k.id !== post.id && k.series === post.series
+        ).slice(0, 3);
+    }
+    if (relatedPosts.length < 3 && post.category) {
+        // Fill with same category
+        const categoryPosts = MockDB.kete.filter(k =>
+            k.published && k.id !== post.id && k.category === post.category &&
+            !relatedPosts.find(r => r.id === k.id)
+        ).slice(0, 3 - relatedPosts.length);
+        relatedPosts = [...relatedPosts, ...categoryPosts];
+    }
 
     // Convert simple markdown to HTML
     const contentHtml = renderMarkdown(post.content);
@@ -3049,8 +3231,23 @@ function openKetePostModal(postId) {
     const bodyHTML = `
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
             <div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; align-items: center; margin-bottom: 0.5rem;">
+                    ${category ? `
+                        <span style="background: ${category.color}20; color: ${category.color}; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.6875rem; font-weight: 500;">${category.name}</span>
+                    ` : ''}
+                    ${post.series ? `
+                        <button onclick="closeModal(); openKeteSeriesModal('${escapeHtml(post.series)}')" style="display: inline-flex; align-items: center; gap: 0.25rem; background: var(--color-cream); color: var(--color-text-light); padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.6875rem; border: none; cursor: pointer;">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                            ${escapeHtml(post.series)}
+                        </button>
+                    ` : ''}
+                    ${!post.published ? '<span style="background: var(--color-terracotta-light); color: var(--color-terracotta); padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.6875rem;">Draft</span>' : ''}
+                </div>
                 <p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0;">
-                    ${formatDate(post.publishedAt || post.createdAt)} ${!post.published ? '<span style="background: var(--color-terracotta-light); color: var(--color-terracotta); padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem;">Draft</span>' : ''}
+                    ${formatDate(post.publishedAt || post.createdAt)} • ${readingTime} min read
                 </p>
                 <p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0.25rem 0 0;">
                     by ${post.authorName}
@@ -3074,11 +3271,97 @@ function openKetePostModal(postId) {
         <div class="kete-content" style="line-height: 1.7; color: var(--color-text);">
             ${contentHtml}
         </div>
+
+        ${post.attachments && post.attachments.length > 0 ? `
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+            <h4 style="margin: 0 0 0.75rem; font-size: 0.9375rem; color: var(--color-text-light);">Attachments</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                ${post.attachments.map(att => att.type === 'image'
+                    ? `<img src="${att.url}" alt="${escapeHtml(att.name)}" style="max-width: 200px; max-height: 150px; object-fit: cover; border-radius: var(--radius-sm); cursor: pointer;" onclick="openImageModal('${att.url}')">`
+                    : `<a href="${att.url}" target="_blank" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); text-decoration: none; color: var(--color-text);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        ${escapeHtml(att.name)}
+                    </a>`
+                ).join('')}
+            </div>
+        </div>
+        ` : ''}
+
+        ${relatedPosts.length > 0 ? `
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+            <h4 style="margin: 0 0 0.75rem; font-size: 0.9375rem; color: var(--color-text-light);">Related Posts</h4>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                ${relatedPosts.map(rp => {
+                    const rpCat = KETE_CATEGORIES.find(c => c.id === rp.category);
+                    return `
+                        <div onclick="openKetePostModal('${rp.id}')" style="display: flex; gap: 0.75rem; padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); cursor: pointer;">
+                            ${rp.featuredImage ? `<img src="${rp.featuredImage}" alt="" style="width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); flex-shrink: 0;">` : ''}
+                            <div style="flex: 1; min-width: 0;">
+                                ${rpCat ? `<span style="font-size: 0.625rem; color: ${rpCat.color}; font-weight: 500;">${rpCat.name}</span>` : ''}
+                                <h5 style="margin: 0; font-size: 0.875rem; color: var(--color-forest);">${escapeHtml(rp.title)}</h5>
+                                <p style="margin: 0.25rem 0 0; font-size: 0.75rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(rp.excerpt)}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+        ` : ''}
     `;
 
     const footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
 
     openModal(post.title, bodyHTML, footerHTML);
+}
+
+// Open series modal
+function openKeteSeriesModal(series) {
+    const seriesPosts = MockDB.kete.filter(k => k.published && k.series === series)
+        .sort((a, b) => new Date(a.publishedAt || a.createdAt) - new Date(b.publishedAt || b.createdAt));
+
+    document.getElementById('modal-title').textContent = series;
+    document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom: 1rem;">
+            <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); font-size: 0.875rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+                ${seriesPosts.length} post${seriesPosts.length !== 1 ? 's' : ''} in this series
+            </span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 400px; overflow-y: auto;">
+            ${seriesPosts.map((post, index) => {
+                const category = KETE_CATEGORIES.find(c => c.id === post.category);
+                const readingTime = calculateReadingTime(post.content);
+                return `
+                    <div onclick="openKetePostModal('${post.id}')" style="display: flex; gap: 0.75rem; padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-md); cursor: pointer;">
+                        <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-forest); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; flex-shrink: 0;">
+                            ${index + 1}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; gap: 0.25rem; align-items: center; margin-bottom: 0.25rem;">
+                                ${category ? `<span style="font-size: 0.625rem; color: ${category.color}; font-weight: 500;">${category.name}</span>` : ''}
+                                <span style="font-size: 0.625rem; color: var(--color-text-light);">${readingTime} min</span>
+                            </div>
+                            <h5 style="margin: 0; font-size: 0.9375rem; color: var(--color-forest);">${escapeHtml(post.title)}</h5>
+                            <p style="margin: 0.25rem 0 0; font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(post.publishedAt)}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <button class="btn btn-ghost" onclick="closeModal()" style="width: 100%;">Close</button>
+        </div>
+    `;
+
+    openModal();
 }
 
 // Simple markdown renderer
@@ -4997,17 +5280,47 @@ function openGroupMembersModal(groupId) {
     openModal();
 }
 
+// Kete categories
+const KETE_CATEGORIES = [
+    { id: 'reflection', name: 'Reflection', color: '#7d9a87' },
+    { id: 'story', name: 'Story', color: '#c17f59' },
+    { id: 'update', name: 'Community Update', color: '#1a3a2f' },
+    { id: 'resource', name: 'Resource', color: '#d4a574' },
+    { id: 'teaching', name: 'Teaching', color: '#2d5a4a' },
+    { id: 'testimony', name: 'Testimony', color: '#5a6b62' }
+];
+
+// Calculate reading time
+function calculateReadingTime(content) {
+    if (!content) return 1;
+    const wordsPerMinute = 200;
+    const words = content.trim().split(/\s+/).length;
+    return Math.max(1, Math.ceil(words / wordsPerMinute));
+}
+
 function renderKetePage() {
     const canPost = DataService.isAdminOrHost();
     const currentUser = DataService.getCurrentUser();
+    const selectedCategory = state.keteCategory || null;
 
     // Get published posts for display
-    const publishedPosts = MockDB.kete.filter(k => k.published).sort((a, b) => {
+    let publishedPosts = MockDB.kete.filter(k => k.published).sort((a, b) => {
         return new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt);
     });
 
+    // Filter by category if selected
+    if (selectedCategory) {
+        publishedPosts = publishedPosts.filter(p => p.category === selectedCategory);
+    }
+
+    // Get all series for sidebar
+    const allSeries = [...new Set(MockDB.kete.filter(k => k.published && k.series).map(k => k.series))];
+
     // Get user's drafts (if they can post)
     const myDrafts = canPost ? MockDB.kete.filter(k => !k.published && k.authorId === currentUser?.id) : [];
+
+    // Get used categories
+    const usedCategories = [...new Set(MockDB.kete.filter(k => k.published && k.category).map(k => k.category))];
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
@@ -5026,6 +5339,50 @@ function renderKetePage() {
                 </svg>
                 Write a Post
             </button>
+        </div>
+        ` : ''}
+
+        <!-- Category Filter -->
+        ${usedCategories.length > 0 ? `
+        <div class="app-section" style="padding-top: ${canPost ? '0.5rem' : '1rem'};">
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <button onclick="filterKeteByCategory(null)" class="btn btn-sm ${!selectedCategory ? 'btn-primary' : 'btn-ghost'}" style="border-radius: 999px; ${!selectedCategory ? '' : 'background: var(--color-cream);'}">
+                    All
+                </button>
+                ${usedCategories.map(catId => {
+                    const cat = KETE_CATEGORIES.find(c => c.id === catId);
+                    if (!cat) return '';
+                    return `
+                        <button onclick="filterKeteByCategory('${cat.id}')" class="btn btn-sm ${selectedCategory === cat.id ? 'btn-primary' : 'btn-ghost'}" style="border-radius: 999px; ${selectedCategory === cat.id ? `background: ${cat.color}; border-color: ${cat.color};` : 'background: var(--color-cream);'}">
+                            ${cat.name}
+                        </button>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+        ` : ''}
+
+        <!-- Series (if any exist) -->
+        ${allSeries.length > 0 ? `
+        <div class="app-section" style="padding-top: 0.5rem;">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Series</h3>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                ${allSeries.map(series => {
+                    const seriesPosts = MockDB.kete.filter(k => k.published && k.series === series);
+                    return `
+                        <button onclick="filterKeteBySeries('${escapeHtml(series)}')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--color-cream); border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.875rem;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                            ${escapeHtml(series)}
+                            <span style="background: var(--color-sage-light); color: var(--color-forest); padding: 0.125rem 0.375rem; border-radius: 999px; font-size: 0.625rem;">${seriesPosts.length}</span>
+                        </button>
+                    `;
+                }).join('')}
+            </div>
         </div>
         ` : ''}
 
@@ -5048,19 +5405,35 @@ function renderKetePage() {
         </div>
         ` : ''}
 
-        <div class="app-section" style="padding-top: ${canPost && myDrafts.length === 0 ? '0.5rem' : '1.5rem'};">
+        <div class="app-section" style="padding-top: ${myDrafts.length === 0 ? '0.5rem' : '1rem'};">
             <div class="app-section-header">
-                <h3 class="app-section-title">Published</h3>
+                <h3 class="app-section-title">${selectedCategory ? KETE_CATEGORIES.find(c => c.id === selectedCategory)?.name || 'Posts' : 'Published'}</h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">${publishedPosts.length} post${publishedPosts.length !== 1 ? 's' : ''}</span>
             </div>
             ${publishedPosts.length > 0 ? publishedPosts.map(post => {
                 const canManage = DataService.canManageKetePost(post);
+                const readingTime = calculateReadingTime(post.content);
+                const category = KETE_CATEGORIES.find(c => c.id === post.category);
                 return `
                     <div class="app-event-card" onclick="openKetePostModal('${post.id}')" style="cursor: pointer; display: block; padding: 1.25rem;">
                         ${post.featuredImage ? `
-                            <img src="${post.featuredImage}" alt="" style="width: 100%; height: 120px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 0.75rem;">
+                            <img src="${post.featuredImage}" alt="" style="width: 100%; height: 140px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 0.75rem;">
                         ` : ''}
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <span style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(post.publishedAt)} • ${post.authorName}</span>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; align-items: center;">
+                                ${category ? `
+                                    <span style="background: ${category.color}20; color: ${category.color}; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.6875rem; font-weight: 500;">${category.name}</span>
+                                ` : ''}
+                                ${post.series ? `
+                                    <span style="background: var(--color-cream); color: var(--color-text-light); padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.6875rem;">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 0.125rem;">
+                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                        </svg>
+                                        ${escapeHtml(post.series)}
+                                    </span>
+                                ` : ''}
+                            </div>
                             ${canManage ? `
                                 <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openEditKetePostModal('${post.id}')" style="margin: -0.5rem -0.5rem 0 0; padding: 0.25rem;">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -5071,16 +5444,35 @@ function renderKetePage() {
                             ` : ''}
                         </div>
                         <h4 style="margin: 0.5rem 0; color: var(--color-forest);">${escapeHtml(post.title)}</h4>
-                        <p style="font-size: 0.9375rem; color: var(--color-text-light); margin: 0;">${escapeHtml(post.excerpt)}</p>
-                        <span style="display: inline-block; margin-top: 0.75rem; font-size: 0.875rem; color: var(--color-sage); font-weight: 500;">Read more →</span>
+                        <p style="font-size: 0.9375rem; color: var(--color-text-light); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(post.excerpt)}</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+                            <span style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(post.publishedAt)} • ${post.authorName}</span>
+                            <span style="font-size: 0.75rem; color: var(--color-sage);">${readingTime} min read</span>
+                        </div>
                     </div>
                 `;
             }).join('') : `
-                <p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No posts yet. Check back soon!</p>
+                <p style="color: var(--color-text-light); text-align: center; padding: 2rem;">
+                    ${selectedCategory ? 'No posts in this category yet.' : 'No posts yet. Check back soon!'}
+                </p>
             `}
         </div>
         <div style="height: 20px;"></div>
     `;
+}
+
+// Filter Kete by category
+function filterKeteByCategory(category) {
+    state.keteCategory = category;
+    state.keteSeries = null;
+    renderPage();
+}
+
+// Filter Kete by series
+function filterKeteBySeries(series) {
+    state.keteCategory = null;
+    state.keteSeries = series;
+    openKeteSeriesModal(series);
 }
 
 function renderProfilePage() {
