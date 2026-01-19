@@ -2,12 +2,12 @@
 // Replace with your Firebase project credentials
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    authDomain: "kiwichurch.firebaseapp.com",
-    projectId: "kiwichurch",
-    storageBucket: "kiwichurch.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:xxxxxxxxxxxxxxxxxxxx"
+  apiKey: "AIzaSyDbGRbr1D2difpQWfxoZqPy58FmNrQ2HbA",
+  authDomain: "kiwichurch-1ef0f.firebaseapp.com",
+  projectId: "kiwichurch-1ef0f",
+  storageBucket: "kiwichurch-1ef0f.firebasestorage.app",
+  messagingSenderId: "295588695621",
+  appId: "1:295588695621:web:7320e07a05229564a45d2c"
 };
 
 // Initialize Firebase
