@@ -7965,11 +7965,281 @@ function showAppState() {
     }
 }
 
+// ============================================
+// UI/UX IMPROVEMENTS (Features 48-50)
+// ============================================
+
+// Feature 48: Pull-to-refresh
+let pullToRefreshState = {
+    startY: 0,
+    pulling: false,
+    threshold: 80,
+    indicator: null
+};
+
+function setupPullToRefresh() {
+    const main = document.getElementById('main-content');
+    if (!main) return;
+
+    // Create pull indicator
+    pullToRefreshState.indicator = document.createElement('div');
+    pullToRefreshState.indicator.id = 'pull-refresh-indicator';
+    pullToRefreshState.indicator.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; color: var(--color-text-light); font-size: 0.875rem;">
+            <svg id="pull-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s;">
+                <polyline points="17 1 21 5 17 9"></polyline>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+            <span id="pull-text">Pull to refresh</span>
+        </div>
+    `;
+    pullToRefreshState.indicator.style.cssText = `
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        z-index: 100;
+        transform: translateY(-100%);
+        transition: transform 0.2s ease;
+        pointer-events: none;
+    `;
+    document.body.appendChild(pullToRefreshState.indicator);
+
+    main.addEventListener('touchstart', handlePullStart, { passive: true });
+    main.addEventListener('touchmove', handlePullMove, { passive: false });
+    main.addEventListener('touchend', handlePullEnd, { passive: true });
+}
+
+function handlePullStart(e) {
+    const main = document.getElementById('main-content');
+    if (main.scrollTop === 0) {
+        pullToRefreshState.startY = e.touches[0].clientY;
+        pullToRefreshState.pulling = true;
+    }
+}
+
+function handlePullMove(e) {
+    if (!pullToRefreshState.pulling) return;
+
+    const main = document.getElementById('main-content');
+    if (main.scrollTop > 0) {
+        pullToRefreshState.pulling = false;
+        return;
+    }
+
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - pullToRefreshState.startY;
+
+    if (diff > 0) {
+        e.preventDefault();
+        const progress = Math.min(diff / pullToRefreshState.threshold, 1);
+        const translateY = Math.min(diff * 0.5, 50);
+
+        pullToRefreshState.indicator.style.transform = `translateY(${translateY - 50}px)`;
+
+        const arrow = document.getElementById('pull-arrow');
+        const text = document.getElementById('pull-text');
+
+        if (progress >= 1) {
+            if (arrow) arrow.style.transform = 'rotate(180deg)';
+            if (text) text.textContent = 'Release to refresh';
+        } else {
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+            if (text) text.textContent = 'Pull to refresh';
+        }
+    }
+}
+
+function handlePullEnd(e) {
+    if (!pullToRefreshState.pulling) return;
+    pullToRefreshState.pulling = false;
+
+    const indicator = pullToRefreshState.indicator;
+    const text = document.getElementById('pull-text');
+
+    if (text && text.textContent === 'Release to refresh') {
+        if (text) text.textContent = 'Refreshing...';
+
+        // Perform refresh
+        setTimeout(() => {
+            renderPage();
+            showToast('Page refreshed', 'success');
+            indicator.style.transform = 'translateY(-100%)';
+            if (text) text.textContent = 'Pull to refresh';
+        }, 500);
+    } else {
+        indicator.style.transform = 'translateY(-100%)';
+    }
+}
+
+// Feature 49: Offline indicator
+let isOnline = navigator.onLine;
+
+function setupOfflineIndicator() {
+    // Create offline banner
+    const offlineBanner = document.createElement('div');
+    offlineBanner.id = 'offline-banner';
+    offlineBanner.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+                <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+                <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+                <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+                <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                <line x1="12" y1="20" x2="12.01" y2="20"></line>
+            </svg>
+            <span>You're offline</span>
+        </div>
+    `;
+    offlineBanner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: var(--color-terracotta);
+        color: white;
+        padding: 0.5rem;
+        text-align: center;
+        font-size: 0.875rem;
+        z-index: 9999;
+        transform: translateY(-100%);
+        transition: transform 0.3s ease;
+    `;
+    document.body.appendChild(offlineBanner);
+
+    // Handle online/offline events
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Check initial state
+    if (!navigator.onLine) {
+        handleOffline();
+    }
+}
+
+function handleOnline() {
+    isOnline = true;
+    const banner = document.getElementById('offline-banner');
+    if (banner) {
+        banner.style.transform = 'translateY(-100%)';
+    }
+    showToast('Back online', 'success');
+}
+
+function handleOffline() {
+    isOnline = false;
+    const banner = document.getElementById('offline-banner');
+    if (banner) {
+        banner.style.transform = 'translateY(0)';
+    }
+}
+
+// Feature 50: Scroll-to-top button
+function setupScrollToTop() {
+    const scrollBtn = document.createElement('button');
+    scrollBtn.id = 'scroll-to-top';
+    scrollBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    `;
+    scrollBtn.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        right: 1rem;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--color-forest);
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-md);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(20px);
+        transition: opacity 0.3s, visibility 0.3s, transform 0.3s, background 0.2s;
+        z-index: 100;
+    `;
+    scrollBtn.setAttribute('aria-label', 'Scroll to top');
+    document.body.appendChild(scrollBtn);
+
+    // Handle scroll events
+    const main = document.getElementById('main-content');
+    if (main) {
+        main.addEventListener('scroll', () => {
+            if (main.scrollTop > 300) {
+                scrollBtn.style.opacity = '1';
+                scrollBtn.style.visibility = 'visible';
+                scrollBtn.style.transform = 'translateY(0)';
+            } else {
+                scrollBtn.style.opacity = '0';
+                scrollBtn.style.visibility = 'hidden';
+                scrollBtn.style.transform = 'translateY(20px)';
+            }
+        });
+    }
+
+    // Handle click
+    scrollBtn.addEventListener('click', () => {
+        if (main) {
+            main.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+
+    // Hover effect
+    scrollBtn.addEventListener('mouseenter', () => {
+        scrollBtn.style.background = 'var(--color-forest-light)';
+    });
+    scrollBtn.addEventListener('mouseleave', () => {
+        scrollBtn.style.background = 'var(--color-forest)';
+    });
+}
+
+// Confirm dialog helper
+function showConfirmDialog(title, message, onConfirm, options = {}) {
+    const { confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = options;
+
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').innerHTML = `
+        <p style="color: var(--color-text-light); margin-bottom: 1.5rem; font-size: 0.9375rem;">${message}</p>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <button class="btn btn-ghost" onclick="closeModal()">${cancelText}</button>
+            <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" onclick="handleConfirmDialogAction()" id="confirm-dialog-btn">${confirmText}</button>
+        </div>
+    `;
+
+    window.handleConfirmDialogAction = () => {
+        closeModal();
+        if (onConfirm) onConfirm();
+    };
+
+    openModal();
+}
+
+// Initialize UI/UX improvements
+function initUIUXImprovements() {
+    setupPullToRefresh();
+    setupOfflineIndicator();
+    setupScrollToTop();
+}
+
 function initPortal() {
     // Load saved state for demo mode
     if (PortalConfig.demoMode) {
         loadState();
     }
+
+    // Initialize UI/UX improvements
+    initUIUXImprovements();
 
     // If Firebase is enabled, listen for auth changes
     if (PortalConfig.useFirebase && window.Auth) {
