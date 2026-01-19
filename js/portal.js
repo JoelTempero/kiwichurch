@@ -814,24 +814,31 @@ const DataService = {
     },
 
     // Create a new board post
-    async createBoardPost(gatheringId, content) {
-        if (PortalConfig.useFirebase && window.DB) {
-            return await DB.createBoardPost(gatheringId, content);
-        }
-
+    async createBoardPost(gatheringId, content, attachment = null) {
         const user = this.getCurrentUser();
         if (!user || !this.canAccessBoard(gatheringId)) {
             throw new Error('Cannot post to this board');
         }
 
-        const board = this.getMessageBoard(gatheringId);
-        const newPost = {
-            id: 'post-' + Date.now(),
+        const postData = {
             authorId: user.id,
             authorName: user.displayName,
             content,
-            createdAt: new Date().toISOString(),
-            comments: []
+            comments: [],
+            reactions: {},
+            isPinned: false,
+            attachment: attachment
+        };
+
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.createBoardPost(gatheringId, postData);
+        }
+
+        const board = this.getMessageBoard(gatheringId);
+        const newPost = {
+            id: 'post-' + Date.now(),
+            ...postData,
+            createdAt: new Date().toISOString()
         };
 
         board.posts.unshift(newPost);
@@ -3700,6 +3707,7 @@ function showDayEvents(dateStr) {
 function renderGroupsPage() {
     const userGatherings = DataService.getUserGatherings();
     const currentUser = DataService.getCurrentUser();
+    const isAdmin = DataService.isAdmin();
 
     // Separate into groups user can access and public groups they can't access (private)
     const accessibleGroups = userGatherings;
@@ -3709,8 +3717,21 @@ function renderGroupsPage() {
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
-            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Communities</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Your gatherings and groups</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Communities</h2>
+                    <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Your gatherings and groups</p>
+                </div>
+                ${isAdmin ? `
+                <button class="btn btn-ghost btn-sm" onclick="openCreateGatheringModal()" style="color: white; border-color: rgba(255,255,255,0.3);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    New Group
+                </button>
+                ` : ''}
+            </div>
         </div>
 
         <div class="app-section" style="padding-top: 1.5rem;">
@@ -3722,10 +3743,11 @@ function renderGroupsPage() {
                     const board = MockDB.messageBoards[g.id];
                     const postCount = board?.posts?.length || 0;
                     const isMember = !g.isPublic && DataService.isMemberOfGathering(g.id);
+                    const memberCount = MockDB.gatheringMembers[g.id]?.length || 0;
                     return `
                         <div class="gathering-card" onclick="navigateToGroup('${g.id}')" style="cursor: pointer;">
                             <div class="gathering-card-header" style="background: linear-gradient(135deg, ${g.color} 0%, ${g.color}cc 100%); height: 100px;">
-                                <h3 style="font-size: 1.25rem;">${g.name}</h3>
+                                <h3 style="font-size: 1.25rem;">${escapeHtml(g.name)}</h3>
                             </div>
                             <div class="gathering-card-body">
                                 <span class="gathering-card-rhythm">
@@ -3733,19 +3755,30 @@ function renderGroupsPage() {
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
-                                    ${g.rhythm}
+                                    ${escapeHtml(g.rhythm)}
                                 </span>
-                                <p class="gathering-card-desc" style="font-size: 0.875rem;">${g.description}</p>
+                                <p class="gathering-card-desc" style="font-size: 0.875rem;">${escapeHtml(g.description)}</p>
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
                                     <span class="event-badge ${g.isPublic ? '' : 'private'}">${g.isPublic ? 'Open' : isMember ? 'Member' : 'Members'}</span>
-                                    ${postCount > 0 ? `
-                                        <span style="font-size: 0.75rem; color: var(--color-text-light);">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
-                                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                            </svg>
-                                            ${postCount} post${postCount !== 1 ? 's' : ''}
-                                        </span>
-                                    ` : ''}
+                                    <div style="display: flex; gap: 0.75rem; font-size: 0.75rem; color: var(--color-text-light);">
+                                        ${!g.isPublic && memberCount > 0 ? `
+                                            <span>
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                    <circle cx="9" cy="7" r="4"></circle>
+                                                </svg>
+                                                ${memberCount}
+                                            </span>
+                                        ` : ''}
+                                        ${postCount > 0 ? `
+                                            <span>
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                </svg>
+                                                ${postCount}
+                                            </span>
+                                        ` : ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3765,7 +3798,7 @@ function renderGroupsPage() {
             <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                 ${privateGroups.map(g => `
                     <span style="padding: 0.5rem 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); font-size: 0.875rem; color: var(--color-text-light);">
-                        ${g.name}
+                        ${escapeHtml(g.name)}
                     </span>
                 `).join('')}
             </div>
@@ -3789,39 +3822,87 @@ function renderGroupPage() {
     }
 
     const canAccess = DataService.canAccessBoard(groupId);
+    const currentUser = DataService.getCurrentUser();
+    const isAdmin = DataService.isAdmin();
+    const isMember = DataService.isMemberOfGathering(groupId);
+    const members = MockDB.gatheringMembers[groupId] || [];
+
     if (!canAccess) {
         return `
+            <div style="background: linear-gradient(135deg, ${group.color} 0%, ${group.color}cc 100%); padding: 1.5rem; color: white;">
+                <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: white; opacity: 0.8; margin: -0.5rem 0 0.5rem -0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    All Groups
+                </button>
+                <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${escapeHtml(group.name)}</h2>
+            </div>
             <div style="padding: 2rem; text-align: center;">
-                <p style="color: var(--color-text-light);">You don't have access to this group's message board.</p>
-                <button class="btn btn-secondary" onclick="navigateTo('groups')">Back to Groups</button>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <p style="color: var(--color-text-light); margin-bottom: 1rem;">This is a private group. Request membership to access the message board.</p>
+                <button class="btn btn-primary" onclick="requestGroupMembership('${groupId}')">Request to Join</button>
             </div>
         `;
     }
 
-    const currentUser = DataService.getCurrentUser();
     const posts = DataService.getBoardPosts(groupId);
-    const isMember = DataService.isMemberOfGathering(groupId);
+
+    // Sort posts: pinned first, then by date
+    const sortedPosts = [...posts].sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+    });
 
     // Get upcoming events for this group
     const groupEvents = MockDB.events
-        .filter(e => e.gatheringId === groupId && new Date(e.date) >= new Date())
+        .filter(e => e.gatheringId === groupId && new Date(e.date) >= new Date() && e.status !== 'cancelled')
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .slice(0, 3);
 
     return `
         <div style="background: linear-gradient(135deg, ${group.color} 0%, ${group.color}cc 100%); padding: 1.5rem; color: white;">
-            <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: white; opacity: 0.8; margin: -0.5rem 0 0.5rem -0.5rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-                All Groups
-            </button>
-            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${group.name}</h2>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: white; opacity: 0.8; margin: -0.5rem 0 0.5rem -0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    All Groups
+                </button>
+                ${isAdmin ? `
+                <button class="btn btn-ghost btn-sm" onclick="openEditGatheringModal('${groupId}')" style="color: white; opacity: 0.8;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+                ` : ''}
+            </div>
+            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${escapeHtml(group.name)}</h2>
             <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">
-                ${group.rhythm}
-                ${!group.isPublic ? ' • Members Only' : ''}
+                ${escapeHtml(group.rhythm)}
+                ${!group.isPublic ? ` • ${members.length} member${members.length !== 1 ? 's' : ''}` : ''}
             </p>
-        </div>
+            ${!group.isPublic ? `
+            <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                ${isMember ? `
+                <button class="btn btn-ghost btn-sm" onclick="leaveGroup('${groupId}')" style="color: white; border-color: rgba(255,255,255,0.3);">Leave Group</button>
+                ` : `
+                <button class="btn btn-primary btn-sm" onclick="joinGroup('${groupId}')" style="background: white; color: ${group.color};">Join Group</button>
+                `}
+                <button class="btn btn-ghost btn-sm" onclick="openGroupMembersModal('${groupId}')" style="color: white; border-color: rgba(255,255,255,0.3);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                    </svg>
+                    Members
+                </button>
+            </div>
+            ` : ''}
 
         ${groupEvents.length > 0 ? `
         <div class="app-section" style="padding-top: 1rem;">
@@ -3846,18 +3927,37 @@ function renderGroupPage() {
         <div class="app-section" style="padding-top: ${groupEvents.length > 0 ? '0.5rem' : '1rem'};">
             <div class="app-section-header">
                 <h3 class="app-section-title">Message Board</h3>
-                <span style="font-size: 0.875rem; color: var(--color-text-light);">${posts.length} post${posts.length !== 1 ? 's' : ''}</span>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">${sortedPosts.length} post${sortedPosts.length !== 1 ? 's' : ''}</span>
             </div>
 
             <!-- New Post Form -->
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem;">
                 <div style="display: flex; gap: 0.75rem;">
-                    <div style="width: 36px; height: 36px; background: ${group.color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); flex-shrink: 0;">
-                        ${currentUser.displayName.charAt(0)}
+                    <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: ${group.color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        ${currentUser.photoURL
+                            ? `<img src="${currentUser.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                            : `<span style="color: white; font-family: var(--font-display);">${currentUser.displayName.charAt(0)}</span>`
+                        }
                     </div>
                     <div style="flex: 1;">
-                        <textarea id="new-post-content" class="form-input" rows="2" placeholder="Share something with the group..." style="resize: none;"></textarea>
-                        <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+                        <textarea id="new-post-content" class="form-input" rows="2" placeholder="Share something with the group... Use @name to mention someone" style="resize: none;" oninput="handlePostMentionInput(this)"></textarea>
+                        <div id="mention-suggestions" style="display: none;"></div>
+                        <div id="post-attachment-preview" style="display: none; margin-top: 0.5rem;"></div>
+                        <input type="file" id="post-attachment-input" accept="image/*,.pdf,.doc,.docx" style="display: none;" onchange="previewPostAttachment(this)">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                            <div style="display: flex; gap: 0.25rem;">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('post-attachment-input').click()" title="Attach file">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                                    </svg>
+                                </button>
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="showMentionPicker('${groupId}')" title="Mention someone">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="4"></circle>
+                                        <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path>
+                                    </svg>
+                                </button>
+                            </div>
                             <button class="btn btn-primary btn-sm" onclick="submitBoardPost('${groupId}')">Post</button>
                         </div>
                     </div>
@@ -3865,48 +3965,118 @@ function renderGroupPage() {
             </div>
 
             <!-- Posts -->
-            ${posts.length > 0 ? posts.map(post => {
+            ${sortedPosts.length > 0 ? sortedPosts.map(post => {
                 const isAuthor = post.authorId === currentUser?.id;
-                const isAdmin = currentUser?.role === 'admin';
-                const canDelete = isAuthor || isAdmin;
+                const canManage = isAdmin || isAuthor;
+                const author = MockDB.users.find(u => u.id === post.authorId);
+                const reactions = post.reactions || {};
+                const userReaction = Object.entries(reactions).find(([emoji, users]) => users.includes(currentUser?.id))?.[0];
 
                 return `
-                    <div class="board-post" style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 0.75rem;">
+                    <div class="board-post" style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 0.75rem; ${post.isPinned ? 'border-left: 3px solid var(--color-terracotta);' : ''}">
+                        ${post.isPinned ? `
+                        <div style="display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem; font-size: 0.75rem; color: var(--color-terracotta);">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L12 22M12 2L19 9M12 2L5 9"></path>
+                            </svg>
+                            Pinned
+                        </div>
+                        ` : ''}
                         <div style="display: flex; gap: 0.75rem;">
-                            <div style="width: 36px; height: 36px; background: var(--color-sage); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); flex-shrink: 0;">
-                                ${post.authorName.charAt(0)}
+                            <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--color-sage); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${author?.photoURL
+                                    ? `<img src="${author.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                                    : `<span style="color: white; font-family: var(--font-display);">${(post.authorName || 'U').charAt(0)}</span>`
+                                }
                             </div>
                             <div style="flex: 1; min-width: 0;">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <div>
-                                        <span style="font-weight: 500;">${post.authorName}</span>
+                                        <span style="font-weight: 500;">${escapeHtml(post.authorName || 'Unknown')}</span>
                                         <span style="color: var(--color-text-light); font-size: 0.75rem; margin-left: 0.5rem;">${formatRelativeTime(post.createdAt)}</span>
                                     </div>
-                                    ${canDelete ? `
-                                        <button class="btn btn-ghost btn-sm" onclick="deleteBoardPost('${groupId}', '${post.id}')" style="padding: 0.25rem; margin: -0.25rem -0.25rem 0 0;">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2">
-                                                <polyline points="3 6 5 6 21 6"></polyline>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    ${canManage ? `
+                                    <div style="position: relative;">
+                                        <button class="btn btn-ghost btn-sm" onclick="togglePostMenu('${post.id}')" style="padding: 0.25rem; margin: -0.25rem -0.25rem 0 0;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2">
+                                                <circle cx="12" cy="12" r="1"></circle>
+                                                <circle cx="19" cy="12" r="1"></circle>
+                                                <circle cx="5" cy="12" r="1"></circle>
                                             </svg>
                                         </button>
+                                        <div id="post-menu-${post.id}" style="display: none; position: absolute; right: 0; top: 100%; background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); min-width: 140px; z-index: 10;">
+                                            ${isAdmin ? `
+                                            <button onclick="togglePinPost('${groupId}', '${post.id}')" style="display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.625rem 0.75rem; border: none; background: none; cursor: pointer; font-size: 0.875rem; text-align: left;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M12 2L12 22M12 2L19 9M12 2L5 9"></path>
+                                                </svg>
+                                                ${post.isPinned ? 'Unpin' : 'Pin Post'}
+                                            </button>
+                                            ` : ''}
+                                            <button onclick="deleteBoardPost('${groupId}', '${post.id}')" style="display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.625rem 0.75rem; border: none; background: none; cursor: pointer; font-size: 0.875rem; text-align: left; color: #dc2626;">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
                                     ` : ''}
                                 </div>
-                                <p style="margin: 0.5rem 0 0; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(post.content)}</p>
+                                <p style="margin: 0.5rem 0 0; white-space: pre-wrap; word-wrap: break-word;">${formatPostContent(post.content)}</p>
+
+                                ${post.attachment ? `
+                                <div style="margin-top: 0.75rem;">
+                                    ${post.attachment.type === 'image'
+                                        ? `<img src="${post.attachment.url}" alt="Attachment" style="max-width: 100%; border-radius: var(--radius-md); cursor: pointer;" onclick="openImageModal('${post.attachment.url}')">`
+                                        : `<a href="${post.attachment.url}" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); font-size: 0.875rem; text-decoration: none; color: var(--color-text);">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                <polyline points="14 2 14 8 20 8"></polyline>
+                                            </svg>
+                                            ${escapeHtml(post.attachment.name)}
+                                        </a>`
+                                    }
+                                </div>
+                                ` : ''}
+
+                                <!-- Reactions -->
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.75rem; align-items: center;">
+                                    ${Object.entries(reactions).filter(([_, users]) => users.length > 0).map(([emoji, users]) => `
+                                        <button onclick="toggleReaction('${groupId}', '${post.id}', '${emoji}')" style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: ${users.includes(currentUser?.id) ? 'var(--color-sage-light)' : 'var(--color-cream)'}; border: 1px solid ${users.includes(currentUser?.id) ? 'var(--color-sage)' : 'transparent'}; border-radius: 999px; font-size: 0.875rem; cursor: pointer;">
+                                            <span>${emoji}</span>
+                                            <span style="font-size: 0.75rem; color: var(--color-text-light);">${users.length}</span>
+                                        </button>
+                                    `).join('')}
+                                    <button onclick="showReactionPicker('${groupId}', '${post.id}')" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: var(--color-cream); border: none; border-radius: 50%; cursor: pointer; font-size: 0.875rem;" title="Add reaction">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                            <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                                        </svg>
+                                    </button>
+                                </div>
 
                                 <!-- Comments -->
-                                ${post.comments.length > 0 ? `
+                                ${(post.comments || []).length > 0 ? `
                                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-cream);">
-                                        ${post.comments.map(comment => {
+                                        ${(post.comments || []).map(comment => {
                                             const canDeleteComment = comment.authorId === currentUser?.id || isAdmin;
+                                            const commentAuthor = MockDB.users.find(u => u.id === comment.authorId);
                                             return `
                                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                                    <div style="width: 24px; height: 24px; background: var(--color-cream-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--color-text); font-size: 0.625rem; font-family: var(--font-display); flex-shrink: 0;">
-                                                        ${comment.authorName.charAt(0)}
+                                                    <div style="width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--color-cream-dark); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                                        ${commentAuthor?.photoURL
+                                                            ? `<img src="${commentAuthor.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                                                            : `<span style="color: var(--color-text); font-size: 0.625rem; font-family: var(--font-display);">${(comment.authorName || 'U').charAt(0)}</span>`
+                                                        }
                                                     </div>
                                                     <div style="flex: 1; min-width: 0;">
                                                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                                             <div>
-                                                                <span style="font-weight: 500; font-size: 0.875rem;">${comment.authorName}</span>
+                                                                <span style="font-weight: 500; font-size: 0.875rem;">${escapeHtml(comment.authorName || 'Unknown')}</span>
                                                                 <span style="color: var(--color-text-light); font-size: 0.625rem; margin-left: 0.5rem;">${formatRelativeTime(comment.createdAt)}</span>
                                                             </div>
                                                             ${canDeleteComment ? `
@@ -3918,7 +4088,7 @@ function renderGroupPage() {
                                                                 </button>
                                                             ` : ''}
                                                         </div>
-                                                        <p style="margin: 0.25rem 0 0; font-size: 0.875rem; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(comment.content)}</p>
+                                                        <p style="margin: 0.25rem 0 0; font-size: 0.875rem; white-space: pre-wrap; word-wrap: break-word;">${formatPostContent(comment.content)}</p>
                                                     </div>
                                                 </div>
                                             `;
@@ -3981,15 +4151,47 @@ function formatRelativeTime(dateStr) {
 async function submitBoardPost(groupId) {
     const textarea = document.getElementById('new-post-content');
     const content = textarea?.value.trim();
+    const attachmentFile = window.pendingPostAttachment;
 
-    if (!content) {
+    if (!content && !attachmentFile) {
         showToast('Please write something to post', 'error');
         return;
     }
 
     try {
-        await DataService.createBoardPost(groupId, content);
+        let attachment = null;
+
+        // Upload attachment if present
+        if (attachmentFile) {
+            if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+                const { ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js');
+                const storageRef = ref(storage, `posts/${groupId}/${Date.now()}_${attachmentFile.name}`);
+                const snapshot = await uploadBytes(storageRef, attachmentFile);
+                const url = await getDownloadURL(snapshot.ref);
+                attachment = {
+                    type: attachmentFile.type.startsWith('image/') ? 'image' : 'file',
+                    url: url,
+                    name: attachmentFile.name
+                };
+            } else {
+                // Demo mode: use data URL
+                attachment = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        resolve({
+                            type: attachmentFile.type.startsWith('image/') ? 'image' : 'file',
+                            url: e.target.result,
+                            name: attachmentFile.name
+                        });
+                    };
+                    reader.readAsDataURL(attachmentFile);
+                });
+            }
+        }
+
+        await DataService.createBoardPost(groupId, content, attachment);
         textarea.value = '';
+        removePostAttachment();
         showToast('Posted!', 'success');
         renderPage();
     } catch (error) {
@@ -4031,6 +4233,768 @@ async function deleteBoardComment(groupId, postId, commentId) {
     } catch (error) {
         showToast(error.message || 'Could not delete comment', 'error');
     }
+}
+
+// Format post content with @mentions
+function formatPostContent(content) {
+    if (!content) return '';
+    // Escape HTML first
+    let escaped = escapeHtml(content);
+    // Convert @mentions to styled spans
+    escaped = escaped.replace(/@(\w+(?:\s+\w+)?)/g, (match, name) => {
+        // Check if this is a real user
+        const user = MockDB.users.find(u =>
+            u.displayName.toLowerCase() === name.toLowerCase() ||
+            u.displayName.toLowerCase().startsWith(name.toLowerCase())
+        );
+        if (user) {
+            return `<span style="background: var(--color-sage-light); color: var(--color-forest); padding: 0.125rem 0.375rem; border-radius: 4px; font-weight: 500;">@${escapeHtml(name)}</span>`;
+        }
+        return match;
+    });
+    return escaped;
+}
+
+// Toggle post dropdown menu
+function togglePostMenu(postId) {
+    const menu = document.getElementById(`post-menu-${postId}`);
+    if (!menu) return;
+
+    // Close all other menus first
+    document.querySelectorAll('[id^="post-menu-"]').forEach(m => {
+        if (m.id !== `post-menu-${postId}`) {
+            m.style.display = 'none';
+        }
+    });
+
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+
+    // Close menu when clicking outside
+    if (menu.style.display === 'block') {
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu(e) {
+                if (!e.target.closest(`#post-menu-${postId}`) && !e.target.closest(`[onclick="togglePostMenu('${postId}')"]`)) {
+                    menu.style.display = 'none';
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }, 10);
+    }
+}
+
+// Toggle pin status on a post
+async function togglePinPost(groupId, postId) {
+    try {
+        const board = MockDB.messageBoards[groupId];
+        if (!board) return;
+
+        const post = board.posts.find(p => p.id === postId);
+        if (!post) return;
+
+        post.isPinned = !post.isPinned;
+
+        // If using Firebase, update Firestore
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+            const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const postRef = doc(db, 'gatherings', groupId, 'posts', postId);
+            await updateDoc(postRef, { isPinned: post.isPinned });
+        }
+
+        showToast(post.isPinned ? 'Post pinned' : 'Post unpinned', 'success');
+        renderPage();
+    } catch (error) {
+        console.error('Error toggling pin:', error);
+        showToast('Could not update post', 'error');
+    }
+}
+
+// Toggle reaction on a post
+async function toggleReaction(groupId, postId, emoji) {
+    try {
+        const currentUser = DataService.getCurrentUser();
+        if (!currentUser) return;
+
+        const board = MockDB.messageBoards[groupId];
+        if (!board) return;
+
+        const post = board.posts.find(p => p.id === postId);
+        if (!post) return;
+
+        // Initialize reactions if needed
+        if (!post.reactions) {
+            post.reactions = {};
+        }
+        if (!post.reactions[emoji]) {
+            post.reactions[emoji] = [];
+        }
+
+        // Toggle the user's reaction
+        const userIndex = post.reactions[emoji].indexOf(currentUser.id);
+        if (userIndex > -1) {
+            post.reactions[emoji].splice(userIndex, 1);
+        } else {
+            post.reactions[emoji].push(currentUser.id);
+        }
+
+        // If using Firebase, update Firestore
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+            const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const postRef = doc(db, 'gatherings', groupId, 'posts', postId);
+            await updateDoc(postRef, { reactions: post.reactions });
+        }
+
+        // Close reaction picker if open
+        const picker = document.querySelector('.reaction-picker');
+        if (picker) picker.remove();
+
+        renderPage();
+    } catch (error) {
+        console.error('Error toggling reaction:', error);
+        showToast('Could not add reaction', 'error');
+    }
+}
+
+// Show reaction picker
+function showReactionPicker(groupId, postId) {
+    // Remove existing picker
+    const existingPicker = document.querySelector('.reaction-picker');
+    if (existingPicker) existingPicker.remove();
+
+    const emojis = ['👍', '❤️', '🙏', '😊', '🎉', '😢', '😮', '🤔'];
+
+    const picker = document.createElement('div');
+    picker.className = 'reaction-picker';
+    picker.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+        padding: 0.5rem 0.75rem;
+        display: flex;
+        gap: 0.25rem;
+        z-index: 1000;
+    `;
+
+    picker.innerHTML = emojis.map(emoji => `
+        <button onclick="toggleReaction('${groupId}', '${postId}', '${emoji}')" style="font-size: 1.5rem; padding: 0.25rem; background: none; border: none; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--color-cream)'" onmouseout="this.style.background='none'">
+            ${emoji}
+        </button>
+    `).join('');
+
+    document.body.appendChild(picker);
+
+    // Close picker when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closePicker(e) {
+            if (!e.target.closest('.reaction-picker') && !e.target.closest('[onclick^="showReactionPicker"]')) {
+                picker.remove();
+                document.removeEventListener('click', closePicker);
+            }
+        });
+    }, 10);
+}
+
+// Handle @mention input
+function handlePostMentionInput(textarea) {
+    const value = textarea.value;
+    const cursorPos = textarea.selectionStart;
+
+    // Find the @ symbol before cursor
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const atIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (atIndex === -1 || (atIndex > 0 && textBeforeCursor[atIndex - 1] !== ' ' && textBeforeCursor[atIndex - 1] !== '\n')) {
+        // No @ or not at word boundary
+        document.getElementById('mention-suggestions')?.style && (document.getElementById('mention-suggestions').style.display = 'none');
+        return;
+    }
+
+    const query = textBeforeCursor.substring(atIndex + 1).toLowerCase();
+    if (query.includes(' ') && query.split(' ').length > 2) {
+        // Stop after 2 words
+        document.getElementById('mention-suggestions').style.display = 'none';
+        return;
+    }
+
+    // Find matching users
+    const matches = MockDB.users.filter(u =>
+        u.displayName.toLowerCase().includes(query)
+    ).slice(0, 5);
+
+    const suggestions = document.getElementById('mention-suggestions');
+    if (!suggestions) return;
+
+    if (matches.length === 0 || query === '') {
+        suggestions.style.display = 'none';
+        return;
+    }
+
+    suggestions.style.display = 'block';
+    suggestions.style.cssText = `
+        display: block;
+        position: absolute;
+        background: white;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-lg);
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 100;
+        width: 200px;
+    `;
+
+    suggestions.innerHTML = matches.map(user => `
+        <button type="button" onclick="insertMention('${user.displayName}', ${atIndex})" style="display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.5rem 0.75rem; border: none; background: none; cursor: pointer; text-align: left; font-size: 0.875rem;" onmouseover="this.style.background='var(--color-cream)'" onmouseout="this.style.background='none'">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--color-sage); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                ${user.photoURL
+                    ? `<img src="${user.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+                    : `<span style="color: white; font-size: 0.625rem;">${user.displayName.charAt(0)}</span>`
+                }
+            </div>
+            <span>${escapeHtml(user.displayName)}</span>
+        </button>
+    `).join('');
+}
+
+// Insert mention into textarea
+function insertMention(displayName, atIndex) {
+    const textarea = document.getElementById('new-post-content');
+    if (!textarea) return;
+
+    const value = textarea.value;
+    const cursorPos = textarea.selectionStart;
+    const newValue = value.substring(0, atIndex) + '@' + displayName + ' ' + value.substring(cursorPos);
+
+    textarea.value = newValue;
+    textarea.focus();
+    const newCursorPos = atIndex + displayName.length + 2;
+    textarea.setSelectionRange(newCursorPos, newCursorPos);
+
+    document.getElementById('mention-suggestions').style.display = 'none';
+}
+
+// Show mention picker (manual trigger)
+function showMentionPicker(groupId) {
+    const textarea = document.getElementById('new-post-content');
+    if (!textarea) return;
+
+    // Insert @ at cursor position
+    const cursorPos = textarea.selectionStart;
+    const value = textarea.value;
+    textarea.value = value.substring(0, cursorPos) + '@' + value.substring(cursorPos);
+    textarea.focus();
+    textarea.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+    // Trigger the input handler
+    handlePostMentionInput(textarea);
+}
+
+// Preview post attachment
+function previewPostAttachment(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const preview = document.getElementById('post-attachment-preview');
+    if (!preview) return;
+
+    // Store file for later upload
+    window.pendingPostAttachment = file;
+
+    const isImage = file.type.startsWith('image/');
+
+    if (isImage) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            preview.style.display = 'block';
+            preview.innerHTML = `
+                <div style="position: relative; display: inline-block;">
+                    <img src="${e.target.result}" alt="Attachment preview" style="max-width: 100%; max-height: 200px; border-radius: var(--radius-md);">
+                    <button type="button" onclick="removePostAttachment()" style="position: absolute; top: 0.25rem; right: 0.25rem; width: 24px; height: 24px; border-radius: 50%; background: rgba(0,0,0,0.5); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.style.display = 'block';
+        preview.innerHTML = `
+            <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span style="font-size: 0.875rem;">${escapeHtml(file.name)}</span>
+                <button type="button" onclick="removePostAttachment()" style="padding: 0.125rem; background: none; border: none; cursor: pointer;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Remove pending attachment
+function removePostAttachment() {
+    window.pendingPostAttachment = null;
+    const preview = document.getElementById('post-attachment-preview');
+    if (preview) {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+    }
+    const input = document.getElementById('post-attachment-input');
+    if (input) input.value = '';
+}
+
+// Open full-size image modal
+function openImageModal(imageUrl) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        padding: 1rem;
+        cursor: pointer;
+    `;
+
+    modal.innerHTML = `
+        <button onclick="this.parentElement.remove()" style="position: absolute; top: 1rem; right: 1rem; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        <img src="${imageUrl}" alt="Full size image" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+    `;
+
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+
+    document.body.appendChild(modal);
+}
+
+// ============================================
+// GATHERING MANAGEMENT
+// ============================================
+
+// Open create gathering modal
+function openCreateGatheringModal() {
+    const colors = [
+        { value: '#1a3a2f', name: 'Forest' },
+        { value: '#7d9a87', name: 'Sage' },
+        { value: '#c17f59', name: 'Terracotta' },
+        { value: '#2d5a4a', name: 'Teal' },
+        { value: '#d4a574', name: 'Sand' },
+        { value: '#5a6b62', name: 'Slate' },
+        { value: '#8b4513', name: 'Brown' },
+        { value: '#4a5568', name: 'Gray' }
+    ];
+
+    document.getElementById('modal-title').textContent = 'Create New Group';
+    document.getElementById('modal-body').innerHTML = `
+        <form id="create-gathering-form" onsubmit="event.preventDefault(); saveGathering();">
+            <div class="form-group">
+                <label class="form-label">Group Name *</label>
+                <input type="text" class="form-input" id="gathering-name" required placeholder="e.g., Young Adults">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-input" id="gathering-description" rows="3" placeholder="What is this group about?"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Meeting Rhythm</label>
+                <input type="text" class="form-input" id="gathering-rhythm" placeholder="e.g., Weekly Tuesdays, 7pm">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Color Theme</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
+                    ${colors.map((c, i) => `
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="gathering-color" value="${c.value}" ${i === 0 ? 'checked' : ''} style="display: none;">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${c.value}; border: 3px solid transparent;" onclick="this.parentElement.querySelector('input').checked = true; document.querySelectorAll('[name=gathering-color]').forEach(r => r.parentElement.querySelector('div').style.borderColor = 'transparent'); this.style.borderColor = 'var(--color-forest)';" title="${c.name}"></div>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Access Type</label>
+                <div style="display: flex; gap: 1rem; margin-top: 0.25rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="gathering-access" value="public" checked>
+                        <span>Public (Open to all members)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="gathering-access" value="private">
+                        <span>Private (Invite only)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Group</button>
+            </div>
+        </form>
+    `;
+
+    // Highlight first color
+    setTimeout(() => {
+        const firstColor = document.querySelector('[name=gathering-color]');
+        if (firstColor) {
+            firstColor.parentElement.querySelector('div').style.borderColor = 'var(--color-forest)';
+        }
+    }, 10);
+
+    openModal();
+}
+
+// Open edit gathering modal
+function openEditGatheringModal(gatheringId) {
+    const gathering = DataService.getGatheringById(gatheringId);
+    if (!gathering) return;
+
+    const colors = [
+        { value: '#1a3a2f', name: 'Forest' },
+        { value: '#7d9a87', name: 'Sage' },
+        { value: '#c17f59', name: 'Terracotta' },
+        { value: '#2d5a4a', name: 'Teal' },
+        { value: '#d4a574', name: 'Sand' },
+        { value: '#5a6b62', name: 'Slate' },
+        { value: '#8b4513', name: 'Brown' },
+        { value: '#4a5568', name: 'Gray' }
+    ];
+
+    document.getElementById('modal-title').textContent = 'Edit Group';
+    document.getElementById('modal-body').innerHTML = `
+        <form id="edit-gathering-form" onsubmit="event.preventDefault(); saveGathering('${gatheringId}');">
+            <div class="form-group">
+                <label class="form-label">Group Name *</label>
+                <input type="text" class="form-input" id="gathering-name" required value="${escapeHtml(gathering.name)}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-input" id="gathering-description" rows="3">${escapeHtml(gathering.description || '')}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Meeting Rhythm</label>
+                <input type="text" class="form-input" id="gathering-rhythm" value="${escapeHtml(gathering.rhythm || '')}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Color Theme</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
+                    ${colors.map(c => `
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="gathering-color" value="${c.value}" ${c.value === gathering.color ? 'checked' : ''} style="display: none;">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${c.value}; border: 3px solid ${c.value === gathering.color ? 'var(--color-forest)' : 'transparent'};" onclick="this.parentElement.querySelector('input').checked = true; document.querySelectorAll('[name=gathering-color]').forEach(r => r.parentElement.querySelector('div').style.borderColor = 'transparent'); this.style.borderColor = 'var(--color-forest)';" title="${c.name}"></div>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Access Type</label>
+                <div style="display: flex; gap: 1rem; margin-top: 0.25rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="gathering-access" value="public" ${gathering.isPublic ? 'checked' : ''}>
+                        <span>Public (Open to all members)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="gathering-access" value="private" ${!gathering.isPublic ? 'checked' : ''}>
+                        <span>Private (Invite only)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-ghost" onclick="deleteGathering('${gatheringId}')" style="color: #dc2626;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Delete
+                </button>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </form>
+    `;
+
+    openModal();
+}
+
+// Save gathering (create or update)
+async function saveGathering(gatheringId = null) {
+    const name = document.getElementById('gathering-name')?.value.trim();
+    const description = document.getElementById('gathering-description')?.value.trim();
+    const rhythm = document.getElementById('gathering-rhythm')?.value.trim();
+    const color = document.querySelector('[name=gathering-color]:checked')?.value || '#1a3a2f';
+    const isPublic = document.querySelector('[name=gathering-access]:checked')?.value === 'public';
+
+    if (!name) {
+        showToast('Please enter a group name', 'error');
+        return;
+    }
+
+    try {
+        if (gatheringId) {
+            // Update existing gathering
+            const gathering = MockDB.gatherings.find(g => g.id === gatheringId);
+            if (gathering) {
+                gathering.name = name;
+                gathering.description = description;
+                gathering.rhythm = rhythm;
+                gathering.color = color;
+                gathering.isPublic = isPublic;
+                gathering.updatedAt = new Date().toISOString();
+
+                // If using Firebase, update Firestore
+                if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+                    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const gatheringRef = doc(db, 'gatherings', gatheringId);
+                    await updateDoc(gatheringRef, {
+                        name,
+                        description,
+                        rhythm,
+                        color,
+                        isPublic,
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+
+                showToast('Group updated', 'success');
+            }
+        } else {
+            // Create new gathering
+            const newId = 'gathering-' + Date.now();
+            const newGathering = {
+                id: newId,
+                name,
+                description,
+                rhythm,
+                color,
+                isPublic,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            MockDB.gatherings.push(newGathering);
+            MockDB.messageBoards[newId] = { posts: [] };
+            MockDB.gatheringMembers[newId] = [];
+
+            // If using Firebase, create in Firestore
+            if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                await setDoc(doc(db, 'gatherings', newId), newGathering);
+            }
+
+            showToast('Group created', 'success');
+        }
+
+        closeModal();
+        renderPage();
+    } catch (error) {
+        console.error('Error saving gathering:', error);
+        showToast('Could not save group', 'error');
+    }
+}
+
+// Delete gathering
+async function deleteGathering(gatheringId) {
+    if (!confirm('Are you sure you want to delete this group? This will also delete all posts and messages.')) {
+        return;
+    }
+
+    try {
+        // Remove from MockDB
+        const index = MockDB.gatherings.findIndex(g => g.id === gatheringId);
+        if (index > -1) {
+            MockDB.gatherings.splice(index, 1);
+        }
+        delete MockDB.messageBoards[gatheringId];
+        delete MockDB.gatheringMembers[gatheringId];
+
+        // If using Firebase, delete from Firestore
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            await deleteDoc(doc(db, 'gatherings', gatheringId));
+        }
+
+        showToast('Group deleted', 'success');
+        closeModal();
+        navigateTo('groups');
+    } catch (error) {
+        console.error('Error deleting gathering:', error);
+        showToast('Could not delete group', 'error');
+    }
+}
+
+// ============================================
+// GROUP MEMBERSHIP
+// ============================================
+
+// Join a group
+async function joinGroup(groupId) {
+    try {
+        const currentUser = DataService.getCurrentUser();
+        if (!currentUser) return;
+
+        // Add user to group members
+        if (!MockDB.gatheringMembers[groupId]) {
+            MockDB.gatheringMembers[groupId] = [];
+        }
+
+        if (!MockDB.gatheringMembers[groupId].includes(currentUser.id)) {
+            MockDB.gatheringMembers[groupId].push(currentUser.id);
+        }
+
+        // If using Firebase, update Firestore
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+            const { doc, updateDoc, arrayUnion } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const gatheringRef = doc(db, 'gatherings', groupId);
+            await updateDoc(gatheringRef, {
+                members: arrayUnion(currentUser.id)
+            });
+        }
+
+        showToast('Joined group!', 'success');
+        renderPage();
+    } catch (error) {
+        console.error('Error joining group:', error);
+        showToast('Could not join group', 'error');
+    }
+}
+
+// Leave a group
+async function leaveGroup(groupId) {
+    if (!confirm('Are you sure you want to leave this group?')) {
+        return;
+    }
+
+    try {
+        const currentUser = DataService.getCurrentUser();
+        if (!currentUser) return;
+
+        // Remove user from group members
+        if (MockDB.gatheringMembers[groupId]) {
+            const index = MockDB.gatheringMembers[groupId].indexOf(currentUser.id);
+            if (index > -1) {
+                MockDB.gatheringMembers[groupId].splice(index, 1);
+            }
+        }
+
+        // If using Firebase, update Firestore
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+            const { doc, updateDoc, arrayRemove } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const gatheringRef = doc(db, 'gatherings', groupId);
+            await updateDoc(gatheringRef, {
+                members: arrayRemove(currentUser.id)
+            });
+        }
+
+        showToast('Left group', 'default');
+        renderPage();
+    } catch (error) {
+        console.error('Error leaving group:', error);
+        showToast('Could not leave group', 'error');
+    }
+}
+
+// Request to join a private group
+async function requestGroupMembership(groupId) {
+    const group = DataService.getGatheringById(groupId);
+    if (!group) return;
+
+    // For now, just show a message. In a full implementation, this would send a notification to admins
+    showToast(`Membership request sent for ${group.name}. An admin will review your request.`, 'success');
+
+    // In a real implementation, you would:
+    // 1. Create a membership request document in Firestore
+    // 2. Send notification to group admins/hosts
+    // 3. Show pending status to the user
+}
+
+// Open group members modal
+function openGroupMembersModal(groupId) {
+    const group = DataService.getGatheringById(groupId);
+    if (!group) return;
+
+    const memberIds = MockDB.gatheringMembers[groupId] || [];
+    const members = memberIds.map(id => MockDB.users.find(u => u.id === id)).filter(Boolean);
+
+    // Also find hosts assigned to this group
+    const hosts = MockDB.users.filter(u =>
+        u.role === 'host' &&
+        u.assignedGatherings?.includes(groupId)
+    );
+
+    // Combine and deduplicate
+    const allMembers = [...new Map([...hosts, ...members].map(m => [m.id, m])).values()];
+
+    document.getElementById('modal-title').textContent = `${escapeHtml(group.name)} - Members`;
+    document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom: 1rem;">
+            <span style="color: var(--color-text-light);">${allMembers.length} member${allMembers.length !== 1 ? 's' : ''}</span>
+        </div>
+
+        ${allMembers.length > 0 ? `
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
+                ${allMembers.map(member => {
+                    const isHost = member.role === 'host' && member.assignedGatherings?.includes(groupId);
+                    const isAdmin = member.role === 'admin';
+                    return `
+                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-md);">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: ${group.color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${member.photoURL
+                                    ? `<img src="${member.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                                    : `<span style="color: white; font-family: var(--font-display);">${member.displayName.charAt(0)}</span>`
+                                }
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 500;">${escapeHtml(member.displayName)}</div>
+                                ${member.bio ? `<div style="font-size: 0.75rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(member.bio)}</div>` : ''}
+                            </div>
+                            ${isAdmin ? `<span class="event-badge" style="background: var(--color-forest); color: white;">Admin</span>` : ''}
+                            ${isHost ? `<span class="event-badge" style="background: var(--color-terracotta); color: white;">Host</span>` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        ` : `
+            <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                <p>No members yet.</p>
+            </div>
+        `}
+
+        <div style="margin-top: 1.5rem;">
+            <button class="btn btn-ghost" onclick="closeModal()" style="width: 100%;">Close</button>
+        </div>
+    `;
+
+    openModal();
 }
 
 function renderKetePage() {
