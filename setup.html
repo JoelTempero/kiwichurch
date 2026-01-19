@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup - Kiwi Church</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Nunito+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .setup-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+        }
+        .setup-card {
+            background: var(--color-white);
+            border-radius: var(--radius-xl);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: var(--shadow-xl);
+        }
+        .setup-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .setup-logo {
+            width: 80px;
+            height: auto;
+            margin-bottom: 1rem;
+            filter: brightness(0) saturate(100%) invert(20%) sepia(15%) saturate(1000%) hue-rotate(100deg);
+        }
+        .setup-title {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            color: var(--color-forest);
+            margin: 0 0 0.5rem;
+        }
+        .setup-subtitle {
+            color: var(--color-text-light);
+            font-size: 0.9375rem;
+            margin: 0;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .step-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--color-cream-dark);
+            transition: all 0.3s ease;
+        }
+        .step-dot.active {
+            background: var(--color-forest);
+            transform: scale(1.2);
+        }
+        .step-dot.completed {
+            background: var(--color-sage);
+        }
+        .setup-step {
+            display: none;
+        }
+        .setup-step.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .setup-error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+        .setup-success {
+            background: #f0fdf4;
+            color: #16a34a;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        .progress-container {
+            margin: 1.5rem 0;
+        }
+        .progress-bar {
+            height: 8px;
+            background: var(--color-cream-dark);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--color-forest);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-text {
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+        .seed-list {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0;
+        }
+        .seed-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            font-size: 0.9375rem;
+        }
+        .seed-list li svg {
+            flex-shrink: 0;
+        }
+        .seed-status {
+            color: var(--color-text-light);
+        }
+        .seed-status.done {
+            color: var(--color-sage);
+        }
+        .seed-status.error {
+            color: #dc2626;
+        }
+        .already-setup {
+            text-align: center;
+            padding: 2rem 0;
+        }
+        .already-setup svg {
+            width: 64px;
+            height: 64px;
+            color: var(--color-sage);
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-card">
+            <div class="setup-header">
+                <img src="KiwiChurch_Old_White.png" alt="Kiwi Church" class="setup-logo">
+                <h1 class="setup-title">Portal Setup</h1>
+                <p class="setup-subtitle" id="step-description">Create your admin account</p>
+            </div>
+
+            <div class="step-indicator">
+                <div class="step-dot active" data-step="1"></div>
+                <div class="step-dot" data-step="2"></div>
+                <div class="step-dot" data-step="3"></div>
+            </div>
+
+            <!-- Step 0: Checking -->
+            <div class="setup-step active" id="step-checking">
+                <div style="text-align: center; padding: 2rem 0;">
+                    <div style="width: 40px; height: 40px; border: 3px solid var(--color-cream-dark); border-top-color: var(--color-forest); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                    <p style="color: var(--color-text-light); margin: 0;">Checking setup status...</p>
+                </div>
+                <style>
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                </style>
+            </div>
+
+            <!-- Step 0b: Already Setup -->
+            <div class="setup-step" id="step-already-setup">
+                <div class="already-setup">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <h3 style="margin: 0 0 0.5rem;">Already Configured</h3>
+                    <p style="color: var(--color-text-light); margin: 0 0 1.5rem;">An admin account already exists. Your portal is ready to use.</p>
+                    <a href="portal.html" class="btn btn-primary">Go to Portal</a>
+                </div>
+            </div>
+
+            <!-- Step 1: Create Admin Account -->
+            <div class="setup-step" id="step-1">
+                <div class="setup-error" id="admin-error"></div>
+                <form id="admin-form">
+                    <div class="form-group">
+                        <label class="form-label" for="admin-name">Your Name</label>
+                        <input type="text" class="form-input" id="admin-name" required placeholder="e.g., Darryl Tempero">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="admin-email">Email</label>
+                        <input type="email" class="form-input" id="admin-email" required placeholder="you@kiwichurch.org.nz">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="admin-username">Username</label>
+                        <input type="text" class="form-input" id="admin-username" required pattern="[a-zA-Z0-9_]+" placeholder="e.g., Tempero">
+                        <small style="color: var(--color-text-light); font-size: 0.75rem;">Letters, numbers, and underscores only</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="admin-password">Password</label>
+                        <input type="password" class="form-input" id="admin-password" required minlength="6" placeholder="At least 6 characters">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="admin-password-confirm">Confirm Password</label>
+                        <input type="password" class="form-input" id="admin-password-confirm" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="create-admin-btn">
+                        <span class="btn-text">Create Admin Account</span>
+                        <span class="btn-loading" style="display: none;">Creating...</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Step 2: Seed Demo Data -->
+            <div class="setup-step" id="step-2">
+                <div class="setup-success">
+                    <strong>Admin account created!</strong> Now let's add some starter content.
+                </div>
+                <p style="margin-bottom: 1rem;">Seed your database with sample data to get started:</p>
+                <ul class="seed-list">
+                    <li>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>6 Gatherings (groups)</span>
+                    </li>
+                    <li>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                        <span>4 Kete blog posts</span>
+                    </li>
+                    <li>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span>Sample message board posts</span>
+                    </li>
+                </ul>
+                <p style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: 1.5rem;">
+                    You can skip this and add content manually, or seed now to see how everything works.
+                </p>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button class="btn btn-secondary" style="flex: 1;" onclick="skipSeeding()">Skip</button>
+                    <button class="btn btn-primary" style="flex: 1;" id="seed-btn" onclick="startSeeding()">
+                        <span class="btn-text">Seed Data</span>
+                        <span class="btn-loading" style="display: none;">Seeding...</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Seeding Progress -->
+            <div class="setup-step" id="step-3">
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="seed-progress"></div>
+                    </div>
+                    <p class="progress-text" id="seed-status">Preparing...</p>
+                </div>
+                <ul class="seed-list" id="seed-checklist">
+                    <li id="seed-gatherings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="seed-status">
+                            <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        <span>Creating gatherings...</span>
+                    </li>
+                    <li id="seed-kete">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="seed-status">
+                            <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        <span>Adding kete posts...</span>
+                    </li>
+                    <li id="seed-boards">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="seed-status">
+                            <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        <span>Setting up message boards...</span>
+                    </li>
+                    <li id="seed-members">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="seed-status">
+                            <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        <span>Configuring memberships...</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Step 4: Complete -->
+            <div class="setup-step" id="step-complete">
+                <div class="already-setup">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <h3 style="margin: 0 0 0.5rem;">Setup Complete!</h3>
+                    <p style="color: var(--color-text-light); margin: 0 0 1.5rem;">Your portal is ready. Sign in with your new admin account.</p>
+                    <a href="portal.html" class="btn btn-primary">Go to Portal</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <!-- Firebase Configuration -->
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        // ============================================
+        // DEMO DATA TO SEED
+        // ============================================
+
+        const SeedData = {
+            gatherings: [
+                {
+                    id: 'gathering-1',
+                    name: 'Thin Place',
+                    description: 'A space for allowing our humanity to be held gently. A space for wonder, for being at home, for lamenting, hoping, playing, and encounter.',
+                    rhythm: 'Fortnightly Wednesdays, 6:30pm',
+                    isPublic: true,
+                    color: '#1a3a2f'
+                },
+                {
+                    id: 'gathering-2',
+                    name: 'Online Prayer',
+                    description: 'Join us in the Zoom room for prayer and connection. All are welcome to these times of shared spiritual practice.',
+                    rhythm: 'Tues & Thu mornings, 7:00am',
+                    isPublic: true,
+                    color: '#7d9a87'
+                },
+                {
+                    id: 'gathering-3',
+                    name: 'Prestons Community',
+                    description: 'A geographical community gathering in the Prestons area. We share food, fellowship, and faith together.',
+                    rhythm: 'Weekly Fridays, 6:00pm',
+                    isPublic: false,
+                    color: '#c17f59'
+                },
+                {
+                    id: 'gathering-4',
+                    name: 'Rito Shack',
+                    description: 'A creative gathering space exploring faith through art, music, and making together.',
+                    rhythm: 'Monthly - First Saturday',
+                    isPublic: true,
+                    color: '#2d5a4a'
+                },
+                {
+                    id: 'gathering-5',
+                    name: 'Digging Deeper',
+                    description: "A time where we go deeper into God's story, exploring ways to listen to God's word.",
+                    rhythm: 'Fortnightly Tuesdays, 7:30pm',
+                    isPublic: false,
+                    color: '#d4a574'
+                },
+                {
+                    id: 'gathering-6',
+                    name: 'Reel Life',
+                    description: 'For those who love movies, acknowledging God is in all things. We watch together and reflect.',
+                    rhythm: 'Monthly - Third Friday',
+                    isPublic: true,
+                    color: '#5a6b62'
+                }
+            ],
+
+            kete: [
+                {
+                    id: 'kete-1',
+                    title: 'Finding Sacred in the Ordinary',
+                    excerpt: 'Reflections on discovering God in everyday moments and mundane routines.',
+                    content: `There's a moment each morning, somewhere between the first sip of coffee and the rush of the day, where I find myself pausing. It's not a grand spiritual practice—just a breath, a noticing.
+
+I've been learning that God doesn't only show up in the mountain-top experiences or the carefully crafted worship services. Sometimes the sacred sneaks in through the back door: in the steam rising from a cup, in the sound of rain on the roof, in the mundane rhythm of washing dishes.
+
+Brother Lawrence called it "practicing the presence of God." I'm calling it "paying attention."
+
+What if our everyday moments—the commute, the grocery run, the bedtime routine—are all invitations to encounter? What if the ordinary is already holy, and we just need eyes to see?
+
+This week, I'm trying something simple: before I rush into each task, I'll take one breath and ask, "Where are you here, God?"
+
+Maybe you'd like to try it too.`,
+                    publishedAt: new Date('2024-01-10'),
+                    authorName: 'Admin',
+                    published: true,
+                    createdAt: new Date('2024-01-08'),
+                    updatedAt: new Date('2024-01-10')
+                },
+                {
+                    id: 'kete-2',
+                    title: 'Community Update: Summer 2024',
+                    excerpt: 'A look back at what God has been doing in our communities over the past season.',
+                    content: `As we head into the new year, we wanted to take a moment to celebrate what God has been doing in our communities over the summer.
+
+## Thin Place
+Our fortnightly gatherings have continued to be a space of deep encounter and honest conversation. We've welcomed several new faces and have been moved by the stories shared around our tables.
+
+## Prestons Community
+The Friday night dinners have become a highlight for many families. There's something beautiful about sharing a meal together, watching the kids play, and simply being present with one another.
+
+## Rito Shack
+Our creative gathering has been exploring new ways of expressing faith through art. Last month's collaborative painting project was a powerful reminder that we're all part of something bigger.
+
+## Looking Ahead
+As we move into 2024, we're excited about what's to come. We're dreaming about new ways to serve our neighborhoods and deepen our connections with one another.
+
+Thank you for being part of this community. You belong here.`,
+                    publishedAt: new Date('2024-01-03'),
+                    authorName: 'Kiwi Church Team',
+                    published: true,
+                    createdAt: new Date('2024-01-02'),
+                    updatedAt: new Date('2024-01-03')
+                },
+                {
+                    id: 'kete-3',
+                    title: 'The Art of Showing Up',
+                    excerpt: 'Why consistent presence matters more than perfect attendance.',
+                    content: `I used to think that being part of a community meant never missing a gathering. That good members showed up every single time, fully present and engaged.
+
+But life doesn't work that way, does it?
+
+There are seasons when we're overwhelmed, when the kids are sick, when work is demanding, when we simply don't have the energy. And in those moments, I've learned something important: **showing up doesn't have to be perfect to be meaningful**.
+
+Sometimes showing up means dragging yourself to the gathering even when you'd rather stay home. Other times, it means sending a text to say "I'm thinking of you" when you can't be there in person. And sometimes, it means receiving grace when you've been absent for weeks.
+
+Community isn't built on perfect attendance. It's built on consistent presence over time—the kind that weathers the ups and downs, the busy seasons and the quiet ones.
+
+So if you've been away for a while, know this: you're still part of us. And when you're ready, there's always a seat at the table with your name on it.`,
+                    publishedAt: new Date('2023-12-20'),
+                    authorName: 'Community Member',
+                    published: true,
+                    createdAt: new Date('2023-12-18'),
+                    updatedAt: new Date('2023-12-20')
+                }
+            ],
+
+            // Message board posts (organized by gathering ID)
+            boardPosts: {
+                'gathering-1': [
+                    {
+                        id: 'post-1',
+                        content: "Looking forward to seeing everyone this Wednesday! We'll be exploring the theme of \"rest\" together. Bring a cushion if you like - we'll have some floor time.",
+                        createdAt: new Date('2024-01-15T10:30:00'),
+                        comments: [
+                            {
+                                id: 'comment-1',
+                                content: "Can't wait! Should we bring anything to share for supper?",
+                                createdAt: new Date('2024-01-15T11:45:00')
+                            }
+                        ]
+                    },
+                    {
+                        id: 'post-2',
+                        content: 'That was such a beautiful evening last week. The silence at the end was exactly what I needed. Thank you all for holding that space together.',
+                        createdAt: new Date('2024-01-12T09:15:00'),
+                        comments: []
+                    }
+                ],
+                'gathering-2': [
+                    {
+                        id: 'post-3',
+                        content: "Zoom link for this week's prayer sessions: [Link will be shared]\n\nTuesday and Thursday at 7am as usual. All welcome!",
+                        createdAt: new Date('2024-01-14T18:00:00'),
+                        comments: []
+                    }
+                ],
+                'gathering-3': [
+                    {
+                        id: 'post-4',
+                        content: "Friday dinner this week at our place! We're doing a Mexican theme. Let me know if you have any dietary requirements.",
+                        createdAt: new Date('2024-01-16T14:20:00'),
+                        comments: []
+                    }
+                ],
+                'gathering-6': [
+                    {
+                        id: 'post-7',
+                        content: 'Next movie night: "The Way" (2010) - a beautiful film about pilgrimage and finding yourself. Friday the 19th at 7pm. Popcorn provided!',
+                        createdAt: new Date('2024-01-13T16:45:00'),
+                        comments: []
+                    }
+                ]
+            }
+        };
+
+        // ============================================
+        // SETUP LOGIC
+        // ============================================
+
+        let currentStep = 0;
+        let adminUserId = null;
+
+        async function checkSetupStatus() {
+            try {
+                // Check if any admin user exists
+                const adminsSnapshot = await db.collection('users')
+                    .where('role', '==', 'admin')
+                    .limit(1)
+                    .get();
+
+                if (!adminsSnapshot.empty) {
+                    // Already has an admin, show already setup screen
+                    showStep('already-setup');
+                } else {
+                    // No admin exists, start setup
+                    showStep(1);
+                }
+            } catch (error) {
+                console.error('Error checking setup status:', error);
+                // If we can't check (permissions, etc.), assume setup is needed
+                showStep(1);
+            }
+        }
+
+        function showStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.setup-step').forEach(el => el.classList.remove('active'));
+
+            // Show requested step
+            const stepEl = document.getElementById(typeof step === 'number' ? `step-${step}` : `step-${step}`);
+            if (stepEl) {
+                stepEl.classList.add('active');
+            }
+
+            // Update step dots
+            document.querySelectorAll('.step-dot').forEach((dot, index) => {
+                const stepNum = index + 1;
+                dot.classList.remove('active', 'completed');
+                if (typeof step === 'number') {
+                    if (stepNum === step) dot.classList.add('active');
+                    if (stepNum < step) dot.classList.add('completed');
+                }
+            });
+
+            // Update description
+            const descriptions = {
+                1: 'Create your admin account',
+                2: 'Add starter content',
+                3: 'Setting up your portal...',
+                'complete': 'Setup complete!'
+            };
+            document.getElementById('step-description').textContent = descriptions[step] || '';
+
+            currentStep = step;
+        }
+
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function hideError(elementId) {
+            document.getElementById(elementId).style.display = 'none';
+        }
+
+        function setButtonLoading(btnId, loading) {
+            const btn = document.getElementById(btnId);
+            const textEl = btn.querySelector('.btn-text');
+            const loadingEl = btn.querySelector('.btn-loading');
+            if (textEl) textEl.style.display = loading ? 'none' : '';
+            if (loadingEl) loadingEl.style.display = loading ? '' : 'none';
+            btn.disabled = loading;
+        }
+
+        // Admin form submission
+        document.getElementById('admin-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            hideError('admin-error');
+
+            const name = document.getElementById('admin-name').value.trim();
+            const email = document.getElementById('admin-email').value.trim();
+            const username = document.getElementById('admin-username').value.trim();
+            const password = document.getElementById('admin-password').value;
+            const confirmPassword = document.getElementById('admin-password-confirm').value;
+
+            // Validation
+            if (password !== confirmPassword) {
+                showError('admin-error', 'Passwords do not match');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('admin-error', 'Password must be at least 6 characters');
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                showError('admin-error', 'Username can only contain letters, numbers, and underscores');
+                return;
+            }
+
+            setButtonLoading('create-admin-btn', true);
+
+            try {
+                // Create user in Firebase Auth
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                adminUserId = userCredential.user.uid;
+
+                // Update display name
+                await userCredential.user.updateProfile({ displayName: name });
+
+                // Create user document in Firestore with admin role
+                await db.collection('users').doc(adminUserId).set({
+                    email: email,
+                    username: username,
+                    displayName: name,
+                    role: 'admin',
+                    phone: '',
+                    dependants: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Create username mapping
+                await db.collection('usernames').doc(username.toLowerCase()).set({
+                    uid: adminUserId
+                });
+
+                // Move to step 2
+                showStep(2);
+            } catch (error) {
+                console.error('Admin creation error:', error);
+                let message = 'Failed to create account. ';
+                if (error.code === 'auth/email-already-in-use') {
+                    message = 'This email is already registered.';
+                } else if (error.code === 'auth/weak-password') {
+                    message = 'Password is too weak.';
+                } else if (error.code === 'auth/invalid-email') {
+                    message = 'Invalid email address.';
+                } else {
+                    message += error.message;
+                }
+                showError('admin-error', message);
+            } finally {
+                setButtonLoading('create-admin-btn', false);
+            }
+        });
+
+        function skipSeeding() {
+            showStep('complete');
+        }
+
+        async function startSeeding() {
+            setButtonLoading('seed-btn', true);
+            showStep(3);
+
+            const progress = document.getElementById('seed-progress');
+            const status = document.getElementById('seed-status');
+
+            try {
+                // Step 1: Seed gatherings (40%)
+                updateSeedStatus('seed-gatherings', 'loading');
+                status.textContent = 'Creating gatherings...';
+
+                for (const gathering of SeedData.gatherings) {
+                    await db.collection('gatherings').doc(gathering.id).set({
+                        ...gathering,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+
+                updateSeedStatus('seed-gatherings', 'done');
+                progress.style.width = '25%';
+
+                // Step 2: Seed kete posts (60%)
+                updateSeedStatus('seed-kete', 'loading');
+                status.textContent = 'Adding kete posts...';
+
+                for (const post of SeedData.kete) {
+                    await db.collection('kete').doc(post.id).set({
+                        ...post,
+                        authorId: adminUserId,
+                        authorName: post.authorName === 'Admin' ? document.getElementById('admin-name').value : post.authorName
+                    });
+                }
+
+                updateSeedStatus('seed-kete', 'done');
+                progress.style.width = '50%';
+
+                // Step 3: Seed message boards (80%)
+                updateSeedStatus('seed-boards', 'loading');
+                status.textContent = 'Setting up message boards...';
+
+                for (const [gatheringId, posts] of Object.entries(SeedData.boardPosts)) {
+                    for (const post of posts) {
+                        const postRef = db.collection('gatherings').doc(gatheringId)
+                            .collection('posts').doc(post.id);
+
+                        await postRef.set({
+                            content: post.content,
+                            authorId: adminUserId,
+                            authorName: document.getElementById('admin-name').value,
+                            createdAt: post.createdAt
+                        });
+
+                        // Add comments if any
+                        for (const comment of post.comments) {
+                            await postRef.collection('comments').doc(comment.id).set({
+                                content: comment.content,
+                                authorId: adminUserId,
+                                authorName: document.getElementById('admin-name').value,
+                                createdAt: comment.createdAt
+                            });
+                        }
+                    }
+                }
+
+                updateSeedStatus('seed-boards', 'done');
+                progress.style.width = '75%';
+
+                // Step 4: Setup membership for private gatherings (100%)
+                updateSeedStatus('seed-members', 'loading');
+                status.textContent = 'Configuring memberships...';
+
+                // Add admin to all private gatherings
+                const privateGatherings = SeedData.gatherings.filter(g => !g.isPublic);
+                for (const gathering of privateGatherings) {
+                    await db.collection('gatherings').doc(gathering.id)
+                        .collection('members').doc(adminUserId).set({
+                            joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            role: 'admin'
+                        });
+                }
+
+                updateSeedStatus('seed-members', 'done');
+                progress.style.width = '100%';
+                status.textContent = 'Complete!';
+
+                // Show complete after a brief delay
+                setTimeout(() => {
+                    showStep('complete');
+                }, 1000);
+
+            } catch (error) {
+                console.error('Seeding error:', error);
+                status.textContent = 'Error: ' + error.message;
+                status.style.color = '#dc2626';
+            }
+        }
+
+        function updateSeedStatus(itemId, status) {
+            const item = document.getElementById(itemId);
+            const svg = item.querySelector('svg');
+
+            svg.classList.remove('seed-status', 'done', 'error');
+
+            if (status === 'loading') {
+                svg.innerHTML = '<circle cx="12" cy="12" r="10"></circle>';
+                svg.style.animation = 'spin 1s linear infinite';
+            } else if (status === 'done') {
+                svg.innerHTML = '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>';
+                svg.style.animation = '';
+                svg.classList.add('done');
+            } else if (status === 'error') {
+                svg.innerHTML = '<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>';
+                svg.style.animation = '';
+                svg.classList.add('error');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSetupStatus();
+        });
+    </script>
+</body>
+</html>
