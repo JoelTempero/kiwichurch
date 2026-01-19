@@ -9,8 +9,8 @@
 
 const PortalConfig = {
     // Set to true to use Firebase, false for demo mode
-    useFirebase: false,
-    demoMode: true
+    useFirebase: true,
+    demoMode: false
 };
 
 // ============================================
