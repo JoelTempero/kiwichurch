@@ -7952,7 +7952,7 @@ function showAppState() {
         */
 
         authView.style.display = 'none';
-        appView.style.display = 'block';
+        appView.style.display = '';  // Clear inline style so CSS media queries work
         document.body.classList.add('app-mode');
         renderDesktopSidebar();
         renderPage();
@@ -7978,7 +7978,7 @@ let pullToRefreshState = {
 };
 
 function setupPullToRefresh() {
-    const main = document.getElementById('main-content');
+    const main = document.getElementById('app-main');
     if (!main) return;
 
     // Create pull indicator
@@ -8014,7 +8014,7 @@ function setupPullToRefresh() {
 }
 
 function handlePullStart(e) {
-    const main = document.getElementById('main-content');
+    const main = document.getElementById('app-main');
     if (main.scrollTop === 0) {
         pullToRefreshState.startY = e.touches[0].clientY;
         pullToRefreshState.pulling = true;
@@ -8024,7 +8024,7 @@ function handlePullStart(e) {
 function handlePullMove(e) {
     if (!pullToRefreshState.pulling) return;
 
-    const main = document.getElementById('main-content');
+    const main = document.getElementById('app-main');
     if (main.scrollTop > 0) {
         pullToRefreshState.pulling = false;
         return;
@@ -8173,7 +8173,7 @@ function setupScrollToTop() {
     document.body.appendChild(scrollBtn);
 
     // Handle scroll events
-    const main = document.getElementById('main-content');
+    const main = document.getElementById('app-main');
     if (main) {
         main.addEventListener('scroll', () => {
             if (main.scrollTop > 300) {

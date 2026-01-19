@@ -2597,6 +2597,11 @@ a:focus-visible {
     display: none;
 }
 
+/* Show app view when authenticated (mobile - block, desktop overrides to grid) */
+body.app-mode #app-view {
+    display: block;
+}
+
 /* Hide elements on desktop */
 @media (min-width: 768px) {
     .desktop-hide {
@@ -2619,12 +2624,12 @@ a:focus-visible {
 
     /* Hide bottom nav on desktop */
     body.app-mode .bottom-nav {
-        display: none;
+        display: none !important;
     }
 
     /* Desktop App Container */
     #app-view {
-        display: grid;
+        display: grid !important;
         grid-template-columns: 240px 1fr;
         grid-template-rows: auto 1fr;
         min-height: 100vh;
