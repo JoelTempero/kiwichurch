@@ -1589,6 +1589,9 @@ function openEventModal(eventId) {
     const gathering = DataService.getGatheringById(event.gatheringId);
     const currentUser = DataService.getCurrentUser();
     const canManage = DataService.canManageEvent(event);
+    const categoryInfo = getEventCategoryInfo(event.category);
+    const isCancelled = event.status === 'cancelled';
+    const isPast = new Date(event.date) < new Date().setHours(0, 0, 0, 0);
 
     // Get enhanced RSVP details
     const allRSVPs = DataService.getEventRSVPs(eventId);
@@ -1605,9 +1608,46 @@ function openEventModal(eventId) {
         return count + 1 + (r.attendees?.length || 0);
     }, 0);
 
+    // Capacity info
+    const hasCapacity = event.capacity && event.capacity > 0;
+    const spotsRemaining = hasCapacity ? Math.max(0, event.capacity - totalAttending) : null;
+    const isFull = hasCapacity && spotsRemaining === 0;
+
     const bodyHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-            <span class="event-badge ${event.isPublic ? '' : 'private'}">${event.isPublic ? 'Public Event' : 'Members Only'}</span>
+        ${event.coverImage ? `
+        <div style="margin: -1.5rem -1.5rem 1rem; height: 150px; overflow: hidden;">
+            <img src="${event.coverImage}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+        ` : ''}
+
+        ${isCancelled ? `
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem;">
+            <div style="color: #dc2626; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                Event Cancelled
+            </div>
+            ${event.cancelReason ? `<p style="margin: 0.5rem 0 0; font-size: 0.875rem; color: #991b1b;">${escapeHtml(event.cancelReason)}</p>` : ''}
+        </div>
+        ` : ''}
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="event-badge ${event.isPublic ? '' : 'private'}">${event.isPublic ? 'Public' : 'Members Only'}</span>
+                ${event.category && event.category !== 'general' ? `
+                <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: ${categoryInfo.color}20; color: ${categoryInfo.color}; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                    ${categoryInfo.label}
+                </span>
+                ` : ''}
+                ${isFull ? `
+                <span style="display: inline-flex; align-items: center; padding: 0.25rem 0.5rem; background: #fef2f2; color: #dc2626; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                    Full
+                </span>
+                ` : ''}
+            </div>
             ${canManage ? `
                 <button class="btn btn-ghost btn-sm" onclick="openEditEventModal('${event.id}')" style="margin: -0.5rem -0.5rem 0 0;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1618,7 +1658,9 @@ function openEventModal(eventId) {
                 </button>
             ` : ''}
         </div>
-        <p style="color: var(--color-text-light); margin-bottom: 1.5rem;">${event.description}</p>
+
+        <p style="color: var(--color-text-light); margin-bottom: 1.5rem;">${escapeHtml(event.description || '')}</p>
+
         <div style="display: grid; gap: 1rem;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
@@ -1641,7 +1683,7 @@ function openEventModal(eventId) {
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                 </svg>
-                <span>${event.location}</span>
+                <span>${escapeHtml(event.location)}</span>
             </div>
             ${gathering ? `
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -1651,7 +1693,21 @@ function openEventModal(eventId) {
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                     </svg>
-                    <span>${gathering.name}</span>
+                    <span>${escapeHtml(gathering.name)}</span>
+                </div>
+            ` : ''}
+            ${hasCapacity ? `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${isFull ? '#dc2626' : 'var(--color-sage)'}" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    <span style="color: ${isFull ? '#dc2626' : 'inherit'};">
+                        ${isFull ? 'No spots remaining' : `${spotsRemaining} spot${spotsRemaining !== 1 ? 's' : ''} remaining`}
+                        <span style="color: var(--color-text-light); font-size: 0.875rem;">(${event.capacity} max)</span>
+                    </span>
                 </div>
             ` : ''}
         </div>
@@ -1661,6 +1717,7 @@ function openEventModal(eventId) {
                 <h4 style="margin: 0;">RSVPs</h4>
                 <span style="font-size: 0.875rem; color: var(--color-text-light);">
                     ${totalAttending} attending${maybeRSVPs.length > 0 ? `, ${maybeRSVPs.length} maybe` : ''}
+                    ${event.checkedIn?.length > 0 ? ` | ${event.checkedIn.length} checked in` : ''}
                 </span>
             </div>
 
@@ -1669,7 +1726,10 @@ function openEventModal(eventId) {
                     ${attendingRSVPs.map(r => {
                         const isYou = r.userId === currentUser?.id;
                         const attendeeCount = r.attendees?.length || 0;
-                        return `<span class="rsvp-chip ${isYou ? 'you' : ''}" title="${r.notes || ''}">${isYou ? 'You' : r.userName.split(' ')[0]}${attendeeCount > 0 ? ` +${attendeeCount}` : ''}</span>`;
+                        const isCheckedIn = event.checkedIn?.includes(r.userId);
+                        return `<span class="rsvp-chip ${isYou ? 'you' : ''}" title="${r.notes || ''}" style="${isCheckedIn ? 'border: 2px solid var(--color-sage);' : ''}">
+                            ${isCheckedIn ? '✓ ' : ''}${isYou ? 'You' : (r.userName || 'Unknown').split(' ')[0]}${attendeeCount > 0 ? ` +${attendeeCount}` : ''}
+                        </span>`;
                     }).join('')}
                 </div>
             ` : ''}
@@ -1680,7 +1740,7 @@ function openEventModal(eventId) {
                     <div class="rsvp-list">
                         ${maybeRSVPs.map(r => {
                             const isYou = r.userId === currentUser?.id;
-                            return `<span class="rsvp-chip ${isYou ? 'you' : ''}" style="opacity: 0.7;" title="${r.notes || ''}">${isYou ? 'You' : r.userName.split(' ')[0]}</span>`;
+                            return `<span class="rsvp-chip ${isYou ? 'you' : ''}" style="opacity: 0.7;" title="${r.notes || ''}">${isYou ? 'You' : (r.userName || 'Unknown').split(' ')[0]}</span>`;
                         }).join('')}
                     </div>
                 </div>
@@ -1690,17 +1750,42 @@ function openEventModal(eventId) {
 
             ${userRSVP?.notes ? `
                 <p style="font-size: 0.875rem; color: var(--color-text-light); font-style: italic; margin-top: 0.5rem;">
-                    Your note: "${userRSVP.notes}"
+                    Your note: "${escapeHtml(userRSVP.notes)}"
                 </p>
+            ` : ''}
+        </div>
+
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="exportEventToCalendar('${event.id}')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Add to Calendar
+            </button>
+            ${canManage && !isCancelled ? `
+            <button class="btn btn-ghost btn-sm" onclick="openCheckInModal('${event.id}')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                Check-in
+            </button>
             ` : ''}
         </div>
     `;
 
     let footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
-    if (isRSVPd) {
-        footerHTML += `<button class="btn btn-primary" onclick="openRSVPModal('${event.id}')">Update RSVP</button>`;
-    } else {
-        footerHTML += `<button class="btn btn-primary" onclick="openRSVPModal('${event.id}')">RSVP</button>`;
+
+    if (!isCancelled && !isPast) {
+        if (isFull && !isRSVPd) {
+            footerHTML += `<button class="btn btn-secondary" disabled>Event Full</button>`;
+        } else if (isRSVPd) {
+            footerHTML += `<button class="btn btn-primary" onclick="openRSVPModal('${event.id}')">Update RSVP</button>`;
+        } else {
+            footerHTML += `<button class="btn btn-primary" onclick="openRSVPModal('${event.id}')">RSVP</button>`;
+        }
     }
 
     openModal(event.title, bodyHTML, footerHTML);
@@ -1764,6 +1849,21 @@ function openCreateEventModal(prefillGatheringId = null) {
                 </select>
             </div>
 
+            <div class="form-group">
+                <label class="form-label" for="event-category">Category</label>
+                <select class="form-input" id="event-category">
+                    <option value="general">General</option>
+                    <option value="worship">Worship Service</option>
+                    <option value="study">Bible Study</option>
+                    <option value="prayer">Prayer Meeting</option>
+                    <option value="social">Social Event</option>
+                    <option value="outreach">Outreach</option>
+                    <option value="youth">Youth Event</option>
+                    <option value="kids">Kids Event</option>
+                    <option value="workshop">Workshop/Training</option>
+                </select>
+            </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <div class="form-group">
                     <label class="form-label" for="event-date">Date *</label>
@@ -1783,6 +1883,40 @@ function openCreateEventModal(prefillGatheringId = null) {
             <div class="form-group">
                 <label class="form-label" for="event-description">Description</label>
                 <textarea class="form-input" id="event-description" rows="3" placeholder="Tell people what this event is about..."></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="event-capacity">Capacity (optional)</label>
+                    <input type="number" class="form-input" id="event-capacity" min="1" placeholder="Leave blank for unlimited">
+                    <small style="color: var(--color-text-light); font-size: 0.75rem;">Maximum number of attendees</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="event-reminder">Send Reminder</label>
+                    <select class="form-input" id="event-reminder">
+                        <option value="">No reminder</option>
+                        <option value="1h">1 hour before</option>
+                        <option value="1d" selected>1 day before</option>
+                        <option value="3d">3 days before</option>
+                        <option value="1w">1 week before</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Cover Image (optional)</label>
+                <div id="event-image-preview" style="width: 100%; height: 120px; background: var(--color-cream); border-radius: var(--radius-md); margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <span style="color: var(--color-text-light); font-size: 0.875rem;">No image selected</span>
+                </div>
+                <input type="file" id="event-image-input" accept="image/*" style="display: none;" onchange="previewEventImage(this, 'event-image-preview')">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('event-image-input').click()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    Choose Image
+                </button>
             </div>
 
             <div class="form-group">
@@ -1825,13 +1959,44 @@ function openCreateEventModal(prefillGatheringId = null) {
     });
 }
 
+let pendingEventImage = null;
+
+function previewEventImage(input, previewId) {
+    const previewEl = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+
+        if (!file.type.startsWith('image/')) {
+            showToast('Please select a valid image file', 'error');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('Image must be smaller than 5MB', 'error');
+            return;
+        }
+
+        pendingEventImage = file;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewEl.innerHTML = `<img src="${e.target.result}" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">`;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
 async function saveNewEvent() {
     const title = document.getElementById('event-title').value.trim();
     const gatheringId = document.getElementById('event-gathering').value;
+    const category = document.getElementById('event-category').value;
     const date = document.getElementById('event-date').value;
     const time = document.getElementById('event-time').value;
     const location = document.getElementById('event-location').value.trim();
     const description = document.getElementById('event-description').value.trim();
+    const capacityInput = document.getElementById('event-capacity').value;
+    const capacity = capacityInput ? parseInt(capacityInput) : null;
+    const reminder = document.getElementById('event-reminder').value;
     const visibility = document.getElementById('event-visibility').value;
 
     // Validation
@@ -1848,16 +2013,36 @@ async function saveNewEvent() {
     }
 
     try {
+        // Upload image if selected
+        let coverImageUrl = null;
+        if (pendingEventImage) {
+            try {
+                const resizedImage = await Storage.resizeImage(pendingEventImage, 800, 400, 0.85);
+                const result = await Storage.uploadFile(`events/${Date.now()}-cover`, resizedImage);
+                coverImageUrl = result.url;
+            } catch (imgError) {
+                console.error('Image upload failed:', imgError);
+                // Continue without image
+            }
+        }
+
         await DataService.createEvent({
             title,
             gatheringId,
+            category,
             date,
             time,
             location,
             description: description || `Join us for ${title.toLowerCase()}.`,
-            isPublic: visibility === 'public'
+            isPublic: visibility === 'public',
+            capacity,
+            reminder,
+            coverImage: coverImageUrl,
+            status: 'active',
+            checkedIn: []
         });
 
+        pendingEventImage = null;
         showToast('Event created successfully!', 'success');
         closeModal();
         renderPage();
@@ -1871,12 +2056,29 @@ function openEditEventModal(eventId) {
     if (!event) return;
 
     const gatherings = MockDB.gatherings;
+    const categories = [
+        { value: 'general', label: 'General' },
+        { value: 'worship', label: 'Worship Service' },
+        { value: 'study', label: 'Bible Study' },
+        { value: 'prayer', label: 'Prayer Meeting' },
+        { value: 'social', label: 'Social Event' },
+        { value: 'outreach', label: 'Outreach' },
+        { value: 'youth', label: 'Youth Event' },
+        { value: 'kids', label: 'Kids Event' },
+        { value: 'workshop', label: 'Workshop/Training' }
+    ];
 
     const bodyHTML = `
         <form id="edit-event-form">
+            ${event.status === 'cancelled' ? `
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem;">
+                <span style="color: #dc2626; font-weight: 500;">This event has been cancelled</span>
+            </div>
+            ` : ''}
+
             <div class="form-group">
                 <label class="form-label" for="edit-event-title">Event Title *</label>
-                <input type="text" class="form-input" id="edit-event-title" required value="${event.title}">
+                <input type="text" class="form-input" id="edit-event-title" required value="${escapeHtml(event.title)}">
             </div>
 
             <div class="form-group">
@@ -1884,6 +2086,15 @@ function openEditEventModal(eventId) {
                 <select class="form-input" id="edit-event-gathering" required>
                     ${gatherings.map(g => `
                         <option value="${g.id}" ${event.gatheringId === g.id ? 'selected' : ''}>${g.name}</option>
+                    `).join('')}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="edit-event-category">Category</label>
+                <select class="form-input" id="edit-event-category">
+                    ${categories.map(c => `
+                        <option value="${c.value}" ${event.category === c.value ? 'selected' : ''}>${c.label}</option>
                     `).join('')}
                 </select>
             </div>
@@ -1901,12 +2112,46 @@ function openEditEventModal(eventId) {
 
             <div class="form-group">
                 <label class="form-label" for="edit-event-location">Location *</label>
-                <input type="text" class="form-input" id="edit-event-location" required value="${event.location}">
+                <input type="text" class="form-input" id="edit-event-location" required value="${escapeHtml(event.location)}">
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="edit-event-description">Description</label>
-                <textarea class="form-input" id="edit-event-description" rows="3">${event.description || ''}</textarea>
+                <textarea class="form-input" id="edit-event-description" rows="3">${escapeHtml(event.description || '')}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="edit-event-capacity">Capacity</label>
+                    <input type="number" class="form-input" id="edit-event-capacity" min="1" placeholder="Unlimited" value="${event.capacity || ''}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit-event-reminder">Send Reminder</label>
+                    <select class="form-input" id="edit-event-reminder">
+                        <option value="" ${!event.reminder ? 'selected' : ''}>No reminder</option>
+                        <option value="1h" ${event.reminder === '1h' ? 'selected' : ''}>1 hour before</option>
+                        <option value="1d" ${event.reminder === '1d' ? 'selected' : ''}>1 day before</option>
+                        <option value="3d" ${event.reminder === '3d' ? 'selected' : ''}>3 days before</option>
+                        <option value="1w" ${event.reminder === '1w' ? 'selected' : ''}>1 week before</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Cover Image</label>
+                <div id="edit-event-image-preview" style="width: 100%; height: 120px; background: var(--color-cream); border-radius: var(--radius-md); margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    ${event.coverImage
+                        ? `<img src="${event.coverImage}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">`
+                        : `<span style="color: var(--color-text-light); font-size: 0.875rem;">No image</span>`
+                    }
+                </div>
+                <input type="file" id="edit-event-image-input" accept="image/*" style="display: none;" onchange="previewEventImage(this, 'edit-event-image-preview')">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('edit-event-image-input').click()">
+                        ${event.coverImage ? 'Change Image' : 'Add Image'}
+                    </button>
+                    ${event.coverImage ? `<button type="button" class="btn btn-ghost btn-sm" onclick="removeEventImage('${event.id}')" style="color: #dc2626;">Remove</button>` : ''}
+                </div>
             </div>
 
             <div class="form-group">
@@ -1920,14 +2165,31 @@ function openEditEventModal(eventId) {
             <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
                 <p style="color: var(--color-text-light); font-size: 0.875rem; margin-bottom: 0.75rem;">
                     RSVPs: ${event.rsvps?.length || 0} people
+                    ${event.checkedIn?.length > 0 ? ` | Checked in: ${event.checkedIn.length}` : ''}
                 </p>
-                <button type="button" class="btn btn-ghost" style="color: #dc2626;" onclick="confirmDeleteEvent('${event.id}')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    Delete Event
-                </button>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    ${event.status !== 'cancelled' ? `
+                    <button type="button" class="btn btn-ghost btn-sm" style="color: #f59e0b;" onclick="cancelEventWithReason('${event.id}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                        Cancel Event
+                    </button>
+                    ` : `
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="uncancelEvent('${event.id}')">
+                        Restore Event
+                    </button>
+                    `}
+                    <button type="button" class="btn btn-ghost btn-sm" style="color: #dc2626;" onclick="confirmDeleteEvent('${event.id}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Delete Event
+                    </button>
+                </div>
             </div>
         </form>
     `;
@@ -1943,10 +2205,14 @@ function openEditEventModal(eventId) {
 async function saveEventEdits(eventId) {
     const title = document.getElementById('edit-event-title').value.trim();
     const gatheringId = document.getElementById('edit-event-gathering').value;
+    const category = document.getElementById('edit-event-category').value;
     const date = document.getElementById('edit-event-date').value;
     const time = document.getElementById('edit-event-time').value;
     const location = document.getElementById('edit-event-location').value.trim();
     const description = document.getElementById('edit-event-description').value.trim();
+    const capacityInput = document.getElementById('edit-event-capacity').value;
+    const capacity = capacityInput ? parseInt(capacityInput) : null;
+    const reminder = document.getElementById('edit-event-reminder').value;
     const visibility = document.getElementById('edit-event-visibility').value;
 
     // Validation
@@ -1956,21 +2222,50 @@ async function saveEventEdits(eventId) {
     }
 
     try {
-        await DataService.updateEvent(eventId, {
+        const updates = {
             title,
             gatheringId,
+            category,
             date,
             time,
             location,
             description: description || `Join us for ${title.toLowerCase()}.`,
-            isPublic: visibility === 'public'
-        });
+            isPublic: visibility === 'public',
+            capacity,
+            reminder
+        };
+
+        // Upload new image if selected
+        if (pendingEventImage) {
+            try {
+                const resizedImage = await Storage.resizeImage(pendingEventImage, 800, 400, 0.85);
+                const result = await Storage.uploadFile(`events/${eventId}-cover`, resizedImage);
+                updates.coverImage = result.url;
+            } catch (imgError) {
+                console.error('Image upload failed:', imgError);
+            }
+        }
+
+        await DataService.updateEvent(eventId, updates);
+        pendingEventImage = null;
 
         showToast('Event updated successfully!', 'success');
         closeModal();
         renderPage();
     } catch (error) {
         showToast(error.message || 'Could not update event', 'error');
+    }
+}
+
+async function removeEventImage(eventId) {
+    if (!confirm('Remove the cover image?')) return;
+
+    try {
+        await DataService.updateEvent(eventId, { coverImage: null });
+        showToast('Image removed', 'success');
+        openEditEventModal(eventId); // Refresh modal
+    } catch (error) {
+        showToast(error.message || 'Could not remove image', 'error');
     }
 }
 
@@ -2002,6 +2297,354 @@ async function deleteEvent(eventId) {
     } catch (error) {
         showToast(error.message || 'Could not delete event', 'error');
     }
+}
+
+// ============================================
+// EVENT CANCELLATION (Feature #13)
+// ============================================
+
+function cancelEventWithReason(eventId) {
+    const event = DataService.getEventById(eventId);
+    if (!event) return;
+
+    const bodyHTML = `
+        <p style="margin-bottom: 1rem;">Are you sure you want to cancel <strong>${escapeHtml(event.title)}</strong>?</p>
+        <div class="form-group">
+            <label class="form-label" for="cancel-reason">Reason for cancellation (optional)</label>
+            <textarea class="form-input" id="cancel-reason" rows="2" placeholder="e.g., Weather conditions, venue unavailable..."></textarea>
+        </div>
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" id="notify-attendees" checked>
+                <span style="font-size: 0.9375rem;">Notify all RSVPs about the cancellation</span>
+            </label>
+        </div>
+        <p style="color: var(--color-text-light); font-size: 0.875rem;">
+            ${event.rsvps?.length > 0 ? `${event.rsvps.length} people have RSVP'd to this event.` : 'No one has RSVP\'d yet.'}
+        </p>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal(); openEditEventModal('${eventId}')">Go Back</button>
+        <button class="btn btn-primary" style="background: #f59e0b;" onclick="confirmCancelEvent('${eventId}')">Cancel Event</button>
+    `;
+
+    openModal('Cancel Event', bodyHTML, footerHTML);
+}
+
+async function confirmCancelEvent(eventId) {
+    const reason = document.getElementById('cancel-reason').value.trim();
+    const notifyAttendees = document.getElementById('notify-attendees').checked;
+
+    try {
+        const event = DataService.getEventById(eventId);
+
+        await DataService.updateEvent(eventId, {
+            status: 'cancelled',
+            cancelReason: reason || null,
+            cancelledAt: new Date().toISOString()
+        });
+
+        if (notifyAttendees && event.rsvps?.length > 0) {
+            // In a real app, this would trigger Cloud Functions to send notifications
+            console.log('Would notify attendees:', event.rsvps);
+        }
+
+        showToast('Event cancelled', 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not cancel event', 'error');
+    }
+}
+
+async function uncancelEvent(eventId) {
+    try {
+        await DataService.updateEvent(eventId, {
+            status: 'active',
+            cancelReason: null,
+            cancelledAt: null
+        });
+
+        showToast('Event restored', 'success');
+        closeModal();
+        renderPage();
+    } catch (error) {
+        showToast(error.message || 'Could not restore event', 'error');
+    }
+}
+
+// ============================================
+// CALENDAR EXPORT (Feature #12)
+// ============================================
+
+function exportEventToCalendar(eventId) {
+    const event = DataService.getEventById(eventId);
+    if (!event) return;
+
+    const gathering = DataService.getGatheringById(event.gatheringId);
+
+    // Create ICS file content
+    const startDate = new Date(event.date + 'T' + event.time);
+    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // Default 2 hours
+
+    const formatICSDate = (date) => {
+        return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+
+    const escapeICS = (str) => {
+        return (str || '').replace(/[,;\\]/g, '\\$&').replace(/\n/g, '\\n');
+    };
+
+    const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Kiwi Church//Portal//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'BEGIN:VEVENT',
+        `UID:${eventId}@kiwichurch.org.nz`,
+        `DTSTAMP:${formatICSDate(new Date())}`,
+        `DTSTART:${formatICSDate(startDate)}`,
+        `DTEND:${formatICSDate(endDate)}`,
+        `SUMMARY:${escapeICS(event.title)}`,
+        `DESCRIPTION:${escapeICS(event.description)}${gathering ? '\\n\\nOrganised by: ' + escapeICS(gathering.name) : ''}`,
+        `LOCATION:${escapeICS(event.location)}`,
+        event.status === 'cancelled' ? 'STATUS:CANCELLED' : 'STATUS:CONFIRMED',
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\r\n');
+
+    // Create and download file
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${event.title.replace(/[^a-zA-Z0-9]/g, '-')}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast('Calendar file downloaded', 'success');
+}
+
+// ============================================
+// CHECK-IN SYSTEM (Feature #15)
+// ============================================
+
+function openCheckInModal(eventId) {
+    const event = DataService.getEventById(eventId);
+    if (!event) return;
+
+    const allRSVPs = DataService.getEventRSVPs(eventId);
+    const attendingRSVPs = allRSVPs.filter(r => r.status === 'attending' || !r.status);
+    const checkedIn = event.checkedIn || [];
+
+    const bodyHTML = `
+        <div style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">
+                    ${checkedIn.length} of ${attendingRSVPs.length} checked in
+                </span>
+                <button class="btn btn-ghost btn-sm" onclick="checkInAll('${eventId}')">Check In All</button>
+            </div>
+            <div style="background: var(--color-cream-dark); border-radius: 4px; height: 6px; margin-top: 0.5rem; overflow: hidden;">
+                <div style="background: var(--color-sage); height: 100%; width: ${attendingRSVPs.length > 0 ? (checkedIn.length / attendingRSVPs.length) * 100 : 0}%; transition: width 0.3s;"></div>
+            </div>
+        </div>
+
+        <div style="max-height: 300px; overflow-y: auto;">
+            ${attendingRSVPs.length > 0 ? attendingRSVPs.map(rsvp => {
+                const isCheckedIn = checkedIn.includes(rsvp.userId);
+                const user = MockDB.users.find(u => u.id === rsvp.userId);
+                const attendeeCount = rsvp.attendees?.length || 0;
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; border-bottom: 1px solid var(--color-cream);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--color-sage); display: flex; align-items: center; justify-content: center;">
+                                ${user?.photoURL
+                                    ? `<img src="${user.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                                    : `<span style="font-family: var(--font-display); color: white;">${rsvp.userName?.charAt(0) || '?'}</span>`
+                                }
+                            </div>
+                            <div>
+                                <div style="font-size: 0.9375rem;">${escapeHtml(rsvp.userName || 'Unknown')}</div>
+                                ${attendeeCount > 0 ? `<div style="font-size: 0.75rem; color: var(--color-text-light);">+${attendeeCount} guest${attendeeCount > 1 ? 's' : ''}</div>` : ''}
+                            </div>
+                        </div>
+                        <button class="btn btn-${isCheckedIn ? 'secondary' : 'primary'} btn-sm" onclick="toggleCheckIn('${eventId}', '${rsvp.userId}')">
+                            ${isCheckedIn ? '✓ Checked In' : 'Check In'}
+                        </button>
+                    </div>
+                `;
+            }).join('') : `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                    <p>No RSVPs to check in.</p>
+                </div>
+            `}
+        </div>
+
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-cream-dark);">
+            <button class="btn btn-secondary btn-sm" onclick="addWalkInAttendee('${eventId}')" style="width: 100%; justify-content: center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Walk-in Attendee
+            </button>
+        </div>
+    `;
+
+    const footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
+
+    openModal(`Check-in: ${event.title}`, bodyHTML, footerHTML);
+}
+
+async function toggleCheckIn(eventId, userId) {
+    const event = DataService.getEventById(eventId);
+    if (!event) return;
+
+    const checkedIn = event.checkedIn || [];
+    const isCheckedIn = checkedIn.includes(userId);
+
+    let newCheckedIn;
+    if (isCheckedIn) {
+        newCheckedIn = checkedIn.filter(id => id !== userId);
+    } else {
+        newCheckedIn = [...checkedIn, userId];
+    }
+
+    try {
+        if (PortalConfig.useFirebase && window.DB) {
+            await DB.updateEvent(eventId, { checkedIn: newCheckedIn });
+        }
+
+        // Update local data
+        const eventIdx = MockDB.events.findIndex(e => e.id === eventId);
+        if (eventIdx !== -1) {
+            MockDB.events[eventIdx].checkedIn = newCheckedIn;
+        }
+
+        // Refresh the modal
+        openCheckInModal(eventId);
+    } catch (error) {
+        showToast(error.message || 'Could not update check-in', 'error');
+    }
+}
+
+async function checkInAll(eventId) {
+    const event = DataService.getEventById(eventId);
+    if (!event) return;
+
+    const allRSVPs = DataService.getEventRSVPs(eventId);
+    const attendingRSVPs = allRSVPs.filter(r => r.status === 'attending' || !r.status);
+    const newCheckedIn = attendingRSVPs.map(r => r.userId);
+
+    try {
+        if (PortalConfig.useFirebase && window.DB) {
+            await DB.updateEvent(eventId, { checkedIn: newCheckedIn });
+        }
+
+        // Update local data
+        const eventIdx = MockDB.events.findIndex(e => e.id === eventId);
+        if (eventIdx !== -1) {
+            MockDB.events[eventIdx].checkedIn = newCheckedIn;
+        }
+
+        showToast('All attendees checked in', 'success');
+        openCheckInModal(eventId);
+    } catch (error) {
+        showToast(error.message || 'Could not check in all', 'error');
+    }
+}
+
+function addWalkInAttendee(eventId) {
+    const bodyHTML = `
+        <form id="walk-in-form">
+            <div class="form-group">
+                <label class="form-label" for="walk-in-name">Name *</label>
+                <input type="text" class="form-input" id="walk-in-name" required placeholder="Enter attendee name">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="walk-in-email">Email (optional)</label>
+                <input type="email" class="form-input" id="walk-in-email" placeholder="For follow-up">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="walk-in-guests">Number of guests</label>
+                <input type="number" class="form-input" id="walk-in-guests" min="0" value="0">
+            </div>
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="openCheckInModal('${eventId}')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveWalkInAttendee('${eventId}')">Add & Check In</button>
+    `;
+
+    openModal('Add Walk-in Attendee', bodyHTML, footerHTML);
+}
+
+async function saveWalkInAttendee(eventId) {
+    const name = document.getElementById('walk-in-name').value.trim();
+    const email = document.getElementById('walk-in-email').value.trim();
+    const guests = parseInt(document.getElementById('walk-in-guests').value) || 0;
+
+    if (!name) {
+        showToast('Name is required', 'error');
+        return;
+    }
+
+    try {
+        const event = DataService.getEventById(eventId);
+        const walkInId = 'walkin-' + Date.now();
+
+        // Add to RSVPs
+        const newRSVP = {
+            id: walkInId,
+            userId: walkInId,
+            userName: name,
+            status: 'attending',
+            notes: email ? `Email: ${email}` : 'Walk-in',
+            attendees: Array(guests).fill('Guest'),
+            isWalkIn: true
+        };
+
+        if (!event.rsvps) event.rsvps = [];
+        event.rsvps.push(newRSVP);
+
+        // Add to checked in
+        if (!event.checkedIn) event.checkedIn = [];
+        event.checkedIn.push(walkInId);
+
+        if (PortalConfig.useFirebase && window.DB) {
+            await DB.updateEvent(eventId, {
+                rsvps: event.rsvps,
+                checkedIn: event.checkedIn
+            });
+        }
+
+        showToast(`${name} added and checked in`, 'success');
+        openCheckInModal(eventId);
+    } catch (error) {
+        showToast(error.message || 'Could not add attendee', 'error');
+    }
+}
+
+// Get event category info
+function getEventCategoryInfo(category) {
+    const categories = {
+        'general': { label: 'General', color: '#6b7280', icon: 'calendar' },
+        'worship': { label: 'Worship', color: '#8b5cf6', icon: 'music' },
+        'study': { label: 'Bible Study', color: '#3b82f6', icon: 'book' },
+        'prayer': { label: 'Prayer', color: '#ec4899', icon: 'heart' },
+        'social': { label: 'Social', color: '#f59e0b', icon: 'users' },
+        'outreach': { label: 'Outreach', color: '#10b981', icon: 'globe' },
+        'youth': { label: 'Youth', color: '#06b6d4', icon: 'zap' },
+        'kids': { label: 'Kids', color: '#f97316', icon: 'smile' },
+        'workshop': { label: 'Workshop', color: '#6366f1', icon: 'tool' }
+    };
+    return categories[category] || categories['general'];
 }
 
 // ============================================
