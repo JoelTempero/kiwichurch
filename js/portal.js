@@ -3705,25 +3705,154 @@ function sendPushNotification(title, body, icon) {
 // SEARCH MODAL
 // ============================================
 
+// Current search filter
+let searchFilter = 'all';
+
+// Get recent searches from localStorage
+function getRecentSearches() {
+    try {
+        return JSON.parse(localStorage.getItem('recentSearches') || '[]');
+    } catch {
+        return [];
+    }
+}
+
+// Save search to recent
+function saveRecentSearch(query) {
+    if (!query || query.length < 2) return;
+
+    let recent = getRecentSearches();
+    // Remove if exists and add to front
+    recent = recent.filter(s => s.toLowerCase() !== query.toLowerCase());
+    recent.unshift(query);
+    // Keep only last 5
+    recent = recent.slice(0, 5);
+
+    try {
+        localStorage.setItem('recentSearches', JSON.stringify(recent));
+    } catch {}
+}
+
+// Clear recent searches
+function clearRecentSearches() {
+    localStorage.removeItem('recentSearches');
+    showInitialSearchState();
+}
+
 function openSearchModal() {
+    searchFilter = 'all';
+
     const bodyHTML = `
-        <div style="margin-bottom: 1rem;">
-            <input type="text" class="form-input" id="search-input" placeholder="Search events, groups, posts..."
-                   oninput="performSearch(this.value)" autofocus style="font-size: 1rem;">
+        <div style="margin-bottom: 0.75rem;">
+            <div style="position: relative;">
+                <input type="text" class="form-input" id="search-input" placeholder="Search events, groups, posts, people..."
+                       oninput="performSearch(this.value)" onkeydown="handleSearchKeydown(event)" autofocus style="font-size: 1rem; padding-left: 2.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </div>
         </div>
-        <div id="search-results" style="max-height: 400px; overflow-y: auto;">
-            <p style="color: var(--color-text-light); text-align: center; padding: 1rem;">
-                Type to search...
-            </p>
+
+        <!-- Filter Tabs -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 1rem;">
+            <button id="filter-all" onclick="setSearchFilter('all')" class="btn btn-sm btn-primary" style="border-radius: 999px;">All</button>
+            <button id="filter-events" onclick="setSearchFilter('events')" class="btn btn-sm btn-ghost" style="border-radius: 999px; background: var(--color-cream);">Events</button>
+            <button id="filter-groups" onclick="setSearchFilter('groups')" class="btn btn-sm btn-ghost" style="border-radius: 999px; background: var(--color-cream);">Groups</button>
+            <button id="filter-kete" onclick="setSearchFilter('kete')" class="btn btn-sm btn-ghost" style="border-radius: 999px; background: var(--color-cream);">Kete</button>
+            <button id="filter-posts" onclick="setSearchFilter('posts')" class="btn btn-sm btn-ghost" style="border-radius: 999px; background: var(--color-cream);">Posts</button>
+            <button id="filter-people" onclick="setSearchFilter('people')" class="btn btn-sm btn-ghost" style="border-radius: 999px; background: var(--color-cream);">People</button>
+        </div>
+
+        <div id="search-results" style="max-height: 350px; overflow-y: auto;">
         </div>
     `;
 
     openModal('Search', bodyHTML, '');
 
-    // Focus the input after modal opens
+    // Focus the input and show initial state
     setTimeout(() => {
         document.getElementById('search-input')?.focus();
+        showInitialSearchState();
     }, 100);
+}
+
+function showInitialSearchState() {
+    const resultsContainer = document.getElementById('search-results');
+    if (!resultsContainer) return;
+
+    const recent = getRecentSearches();
+
+    if (recent.length > 0) {
+        resultsContainer.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase;">Recent Searches</span>
+                <button onclick="clearRecentSearches()" style="font-size: 0.75rem; color: var(--color-sage); background: none; border: none; cursor: pointer;">Clear</button>
+            </div>
+            ${recent.map(q => `
+                <div onclick="quickSearch('${escapeHtml(q)}')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: var(--radius-sm);" onmouseover="this.style.background='var(--color-cream)'" onmouseout="this.style.background='transparent'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span style="font-size: 0.9375rem;">${escapeHtml(q)}</span>
+                </div>
+            `).join('')}
+        `;
+    } else {
+        resultsContainer.innerHTML = `
+            <div style="text-align: center; padding: 1rem; color: var(--color-text-light);">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 0.5rem; opacity: 0.5;">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <p style="margin: 0; font-size: 0.9375rem;">Search for anything</p>
+                <p style="margin: 0.25rem 0 0; font-size: 0.75rem;">Events, groups, posts, people...</p>
+            </div>
+        `;
+    }
+}
+
+function quickSearch(query) {
+    const input = document.getElementById('search-input');
+    if (input) {
+        input.value = query;
+        performSearch(query);
+    }
+}
+
+function setSearchFilter(filter) {
+    searchFilter = filter;
+
+    // Update button styles
+    const filters = ['all', 'events', 'groups', 'kete', 'posts', 'people'];
+    filters.forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (btn) {
+            if (f === filter) {
+                btn.className = 'btn btn-sm btn-primary';
+                btn.style.background = '';
+            } else {
+                btn.className = 'btn btn-sm btn-ghost';
+                btn.style.background = 'var(--color-cream)';
+            }
+        }
+    });
+
+    // Re-run search
+    const query = document.getElementById('search-input')?.value;
+    if (query) {
+        performSearch(query);
+    }
+}
+
+function handleSearchKeydown(event) {
+    if (event.key === 'Enter') {
+        const query = event.target.value.trim();
+        if (query.length >= 2) {
+            saveRecentSearch(query);
+        }
+    }
 }
 
 function performSearch(query) {
@@ -3731,75 +3860,148 @@ function performSearch(query) {
     if (!resultsContainer) return;
 
     if (!query || query.length < 2) {
-        resultsContainer.innerHTML = `<p style="color: var(--color-text-light); text-align: center; padding: 1rem;">Type at least 2 characters to search...</p>`;
+        showInitialSearchState();
         return;
     }
 
     const results = DataService.search(query);
-    const hasResults = results.events.length > 0 || results.groups.length > 0 || results.kete.length > 0 || results.posts.length > 0;
+
+    // Search users too
+    const q = query.toLowerCase();
+    const users = MockDB.users.filter(u =>
+        u.displayName.toLowerCase().includes(q) ||
+        u.username?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q)
+    ).slice(0, 5);
+
+    // Apply filter
+    let filteredResults = { ...results, users };
+    if (searchFilter !== 'all') {
+        filteredResults = {
+            events: searchFilter === 'events' ? results.events : [],
+            groups: searchFilter === 'groups' ? results.groups : [],
+            kete: searchFilter === 'kete' ? results.kete : [],
+            posts: searchFilter === 'posts' ? results.posts : [],
+            users: searchFilter === 'people' ? users : []
+        };
+    }
+
+    const hasResults = filteredResults.events.length > 0 ||
+                       filteredResults.groups.length > 0 ||
+                       filteredResults.kete.length > 0 ||
+                       filteredResults.posts.length > 0 ||
+                       filteredResults.users.length > 0;
 
     if (!hasResults) {
-        resultsContainer.innerHTML = `<p style="color: var(--color-text-light); text-align: center; padding: 1rem;">No results found for "${escapeHtml(query)}"</p>`;
+        resultsContainer.innerHTML = `
+            <div style="text-align: center; padding: 1.5rem; color: var(--color-text-light);">
+                <p style="margin: 0;">No results found for "${escapeHtml(query)}"</p>
+                ${searchFilter !== 'all' ? `<button onclick="setSearchFilter('all')" style="margin-top: 0.5rem; color: var(--color-sage); background: none; border: none; cursor: pointer; font-size: 0.875rem;">Try searching all categories</button>` : ''}
+            </div>
+        `;
         return;
     }
 
     let html = '';
 
-    if (results.events.length > 0) {
+    // Result icons
+    const icons = {
+        event: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>',
+        group: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
+        kete: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>',
+        post: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+        user: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'
+    };
+
+    if (filteredResults.events.length > 0) {
         html += `
             <div style="margin-bottom: 1rem;">
-                <h4 style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; margin-bottom: 0.5rem;">Events</h4>
-                ${results.events.map(e => `
-                    <div onclick="closeModal(); openEventModal('${e.id}')" style="padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
-                        <div style="font-weight: 500;">${escapeHtml(e.title)}</div>
-                        <div style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(e.date)} • ${e.location}</div>
+                <h4 style="font-size: 0.6875rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.375rem;">Events</h4>
+                ${filteredResults.events.map(e => `
+                    <div onclick="saveRecentSearch('${escapeHtml(query)}'); closeModal(); openEventModal('${e.id}')" style="display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
+                        <div style="color: var(--color-sage); margin-top: 2px;">${icons.event}</div>
+                        <div>
+                            <div style="font-weight: 500; font-size: 0.9375rem;">${escapeHtml(e.title)}</div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(e.date)} • ${escapeHtml(e.location || 'TBD')}</div>
+                        </div>
                     </div>
                 `).join('')}
             </div>
         `;
     }
 
-    if (results.groups.length > 0) {
+    if (filteredResults.groups.length > 0) {
         html += `
             <div style="margin-bottom: 1rem;">
-                <h4 style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; margin-bottom: 0.5rem;">Groups</h4>
-                ${results.groups.map(g => `
-                    <div onclick="closeModal(); navigateToGroup('${g.id}')" style="padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
-                        <div style="font-weight: 500;">${escapeHtml(g.name)}</div>
-                        <div style="font-size: 0.75rem; color: var(--color-text-light);">${g.rhythm}</div>
+                <h4 style="font-size: 0.6875rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.375rem;">Groups</h4>
+                ${filteredResults.groups.map(g => `
+                    <div onclick="saveRecentSearch('${escapeHtml(query)}'); closeModal(); navigateToGroup('${g.id}')" style="display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
+                        <div style="color: ${g.color || 'var(--color-sage)'}; margin-top: 2px;">${icons.group}</div>
+                        <div>
+                            <div style="font-weight: 500; font-size: 0.9375rem;">${escapeHtml(g.name)}</div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light);">${escapeHtml(g.rhythm || g.description || '')}</div>
+                        </div>
                     </div>
                 `).join('')}
             </div>
         `;
     }
 
-    if (results.kete.length > 0) {
+    if (filteredResults.kete.length > 0) {
         html += `
             <div style="margin-bottom: 1rem;">
-                <h4 style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; margin-bottom: 0.5rem;">Kete Posts</h4>
-                ${results.kete.map(k => `
-                    <div onclick="closeModal(); openKetePostModal('${k.id}')" style="padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
-                        <div style="font-weight: 500;">${escapeHtml(k.title)}</div>
-                        <div style="font-size: 0.75rem; color: var(--color-text-light);">${k.authorName}</div>
+                <h4 style="font-size: 0.6875rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.375rem;">Kete Posts</h4>
+                ${filteredResults.kete.map(k => `
+                    <div onclick="saveRecentSearch('${escapeHtml(query)}'); closeModal(); openKetePostModal('${k.id}')" style="display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
+                        <div style="color: var(--color-terracotta); margin-top: 2px;">${icons.kete}</div>
+                        <div>
+                            <div style="font-weight: 500; font-size: 0.9375rem;">${escapeHtml(k.title)}</div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light);">${escapeHtml(k.authorName)}</div>
+                        </div>
                     </div>
                 `).join('')}
             </div>
         `;
     }
 
-    if (results.posts.length > 0) {
+    if (filteredResults.posts.length > 0) {
         html += `
             <div style="margin-bottom: 1rem;">
-                <h4 style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; margin-bottom: 0.5rem;">Board Posts</h4>
-                ${results.posts.map(p => {
+                <h4 style="font-size: 0.6875rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.375rem;">Board Posts</h4>
+                ${filteredResults.posts.map(p => {
                     const group = DataService.getGatheringById(p.gatheringId);
                     return `
-                        <div onclick="closeModal(); navigateToGroup('${p.gatheringId}')" style="padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
-                            <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.content.substring(0, 50))}...</div>
-                            <div style="font-size: 0.75rem; color: var(--color-text-light);">${p.authorName} in ${group?.name || 'Unknown'}</div>
+                        <div onclick="saveRecentSearch('${escapeHtml(query)}'); closeModal(); navigateToGroup('${p.gatheringId}')" style="display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
+                            <div style="color: var(--color-sage); margin-top: 2px;">${icons.post}</div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 500; font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.content.substring(0, 50))}...</div>
+                                <div style="font-size: 0.75rem; color: var(--color-text-light);">${escapeHtml(p.authorName)} in ${escapeHtml(group?.name || 'Unknown')}</div>
+                            </div>
                         </div>
                     `;
                 }).join('')}
+            </div>
+        `;
+    }
+
+    if (filteredResults.users.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <h4 style="font-size: 0.6875rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.375rem;">People</h4>
+                ${filteredResults.users.map(u => `
+                    <div onclick="saveRecentSearch('${escapeHtml(query)}'); closeModal(); openUserProfileModal('${u.id}')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.25rem; cursor: pointer;">
+                        <div style="width: 28px; height: 28px; border-radius: 50%; overflow: hidden; background: var(--color-sage); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            ${u.photoURL
+                                ? `<img src="${u.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                                : `<span style="color: white; font-size: 0.75rem;">${u.displayName.charAt(0)}</span>`
+                            }
+                        </div>
+                        <div>
+                            <div style="font-weight: 500; font-size: 0.9375rem;">${escapeHtml(u.displayName)}</div>
+                            ${u.username ? `<div style="font-size: 0.75rem; color: var(--color-text-light);">@${escapeHtml(u.username)}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('')}
             </div>
         `;
     }
