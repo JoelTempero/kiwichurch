@@ -225,7 +225,24 @@
 
     <!-- App View (shown when authenticated) -->
     <div id="app-view" style="display: none;">
-        <!-- App Header (Mobile) -->
+        <!-- Desktop Sidebar (hidden on mobile via CSS) -->
+        <aside class="desktop-sidebar" id="desktop-sidebar">
+            <div class="desktop-sidebar-logo">
+                <a href="index.html">
+                    <img src="KiwiChurch_Old_White.png" alt="Kiwi Church">
+                </a>
+            </div>
+            <nav class="desktop-sidebar-nav" id="desktop-nav">
+                <!-- Nav items rendered by JavaScript -->
+            </nav>
+            <div class="desktop-sidebar-footer">
+                <div class="desktop-user-info" onclick="navigateTo('profile')" id="desktop-user-info">
+                    <!-- User info rendered by JavaScript -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- App Header -->
         <div class="app-header" id="app-header">
             <h1 class="app-header-title" id="page-title">Home</h1>
             <div class="app-header-actions">
@@ -242,7 +259,7 @@
                     </svg>
                     <span id="notification-badge" style="display: none; position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: #dc2626; border-radius: 50%;"></span>
                 </button>
-                <button class="btn btn-ghost btn-sm" onclick="navigateTo('profile')" title="Profile">
+                <button class="btn btn-ghost btn-sm desktop-hide" onclick="navigateTo('profile')" title="Profile">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
