@@ -3402,53 +3402,90 @@ function escapeHtml(text) {
 // NOTIFICATIONS MODAL
 // ============================================
 
+// Notification icons
+const NOTIFICATION_ICONS = {
+    comment: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+    post: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>',
+    event: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>',
+    rsvp: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+    mention: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg>',
+    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+    welcome: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>'
+};
+
 function updateNotificationBadge() {
     const badge = document.getElementById('notification-badge');
     if (!badge) return;
 
     const count = DataService.getUnreadNotificationCount();
-    badge.style.display = count > 0 ? 'block' : 'none';
+    if (count > 0) {
+        badge.style.display = 'flex';
+        badge.style.alignItems = 'center';
+        badge.style.justifyContent = 'center';
+        badge.style.width = count > 9 ? '18px' : '16px';
+        badge.style.height = '16px';
+        badge.style.fontSize = '0.625rem';
+        badge.style.fontWeight = '600';
+        badge.style.color = 'white';
+        badge.textContent = count > 99 ? '99+' : count;
+    } else {
+        badge.style.display = 'none';
+        badge.textContent = '';
+    }
 }
 
 function openNotificationsModal() {
     const notifications = DataService.getNotifications();
+    const unreadCount = DataService.getUnreadNotificationCount();
 
-    const notificationIcons = {
-        comment: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
-        post: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>',
-        event: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>',
-        rsvp: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
-        mention: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg>'
-    };
+    const bodyHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-cream-dark);">
+            <span style="font-size: 0.875rem; color: var(--color-text-light);">
+                ${unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+            </span>
+            <button class="btn btn-ghost btn-sm" onclick="openNotificationSettingsModal()" title="Notification settings">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
 
-    const bodyHTML = notifications.length > 0 ? `
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            ${notifications.map(n => `
-                <div onclick="handleNotificationClick('${n.id}', ${JSON.stringify(n.link).replace(/"/g, '&quot;')})"
-                     style="display: flex; gap: 0.75rem; padding: 0.75rem; background: ${n.read ? 'var(--color-cream)' : 'var(--color-sage-light)'}; border-radius: var(--radius-md); cursor: pointer;">
-                    <div style="width: 32px; height: 32px; background: ${n.read ? 'var(--color-cream-dark)' : 'var(--color-sage)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: ${n.read ? 'var(--color-text-light)' : 'white'}; flex-shrink: 0;">
-                        ${notificationIcons[n.type] || notificationIcons.post}
+        ${notifications.length > 0 ? `
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
+                ${notifications.map(n => `
+                    <div style="display: flex; gap: 0.75rem; padding: 0.75rem; background: ${n.read ? 'var(--color-cream)' : 'var(--color-sage-light)'}; border-radius: var(--radius-md); position: relative;">
+                        <div onclick="handleNotificationClick('${n.id}', ${JSON.stringify(n.link).replace(/"/g, '&quot;')})" style="display: flex; gap: 0.75rem; flex: 1; cursor: pointer;">
+                            <div style="width: 32px; height: 32px; background: ${n.read ? 'var(--color-cream-dark)' : 'var(--color-sage)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: ${n.read ? 'var(--color-text-light)' : 'white'}; flex-shrink: 0;">
+                                ${NOTIFICATION_ICONS[n.type] || NOTIFICATION_ICONS.post}
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: ${n.read ? '400' : '500'}; font-size: 0.9375rem;">${escapeHtml(n.title)}</div>
+                                <div style="color: var(--color-text-light); font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(n.message)}</div>
+                                <div style="color: var(--color-text-light); font-size: 0.75rem; margin-top: 0.25rem;">${formatRelativeTime(n.createdAt)}</div>
+                            </div>
+                        </div>
+                        <button onclick="deleteNotification('${n.id}')" style="position: absolute; top: 0.5rem; right: 0.5rem; width: 20px; height: 20px; border: none; background: none; cursor: pointer; opacity: 0.5; display: flex; align-items: center; justify-content: center;" title="Delete notification">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
-                    <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: ${n.read ? '400' : '500'}; font-size: 0.9375rem;">${n.title}</div>
-                        <div style="color: var(--color-text-light); font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${n.message}</div>
-                        <div style="color: var(--color-text-light); font-size: 0.75rem; margin-top: 0.25rem;">${formatRelativeTime(n.createdAt)}</div>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    ` : `
-        <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <p style="margin: 0;">No notifications</p>
-            <p style="font-size: 0.875rem; margin-top: 0.5rem;">You're all caught up!</p>
-        </div>
+                `).join('')}
+            </div>
+        ` : `
+            <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <p style="margin: 0;">No notifications</p>
+                <p style="font-size: 0.875rem; margin-top: 0.5rem;">You're all caught up!</p>
+            </div>
+        `}
     `;
 
-    const unreadCount = DataService.getUnreadNotificationCount();
     const footerHTML = `
         ${unreadCount > 0 ? `<button class="btn btn-ghost" onclick="markAllNotificationsRead()">Mark all as read</button>` : ''}
         <button class="btn btn-secondary" onclick="closeModal()">Close</button>
@@ -3476,6 +3513,192 @@ function markAllNotificationsRead() {
     updateNotificationBadge();
     openNotificationsModal(); // Refresh modal
     showToast('All notifications marked as read', 'default');
+}
+
+function deleteNotification(notifId) {
+    const user = DataService.getCurrentUser();
+    if (!user) return;
+
+    const index = MockDB.notifications.findIndex(n => n.id === notifId && n.userId === user.id);
+    if (index > -1) {
+        MockDB.notifications.splice(index, 1);
+    }
+
+    updateNotificationBadge();
+    openNotificationsModal(); // Refresh modal
+}
+
+// Notification Settings
+function openNotificationSettingsModal() {
+    const currentUser = DataService.getCurrentUser();
+    const settings = currentUser?.notificationSettings || {
+        emailEvents: true,
+        emailPosts: false,
+        emailComments: true,
+        emailMentions: true,
+        pushEnabled: false,
+        pushEvents: true,
+        pushPosts: true,
+        pushComments: true,
+        pushMentions: true
+    };
+
+    const pushSupported = 'Notification' in window;
+    const pushPermission = pushSupported ? Notification.permission : 'denied';
+
+    document.getElementById('modal-title').textContent = 'Notification Settings';
+    document.getElementById('modal-body').innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Push Notifications -->
+            <div>
+                <h4 style="margin: 0 0 0.75rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    Push Notifications
+                </h4>
+                ${!pushSupported ? `
+                    <p style="color: var(--color-text-light); font-size: 0.875rem;">Push notifications are not supported in this browser.</p>
+                ` : pushPermission === 'denied' ? `
+                    <p style="color: var(--color-text-light); font-size: 0.875rem;">Push notifications are blocked. Please enable them in your browser settings.</p>
+                ` : `
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm); cursor: pointer;">
+                            <span>Enable push notifications</span>
+                            <input type="checkbox" id="push-enabled" ${settings.pushEnabled && pushPermission === 'granted' ? 'checked' : ''} onchange="togglePushNotifications(this.checked)">
+                        </label>
+                        <div id="push-options" style="${settings.pushEnabled && pushPermission === 'granted' ? '' : 'opacity: 0.5; pointer-events: none;'}">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="push-events" ${settings.pushEvents ? 'checked' : ''}>
+                                <span style="font-size: 0.875rem;">New events and reminders</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="push-posts" ${settings.pushPosts ? 'checked' : ''}>
+                                <span style="font-size: 0.875rem;">New posts in your groups</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="push-comments" ${settings.pushComments ? 'checked' : ''}>
+                                <span style="font-size: 0.875rem;">Comments on your posts</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="push-mentions" ${settings.pushMentions ? 'checked' : ''}>
+                                <span style="font-size: 0.875rem;">When someone mentions you</span>
+                            </label>
+                        </div>
+                    </div>
+                `}
+            </div>
+
+            <!-- Email Notifications -->
+            <div>
+                <h4 style="margin: 0 0 0.75rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    Email Notifications
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="email-events" ${settings.emailEvents ? 'checked' : ''}>
+                        <span style="font-size: 0.875rem;">Event reminders (1 day before)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="email-posts" ${settings.emailPosts ? 'checked' : ''}>
+                        <span style="font-size: 0.875rem;">Weekly digest of new posts</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="email-comments" ${settings.emailComments ? 'checked' : ''}>
+                        <span style="font-size: 0.875rem;">Comments on your posts</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="email-mentions" ${settings.emailMentions ? 'checked' : ''}>
+                        <span style="font-size: 0.875rem;">When someone mentions you</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+            <button class="btn btn-ghost" onclick="openNotificationsModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveNotificationSettings()">Save Settings</button>
+        </div>
+    `;
+
+    openModal();
+}
+
+async function togglePushNotifications(enabled) {
+    if (enabled) {
+        if ('Notification' in window) {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                document.getElementById('push-options').style.opacity = '1';
+                document.getElementById('push-options').style.pointerEvents = 'auto';
+                showToast('Push notifications enabled!', 'success');
+            } else {
+                document.getElementById('push-enabled').checked = false;
+                showToast('Push notifications were denied', 'error');
+            }
+        }
+    } else {
+        document.getElementById('push-options').style.opacity = '0.5';
+        document.getElementById('push-options').style.pointerEvents = 'none';
+    }
+}
+
+async function saveNotificationSettings() {
+    const settings = {
+        emailEvents: document.getElementById('email-events')?.checked ?? true,
+        emailPosts: document.getElementById('email-posts')?.checked ?? false,
+        emailComments: document.getElementById('email-comments')?.checked ?? true,
+        emailMentions: document.getElementById('email-mentions')?.checked ?? true,
+        pushEnabled: document.getElementById('push-enabled')?.checked ?? false,
+        pushEvents: document.getElementById('push-events')?.checked ?? true,
+        pushPosts: document.getElementById('push-posts')?.checked ?? true,
+        pushComments: document.getElementById('push-comments')?.checked ?? true,
+        pushMentions: document.getElementById('push-mentions')?.checked ?? true
+    };
+
+    const currentUser = DataService.getCurrentUser();
+    if (currentUser) {
+        currentUser.notificationSettings = settings;
+
+        // Save to Firebase if enabled
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+            try {
+                const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                await updateDoc(doc(db, 'users', currentUser.id), {
+                    notificationSettings: settings
+                });
+            } catch (error) {
+                console.error('Error saving notification settings:', error);
+            }
+        }
+    }
+
+    showToast('Notification settings saved', 'success');
+    openNotificationsModal();
+}
+
+// Send a push notification (if enabled)
+function sendPushNotification(title, body, icon) {
+    const currentUser = DataService.getCurrentUser();
+    const settings = currentUser?.notificationSettings;
+
+    if (settings?.pushEnabled && 'Notification' in window && Notification.permission === 'granted') {
+        const notification = new Notification(title, {
+            body: body,
+            icon: icon || '/images/kiwi-logo.svg',
+            badge: '/images/kiwi-logo.svg'
+        });
+
+        notification.onclick = () => {
+            window.focus();
+            notification.close();
+        };
+    }
 }
 
 // ============================================
