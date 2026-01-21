@@ -154,7 +154,7 @@
     </main>
 
     <!-- Post Modal -->
-    <div id="post-modal" class="modal-overlay" style="display: none;">
+    <div id="post-modal" class="modal-overlay">
         <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
             <button class="modal-close" onclick="closePostModal()" aria-label="Close modal">&times;</button>
             <div id="post-modal-content">
@@ -469,7 +469,7 @@ So if you've been away for a while, know this: you're still part of us. And when
                 </article>
             `;
 
-            modal.style.display = 'flex';
+            modal.classList.add('open');
             document.body.style.overflow = 'hidden';
         };
 
@@ -477,7 +477,7 @@ So if you've been away for a while, know this: you're still part of us. And when
         window.closePostModal = function() {
             const modal = document.getElementById('post-modal');
             if (modal) {
-                modal.style.display = 'none';
+                modal.classList.remove('open');
                 document.body.style.overflow = '';
             }
         };
