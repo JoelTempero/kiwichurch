@@ -152,7 +152,7 @@
             </div>
             <div class="hero-overlay"></div>
             <div class="hero-content">
-                <img src="KiwiChurch_Old_White_Shadow.png" alt="" class="hero-logo" aria-hidden="true" style="transform: scale(4); margin-bottom: 3rem;">
+                <img src="KiwiChurch_Old_White_Shadow.png" alt="" class="hero-logo" aria-hidden="true" style="width: 400px; height: auto; margin-bottom: 3rem;">
                 <h1 class="hero-title">Welcome to the Table</h1>
                 <p class="hero-subtitle">"A desire for faith, meaning, community and authentic relationship"</p>
             </div>
@@ -391,7 +391,10 @@
             const container = document.getElementById('upcoming-events');
             if (!container) return;
 
-            container.innerHTML = sampleEvents.map(event => {
+            // Filter to only show public events on the public website
+            const publicEvents = sampleEvents.filter(event => event.isPublic);
+
+            container.innerHTML = publicEvents.map(event => {
                 const date = new Date(event.date);
                 const day = date.getDate();
                 const month = date.toLocaleDateString('en-NZ', { month: 'short' });
@@ -421,7 +424,7 @@
                                 </span>
                             </div>
                         </div>
-                        <span class="event-badge ${event.isPublic ? '' : 'private'}">${event.isPublic ? 'Open' : 'Members'}</span>
+                        <span class="event-badge">Open</span>
                     </article>
                 `;
             }).join('');

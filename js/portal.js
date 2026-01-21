@@ -679,11 +679,29 @@ const DataService = {
 
     // Create new kete post
     async createKetePost(postData) {
-        if (PortalConfig.useFirebase && window.DB) {
-            return await DB.createKetePost(postData);
-        }
         const user = this.getCurrentUser();
         const now = new Date().toISOString();
+
+        if (PortalConfig.useFirebase && window.DB) {
+            const result = await DB.createKetePost({
+                ...postData,
+                authorId: user.id,
+                authorName: user.displayName
+            });
+            // Also update MockDB so the UI reflects the change immediately
+            const newPost = {
+                id: result.id,
+                ...postData,
+                authorId: user.id,
+                authorName: user.displayName,
+                createdAt: now,
+                updatedAt: now,
+                publishedAt: postData.published ? now.split('T')[0] : null
+            };
+            MockDB.kete.unshift(newPost);
+            return result;
+        }
+
         const newPost = {
             id: 'kete-' + Date.now(),
             ...postData,
@@ -699,20 +717,23 @@ const DataService = {
 
     // Update kete post
     async updateKetePost(postId, updates) {
-        if (PortalConfig.useFirebase && window.DB) {
-            return await DB.updateKetePost(postId, updates);
-        }
         const post = MockDB.kete.find(k => k.id === postId);
-        if (post) {
-            const wasPublished = post.published;
-            Object.assign(post, updates, { updatedAt: new Date().toISOString() });
-            // Set publishedAt when first published
-            if (!wasPublished && updates.published) {
-                post.publishedAt = new Date().toISOString().split('T')[0];
-            }
-            return post;
+        if (!post) {
+            throw new Error('Post not found');
         }
-        throw new Error('Post not found');
+
+        if (PortalConfig.useFirebase && window.DB) {
+            await DB.updateKetePost(postId, updates);
+        }
+
+        // Always update MockDB so the UI reflects the change immediately
+        const wasPublished = post.published;
+        Object.assign(post, updates, { updatedAt: new Date().toISOString() });
+        // Set publishedAt when first published
+        if (!wasPublished && updates.published) {
+            post.publishedAt = new Date().toISOString().split('T')[0];
+        }
+        return post;
     },
 
     // Delete kete post
@@ -809,7 +830,16 @@ const DataService = {
         };
 
         if (PortalConfig.useFirebase && window.DB) {
-            return await DB.createBoardPost(gatheringId, postData);
+            const result = await DB.createBoardPost(gatheringId, postData);
+            // Also update MockDB so the UI reflects the change immediately
+            const board = this.getMessageBoard(gatheringId);
+            const newPost = {
+                id: result.id,
+                ...postData,
+                createdAt: new Date().toISOString()
+            };
+            board.posts.unshift(newPost);
+            return result;
         }
 
         const board = this.getMessageBoard(gatheringId);
@@ -1917,13 +1947,52 @@ function openCreateEventModal(prefillGatheringId = null) {
                 <label class="form-label">Recurring Event</label>
                 <select class="form-input" id="event-recurring" onchange="toggleRecurringOptions(this.value)">
                     <option value="">One-time event</option>
+                    <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
-                    <option value="fortnightly">Fortnightly</option>
-                    <option value="monthly">Monthly</option>
+                    <option value="fortnightly">Fortnightly (every 2 weeks)</option>
+                    <option value="monthly-date">Monthly (same date)</option>
+                    <option value="monthly-day">Monthly (same day, e.g., first Monday)</option>
+                    <option value="custom">Custom interval</option>
                 </select>
             </div>
 
             <div id="recurring-options" style="display: none;">
+                <!-- Custom interval options (shown when custom is selected) -->
+                <div id="custom-interval-options" style="display: none; margin-bottom: 1rem;">
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <span style="white-space: nowrap;">Every</span>
+                        <input type="number" class="form-input" id="event-interval-value" min="1" value="1" style="width: 80px;">
+                        <select class="form-input" id="event-interval-unit" style="flex: 1;">
+                            <option value="days">day(s)</option>
+                            <option value="weeks">week(s)</option>
+                            <option value="months">month(s)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Monthly day options (shown when monthly-day is selected) -->
+                <div id="monthly-day-options" style="display: none; margin-bottom: 1rem;">
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <select class="form-input" id="event-week-of-month" style="flex: 1;">
+                            <option value="1">First</option>
+                            <option value="2">Second</option>
+                            <option value="3">Third</option>
+                            <option value="4">Fourth</option>
+                            <option value="last">Last</option>
+                        </select>
+                        <select class="form-input" id="event-day-of-week" style="flex: 1;">
+                            <option value="0">Sunday</option>
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                            <option value="6">Saturday</option>
+                        </select>
+                        <span style="white-space: nowrap;">of the month</span>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label" for="event-recurring-until">Repeat until</label>
                     <input type="date" class="form-input" id="event-recurring-until">
@@ -1993,8 +2062,32 @@ function previewEventImage(input, previewId) {
 // Toggle recurring event options
 function toggleRecurringOptions(value) {
     const optionsDiv = document.getElementById('recurring-options');
+    const customIntervalOptions = document.getElementById('custom-interval-options');
+    const monthlyDayOptions = document.getElementById('monthly-day-options');
+
     if (optionsDiv) {
         optionsDiv.style.display = value ? 'block' : 'none';
+
+        // Show/hide specific option sections
+        if (customIntervalOptions) {
+            customIntervalOptions.style.display = value === 'custom' ? 'block' : 'none';
+        }
+        if (monthlyDayOptions) {
+            monthlyDayOptions.style.display = value === 'monthly-day' ? 'block' : 'none';
+
+            // Auto-detect day of week from start date
+            if (value === 'monthly-day') {
+                const startDate = document.getElementById('event-date')?.value;
+                if (startDate) {
+                    const date = new Date(startDate);
+                    const dayOfWeek = date.getDay();
+                    const weekOfMonth = Math.min(Math.ceil(date.getDate() / 7), 4);
+                    document.getElementById('event-day-of-week').value = dayOfWeek;
+                    document.getElementById('event-week-of-month').value = weekOfMonth;
+                }
+            }
+        }
+
         if (value) {
             // Default end date to 3 months from start date
             const startDate = document.getElementById('event-date')?.value;
@@ -2021,6 +2114,12 @@ async function saveNewEvent() {
     const visibility = document.getElementById('event-visibility').value;
     const recurring = document.getElementById('event-recurring')?.value || '';
     const recurringUntil = document.getElementById('event-recurring-until')?.value;
+
+    // Get custom recurring options
+    const intervalValue = parseInt(document.getElementById('event-interval-value')?.value) || 1;
+    const intervalUnit = document.getElementById('event-interval-unit')?.value || 'weeks';
+    const weekOfMonth = document.getElementById('event-week-of-month')?.value || '1';
+    const dayOfWeek = parseInt(document.getElementById('event-day-of-week')?.value) || 0;
 
     // Validation
     if (!title || !gatheringId || !date || !time || !location) {
@@ -2066,15 +2165,23 @@ async function saveNewEvent() {
 
         // Handle recurring events
         if (recurring && recurringUntil) {
-            const dates = generateRecurringDates(date, recurringUntil, recurring);
+            const recurringOptions = {
+                intervalValue,
+                intervalUnit,
+                weekOfMonth,
+                dayOfWeek
+            };
+            const dates = generateRecurringDates(date, recurringUntil, recurring, recurringOptions);
             let createdCount = 0;
 
+            const recurringId = `rec-${Date.now()}`; // Shared ID for all events in series
             for (const eventDate of dates) {
                 await DataService.createEvent({
                     ...baseEventData,
                     date: eventDate,
-                    recurringId: `rec-${Date.now()}`, // Link recurring events
-                    recurringPattern: recurring
+                    recurringId, // Link recurring events
+                    recurringPattern: recurring,
+                    recurringOptions // Store options for reference
                 });
                 createdCount++;
             }
@@ -2099,28 +2206,92 @@ async function saveNewEvent() {
 }
 
 // Generate dates for recurring events
-function generateRecurringDates(startDate, endDate, pattern) {
+function generateRecurringDates(startDate, endDate, pattern, options = {}) {
     const dates = [];
     const current = new Date(startDate);
     const end = new Date(endDate);
+    const startDayOfMonth = current.getDate();
 
     const intervals = {
+        'daily': 1,
         'weekly': 7,
-        'fortnightly': 14,
-        'monthly': 30 // Approximation, handled specially below
+        'fortnightly': 14
     };
 
     while (current <= end) {
         dates.push(current.toISOString().split('T')[0]);
 
-        if (pattern === 'monthly') {
-            current.setMonth(current.getMonth() + 1);
-        } else {
-            current.setDate(current.getDate() + intervals[pattern]);
+        switch (pattern) {
+            case 'daily':
+            case 'weekly':
+            case 'fortnightly':
+                current.setDate(current.getDate() + intervals[pattern]);
+                break;
+
+            case 'monthly-date':
+                // Same date each month (e.g., 15th of every month)
+                current.setMonth(current.getMonth() + 1);
+                // Handle months with fewer days (e.g., Feb 28/29)
+                if (current.getDate() < startDayOfMonth) {
+                    current.setDate(0); // Last day of previous month
+                }
+                break;
+
+            case 'monthly-day':
+                // Same day of month (e.g., first Monday)
+                const weekOfMonth = options.weekOfMonth || 1;
+                const dayOfWeek = options.dayOfWeek !== undefined ? options.dayOfWeek : current.getDay();
+                current.setMonth(current.getMonth() + 1);
+                setToNthDayOfMonth(current, weekOfMonth, dayOfWeek);
+                break;
+
+            case 'custom':
+                // Custom interval
+                const intervalValue = options.intervalValue || 1;
+                const intervalUnit = options.intervalUnit || 'weeks';
+                if (intervalUnit === 'days') {
+                    current.setDate(current.getDate() + intervalValue);
+                } else if (intervalUnit === 'weeks') {
+                    current.setDate(current.getDate() + (intervalValue * 7));
+                } else if (intervalUnit === 'months') {
+                    current.setMonth(current.getMonth() + intervalValue);
+                }
+                break;
+
+            default:
+                // Fallback: weekly
+                current.setDate(current.getDate() + 7);
         }
     }
 
     return dates;
+}
+
+// Helper function to set date to nth occurrence of a day in a month
+function setToNthDayOfMonth(date, weekOfMonth, dayOfWeek) {
+    // First, go to the first day of the month
+    date.setDate(1);
+
+    // Find the first occurrence of the target day
+    const diff = (dayOfWeek - date.getDay() + 7) % 7;
+    date.setDate(1 + diff);
+
+    // Handle "last" week of month
+    if (weekOfMonth === 'last') {
+        // Find the last occurrence
+        while (date.getMonth() === date.getMonth()) {
+            const next = new Date(date);
+            next.setDate(next.getDate() + 7);
+            if (next.getMonth() !== date.getMonth()) break;
+            date.setDate(next.getDate());
+        }
+    } else {
+        // Add weeks to get to the nth occurrence
+        const weeksToAdd = parseInt(weekOfMonth) - 1;
+        date.setDate(date.getDate() + (weeksToAdd * 7));
+    }
+
+    return date;
 }
 
 function openEditEventModal(eventId) {
@@ -2914,6 +3085,12 @@ You can use simple formatting:
             </div>
 
             <div class="form-group">
+                <label class="form-label" for="kete-post-date">Post Date (for records)</label>
+                <input type="date" class="form-input" id="kete-post-date" value="${new Date().toISOString().split('T')[0]}">
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">This is for your records only, not the publish date</small>
+            </div>
+
+            <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
                     <input type="checkbox" id="kete-published" checked>
                     <span>Publish immediately</span>
@@ -2925,8 +3102,8 @@ You can use simple formatting:
 
     const footerHTML = `
         <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-ghost" onclick="saveKetePost(false)">Save Draft</button>
-        <button class="btn btn-primary" onclick="saveKetePost(true)">Publish</button>
+        <button class="btn btn-ghost" id="kete-save-draft-btn" onclick="saveKetePost(false)">Save Draft</button>
+        <button class="btn btn-primary" id="kete-publish-btn" onclick="saveKetePost(true)">Publish</button>
     `;
 
     openModal('New Kete Post', bodyHTML, footerHTML);
@@ -3013,6 +3190,7 @@ async function saveKetePost(publish = true) {
     const content = document.getElementById('kete-content').value.trim();
     const category = document.getElementById('kete-category')?.value || null;
     const series = document.getElementById('kete-series')?.value.trim() || null;
+    const postDate = document.getElementById('kete-post-date')?.value || null;
     const imageInput = document.getElementById('kete-image');
     const attachmentsInput = document.getElementById('kete-attachments');
 
@@ -3021,6 +3199,9 @@ async function saveKetePost(publish = true) {
         showToast('Please fill in all required fields', 'error');
         return;
     }
+
+    // Show loading overlay
+    showKeteSaveLoading(true);
 
     try {
         let featuredImage = null;
@@ -3069,16 +3250,52 @@ async function saveKetePost(publish = true) {
             content,
             category,
             series,
+            postDate, // Store the custom post date
             featuredImage,
             attachments,
             published: publish
         });
 
+        showKeteSaveLoading(false);
         showToast(publish ? 'Post published!' : 'Draft saved!', 'success');
         closeModal();
         renderPage();
     } catch (error) {
+        showKeteSaveLoading(false);
         showToast(error.message || 'Could not save post', 'error');
+    }
+}
+
+// Show/hide loading overlay for Kete save operations
+function showKeteSaveLoading(show) {
+    let overlay = document.getElementById('kete-save-overlay');
+
+    if (show) {
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'kete-save-overlay';
+            overlay.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000;">
+                    <div style="width: 200px; height: 4px; background: var(--color-cream-dark); border-radius: 2px; overflow: hidden; margin-bottom: 1rem;">
+                        <div style="width: 100%; height: 100%; background: var(--color-forest); animation: loading-bar 1.5s ease-in-out infinite;"></div>
+                    </div>
+                    <p style="color: var(--color-forest); font-weight: 500;">Saving your post...</p>
+                </div>
+                <style>
+                    @keyframes loading-bar {
+                        0% { transform: translateX(-100%); }
+                        50% { transform: translateX(0%); }
+                        100% { transform: translateX(100%); }
+                    }
+                </style>
+            `;
+            document.body.appendChild(overlay);
+        }
+        overlay.style.display = 'block';
+    } else {
+        if (overlay) {
+            overlay.remove();
+        }
     }
 }
 
@@ -3161,6 +3378,12 @@ function openEditKetePostModal(postId) {
             ` : ''}
 
             <div class="form-group">
+                <label class="form-label" for="edit-kete-post-date">Post Date (for records)</label>
+                <input type="date" class="form-input" id="edit-kete-post-date" value="${post.postDate || (post.publishedAt ? post.publishedAt.split('T')[0] : '') || (post.createdAt ? post.createdAt.split('T')[0] : '')}">
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">This is for your records only</small>
+            </div>
+
+            <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
                     <input type="checkbox" id="edit-kete-published" ${post.published ? 'checked' : ''}>
                     <span>Published</span>
@@ -3218,6 +3441,7 @@ async function updateKetePost(postId) {
     const content = document.getElementById('edit-kete-content').value.trim();
     const category = document.getElementById('edit-kete-category')?.value || null;
     const series = document.getElementById('edit-kete-series')?.value.trim() || null;
+    const postDate = document.getElementById('edit-kete-post-date')?.value || null;
     const published = document.getElementById('edit-kete-published').checked;
     const imageInput = document.getElementById('edit-kete-image');
     const currentImageContainer = document.getElementById('current-kete-image');
@@ -3228,8 +3452,11 @@ async function updateKetePost(postId) {
         return;
     }
 
+    // Show loading overlay
+    showKeteSaveLoading(true);
+
     try {
-        const updates = { title, excerpt, content, category, series, published };
+        const updates = { title, excerpt, content, category, series, postDate, published };
 
         // Handle image changes
         if (imageInput.files && imageInput.files[0]) {
@@ -3247,10 +3474,12 @@ async function updateKetePost(postId) {
 
         await DataService.updateKetePost(postId, updates);
 
+        showKeteSaveLoading(false);
         showToast('Post updated!', 'success');
         closeModal();
         renderPage();
     } catch (error) {
+        showKeteSaveLoading(false);
         showToast(error.message || 'Could not update post', 'error');
     }
 }
@@ -3482,6 +3711,32 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Get contrasting text color (white or dark) for a given background color
+function getContrastColor(hexColor) {
+    // Remove # if present
+    const hex = hexColor.replace('#', '');
+
+    // Convert to RGB
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // Calculate relative luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // Return white for dark backgrounds, dark for light backgrounds
+    return luminance > 0.5 ? '#1a3a2f' : '#ffffff';
+}
+
+// Get a slightly darkened version of a color for better blending
+function getDarkenedColor(hexColor, amount = 0.15) {
+    const hex = hexColor.replace('#', '');
+    const r = Math.max(0, parseInt(hex.substr(0, 2), 16) * (1 - amount));
+    const g = Math.max(0, parseInt(hex.substr(2, 2), 16) * (1 - amount));
+    const b = Math.max(0, parseInt(hex.substr(4, 2), 16) * (1 - amount));
+    return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 }
 
 // ============================================
@@ -4598,16 +4853,21 @@ function renderGroupPage() {
     const isMember = DataService.isMemberOfGathering(groupId);
     const members = MockDB.gatheringMembers[groupId] || [];
 
+    // Get contrasting text color based on group background color
+    const textColor = getContrastColor(group.color);
+    const isLightBg = textColor !== '#ffffff';
+    const headerGradient = `linear-gradient(135deg, ${group.color} 0%, ${getDarkenedColor(group.color, 0.2)} 100%)`;
+
     if (!canAccess) {
         return `
-            <div style="background: linear-gradient(135deg, ${group.color} 0%, ${group.color}cc 100%); padding: 1.5rem; color: white;">
-                <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: white; opacity: 0.8; margin: -0.5rem 0 0.5rem -0.5rem;">
+            <div style="background: ${headerGradient}; padding: 1.5rem; color: ${textColor};">
+                <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: ${textColor}; opacity: 0.8; margin: -0.5rem 0 0.5rem -0.5rem;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
                     All Groups
                 </button>
-                <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${escapeHtml(group.name)}</h2>
+                <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: ${textColor}; margin: 0;">${escapeHtml(group.name)}</h2>
             </div>
             <div style="padding: 2rem; text-align: center;">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
@@ -4635,17 +4895,20 @@ function renderGroupPage() {
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .slice(0, 3);
 
+    const buttonBorderColor = isLightBg ? 'rgba(26,58,47,0.3)' : 'rgba(255,255,255,0.3)';
+    const buttonTextOpacity = isLightBg ? '1' : '0.8';
+
     return `
-        <div style="background: linear-gradient(135deg, ${group.color} 0%, ${group.color}cc 100%); padding: 1.5rem; color: white;">
+        <div style="background: ${headerGradient}; padding: 1.5rem; color: ${textColor};">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: white; opacity: 0.8; margin: -0.5rem 0 0.5rem -0.5rem;">
+                <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: ${textColor}; opacity: ${buttonTextOpacity}; margin: -0.5rem 0 0.5rem -0.5rem;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
                     All Groups
                 </button>
                 ${isAdmin ? `
-                <button class="btn btn-ghost btn-sm" onclick="openEditGatheringModal('${groupId}')" style="color: white; opacity: 0.8;">
+                <button class="btn btn-ghost btn-sm" onclick="openEditGatheringModal('${groupId}')" style="color: ${textColor}; opacity: ${buttonTextOpacity};">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -4653,19 +4916,19 @@ function renderGroupPage() {
                 </button>
                 ` : ''}
             </div>
-            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${escapeHtml(group.name)}</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">
+            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: ${textColor}; margin: 0;">${escapeHtml(group.name)}</h2>
+            <p style="opacity: ${buttonTextOpacity}; margin: 0.25rem 0 0; font-size: 0.9375rem; color: ${textColor};">
                 ${escapeHtml(group.rhythm)}
                 ${!group.isPublic ? ` • ${members.length} member${members.length !== 1 ? 's' : ''}` : ''}
             </p>
             ${!group.isPublic ? `
             <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
                 ${isMember ? `
-                <button class="btn btn-ghost btn-sm" onclick="leaveGroup('${groupId}')" style="color: white; border-color: rgba(255,255,255,0.3);">Leave Group</button>
+                <button class="btn btn-ghost btn-sm" onclick="leaveGroup('${groupId}')" style="color: ${textColor}; border-color: ${buttonBorderColor};">Leave Group</button>
                 ` : `
-                <button class="btn btn-primary btn-sm" onclick="joinGroup('${groupId}')" style="background: white; color: ${group.color};">Join Group</button>
+                <button class="btn btn-primary btn-sm" onclick="joinGroup('${groupId}')" style="background: ${isLightBg ? '#1a3a2f' : 'white'}; color: ${isLightBg ? 'white' : group.color};">Join Group</button>
                 `}
-                <button class="btn btn-ghost btn-sm" onclick="openGroupMembersModal('${groupId}')" style="color: white; border-color: rgba(255,255,255,0.3);">
+                <button class="btn btn-ghost btn-sm" onclick="openGroupMembersModal('${groupId}')" style="color: ${textColor}; border-color: ${buttonBorderColor};">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                         <circle cx="9" cy="7" r="4"></circle>
@@ -8956,6 +9219,13 @@ function showAppState() {
         }
         */
 
+        // Clear any lingering login error messages
+        const loginError = document.getElementById('login-error');
+        if (loginError) {
+            loginError.style.display = 'none';
+            loginError.textContent = '';
+        }
+
         authView.style.display = 'none';
         appView.style.display = '';  // Clear inline style so CSS media queries work
         document.body.classList.add('app-mode');
@@ -8963,6 +9233,13 @@ function showAppState() {
         renderPage();
         updateNotificationBadge();
     } else {
+        // Clear any lingering login error messages when showing login view
+        const loginError = document.getElementById('login-error');
+        if (loginError) {
+            loginError.style.display = 'none';
+            loginError.textContent = '';
+        }
+
         authView.style.display = 'block';
         appView.style.display = 'none';
         document.body.classList.remove('app-mode');

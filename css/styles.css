@@ -215,7 +215,7 @@ a:hover {
 }
 
 .header.scrolled .header-logo img {
-    filter: none;
+    filter: brightness(0) saturate(100%) invert(18%) sepia(15%) saturate(1200%) hue-rotate(100deg) brightness(95%) contrast(95%);
 }
 
 .header.scrolled .nav-link {
@@ -632,6 +632,10 @@ a:hover {
 
 .section-lg {
     padding: 8rem 2rem;
+}
+
+.section-compact-top {
+    padding-top: 2rem;
 }
 
 .section-dark {
@@ -1479,6 +1483,12 @@ a:hover {
     border-radius: var(--radius-lg);
     overflow-y: auto;
     position: relative;
+    transform: scale(0.9) translateY(20px);
+    transition: all var(--transition-base);
+}
+
+.modal-overlay.open .modal-content {
+    transform: scale(1) translateY(0);
 }
 
 .modal-content .modal-close {
