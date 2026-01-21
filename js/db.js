@@ -6,6 +6,11 @@ const DB = {
     // USERS
     // ============================================
 
+    async getAllUsers() {
+        const snapshot = await db.collection('users').orderBy('displayName').get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    },
+
     async getUser(userId) {
         const doc = await db.collection('users').doc(userId).get();
         return doc.exists ? { id: doc.id, ...doc.data() } : null;

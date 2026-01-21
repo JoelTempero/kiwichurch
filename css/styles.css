@@ -1050,19 +1050,36 @@ a:hover {
 
 .calendar-event-preview {
     font-size: 0.6875rem;
-    padding: 2px 4px;
+    padding: 3px 4px;
     background: var(--color-sage-light);
     border-radius: 2px;
     color: var(--color-forest);
+    overflow: hidden;
+    line-height: 1.3;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.calendar-event-preview .event-title {
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.3;
+}
+
+.calendar-event-preview .event-time {
+    font-size: 0.5625rem;
+    color: var(--color-text-light);
 }
 
 .calendar-day.selected .calendar-event-preview {
     background: rgba(255,255,255,0.2);
     color: white;
+}
+
+.calendar-day.selected .calendar-event-preview .event-time {
+    color: rgba(255,255,255,0.8);
 }
 
 .calendar-event-more {
@@ -1151,6 +1168,9 @@ a:hover {
 
 .blog-card-content {
     padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
 }
 
 .blog-card-date {
@@ -1161,11 +1181,16 @@ a:hover {
 
 .blog-card-title {
     margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+    line-height: 1.3;
 }
 
 .blog-card-excerpt {
     color: var(--color-text-light);
     font-size: 0.9375rem;
+    line-height: 1.6;
+    flex: 1;
+    margin-bottom: 1rem;
 }
 
 /* ============================================

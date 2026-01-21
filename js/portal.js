@@ -3752,10 +3752,9 @@ async function saveNotificationSettings() {
         currentUser.notificationSettings = settings;
 
         // Save to Firebase if enabled
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
             try {
-                const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                await updateDoc(doc(db, 'users', currentUser.id), {
+                await db.collection('users').doc(currentUser.id).update({
                     notificationSettings: settings
                 });
             } catch (error) {
@@ -4352,19 +4351,19 @@ function renderEventsPage() {
             const isToday = isCurrentMonth && day === todayDate;
             const hasEvents = dayEvents.length > 0;
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const firstEvent = dayEvents[0];
 
             calendarHTML += `
                 <div
-                    style="aspect-ratio: 1; padding: 0.25rem; background: ${isToday ? 'var(--color-sage-light)' : hasEvents ? 'var(--color-cream)' : 'transparent'}; border-radius: var(--radius-sm); cursor: ${hasEvents ? 'pointer' : 'default'}; display: flex; flex-direction: column; align-items: center;"
+                    style="min-height: 70px; padding: 0.25rem; background: ${isToday ? 'var(--color-sage-light)' : hasEvents ? 'var(--color-cream)' : 'transparent'}; border-radius: var(--radius-sm); cursor: ${hasEvents ? 'pointer' : 'default'}; display: flex; flex-direction: column;"
                     ${hasEvents ? `onclick="showDayEvents('${dateStr}')"` : ''}
                 >
-                    <span style="font-weight: ${isToday ? '600' : '400'}; font-size: 0.875rem; color: ${isToday ? 'var(--color-forest)' : 'inherit'};">${day}</span>
-                    ${hasEvents ? `
-                        <div style="display: flex; gap: 2px; margin-top: 2px;">
-                            ${dayEvents.slice(0, 3).map(e => {
-                                const gathering = DataService.getGatheringById(e.gatheringId);
-                                return `<span style="width: 6px; height: 6px; border-radius: 50%; background: ${gathering?.color || 'var(--color-sage)'};"></span>`;
-                            }).join('')}
+                    <span style="font-weight: ${isToday ? '600' : '400'}; font-size: 0.875rem; color: ${isToday ? 'var(--color-forest)' : 'inherit'}; text-align: center;">${day}</span>
+                    ${hasEvents && firstEvent ? `
+                        <div style="flex: 1; display: flex; flex-direction: column; margin-top: 2px; overflow: hidden;">
+                            <div style="font-size: 0.625rem; font-weight: 500; line-height: 1.2; color: var(--color-forest); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${firstEvent.title}</div>
+                            <div style="font-size: 0.5625rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${formatTime(firstEvent.time)}</div>
+                            ${dayEvents.length > 1 ? `<div style="font-size: 0.5625rem; color: var(--color-sage); margin-top: auto;">+${dayEvents.length - 1} more</div>` : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -4378,69 +4377,47 @@ function renderEventsPage() {
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Events</h2>
-                    <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">View and RSVP to gatherings</p>
-                </div>
-                <div style="display: flex; gap: 0.25rem; background: rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 0.25rem;">
-                    <button class="btn btn-ghost btn-sm" style="color: white; ${viewMode === 'list' ? 'background: rgba(255,255,255,0.2);' : ''}" onclick="setEventsView('list')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="8" y1="6" x2="21" y2="6"></line>
-                            <line x1="8" y1="12" x2="21" y2="12"></line>
-                            <line x1="8" y1="18" x2="21" y2="18"></line>
-                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                        </svg>
-                    </button>
-                    <button class="btn btn-ghost btn-sm" style="color: white; ${viewMode === 'calendar' ? 'background: rgba(255,255,255,0.2);' : ''}" onclick="setEventsView('calendar')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                    </button>
-                </div>
+            <div>
+                <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Events</h2>
+                <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">View and RSVP to gatherings</p>
             </div>
         </div>
 
-        ${viewMode === 'calendar' ? `
-            <div class="app-section" style="padding-top: 1.5rem;">
-                <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm);">
-                    ${renderCalendar()}
-                </div>
+        <!-- Calendar always shown at top -->
+        <div class="app-section" style="padding-top: 1.5rem;">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm);">
+                ${renderCalendar()}
             </div>
-            <div id="day-events-container"></div>
-        ` : `
-            <div class="app-section" style="padding-top: 1.5rem;">
-                <div class="app-section-header">
-                    <h3 class="app-section-title">Upcoming</h3>
-                </div>
-                ${events.length > 0 ? events.map(event => {
-                    const date = new Date(event.date);
-                    const rsvpStatus = getUserRSVPStatus(event);
-                    const gathering = DataService.getGatheringById(event.gatheringId);
-                    return `
-                        <div class="app-event-card" onclick="openEventModal('${event.id}')">
-                            <div class="app-event-date" style="background: ${gathering?.color || (!event.isPublic ? 'var(--color-terracotta)' : 'var(--color-sage)')};">
-                                <span class="app-event-date-day">${date.getDate()}</span>
-                                <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
-                            </div>
-                            <div class="app-event-info">
-                                <div class="app-event-title">
-                                    ${event.title}
-                                    ${rsvpStatus === 'attending' ? '<span style="color: var(--color-sage);">&#10003;</span>' : ''}
-                                    ${rsvpStatus === 'maybe' ? '<span style="color: var(--color-terracotta);">?</span>' : ''}
-                                </div>
-                                <div class="app-event-meta">${formatTime(event.time)} - ${event.location}</div>
-                            </div>
+        </div>
+        <div id="day-events-container"></div>
+
+        <!-- Events list always shown below calendar -->
+        <div class="app-section" style="padding-top: 1rem;">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Upcoming Events</h3>
+            </div>
+            ${events.length > 0 ? events.map(event => {
+                const date = new Date(event.date);
+                const rsvpStatus = getUserRSVPStatus(event);
+                const gathering = DataService.getGatheringById(event.gatheringId);
+                return `
+                    <div class="app-event-card" onclick="openEventModal('${event.id}')">
+                        <div class="app-event-date" style="background: ${gathering?.color || (!event.isPublic ? 'var(--color-terracotta)' : 'var(--color-sage)')};">
+                            <span class="app-event-date-day">${date.getDate()}</span>
+                            <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
                         </div>
-                    `;
-                }).join('') : '<p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No upcoming events</p>'}
-            </div>
-        `}
+                        <div class="app-event-info">
+                            <div class="app-event-title">
+                                ${event.title}
+                                ${rsvpStatus === 'attending' ? '<span style="color: var(--color-sage);">&#10003;</span>' : ''}
+                                ${rsvpStatus === 'maybe' ? '<span style="color: var(--color-terracotta);">?</span>' : ''}
+                            </div>
+                            <div class="app-event-meta">${formatTime(event.time)} - ${event.location}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No upcoming events</p>'}
+        </div>
         <div style="height: 20px;"></div>
     `;
 }
@@ -4957,11 +4934,10 @@ async function submitBoardPost(groupId) {
 
         // Upload attachment if present
         if (attachmentFile) {
-            if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-                const { ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js');
-                const storageRef = ref(storage, `posts/${groupId}/${Date.now()}_${attachmentFile.name}`);
-                const snapshot = await uploadBytes(storageRef, attachmentFile);
-                const url = await getDownloadURL(snapshot.ref);
+            if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof storage !== 'undefined') {
+                const storageRef = storage.ref(`posts/${groupId}/${Date.now()}_${attachmentFile.name}`);
+                const snapshot = await storageRef.put(attachmentFile);
+                const url = await snapshot.ref.getDownloadURL();
                 attachment = {
                     type: attachmentFile.type.startsWith('image/') ? 'image' : 'file',
                     url: url,
@@ -5088,10 +5064,10 @@ async function togglePinPost(groupId, postId) {
         post.isPinned = !post.isPinned;
 
         // If using Firebase, update Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const postRef = doc(db, 'gatherings', groupId, 'posts', postId);
-            await updateDoc(postRef, { isPinned: post.isPinned });
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(groupId).collection('posts').doc(postId).update({
+                isPinned: post.isPinned
+            });
         }
 
         showToast(post.isPinned ? 'Post pinned' : 'Post unpinned', 'success');
@@ -5131,10 +5107,10 @@ async function toggleReaction(groupId, postId, emoji) {
         }
 
         // If using Firebase, update Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const postRef = doc(db, 'gatherings', groupId, 'posts', postId);
-            await updateDoc(postRef, { reactions: post.reactions });
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(groupId).collection('posts').doc(postId).update({
+                reactions: post.reactions
+            });
         }
 
         // Close reaction picker if open
@@ -5388,15 +5364,16 @@ function openImageModal(imageUrl) {
 
 // Open create gathering modal
 function openCreateGatheringModal() {
+    // Cohesive color palette matching Kiwi Church brand
     const colors = [
         { value: '#1a3a2f', name: 'Forest' },
+        { value: '#2d5a4a', name: 'Deep Teal' },
+        { value: '#5a7a6a', name: 'Muted Green' },
         { value: '#7d9a87', name: 'Sage' },
+        { value: '#9b7b5a', name: 'Warm Earth' },
         { value: '#c17f59', name: 'Terracotta' },
-        { value: '#2d5a4a', name: 'Teal' },
-        { value: '#d4a574', name: 'Sand' },
-        { value: '#5a6b62', name: 'Slate' },
-        { value: '#8b4513', name: 'Brown' },
-        { value: '#4a5568', name: 'Gray' }
+        { value: '#a08060', name: 'Walnut' },
+        { value: '#6b7c72', name: 'Stone' }
     ];
 
     document.getElementById('modal-title').textContent = 'Create New Group';
@@ -5466,15 +5443,16 @@ function openEditGatheringModal(gatheringId) {
     const gathering = DataService.getGatheringById(gatheringId);
     if (!gathering) return;
 
+    // Cohesive color palette matching Kiwi Church brand
     const colors = [
         { value: '#1a3a2f', name: 'Forest' },
+        { value: '#2d5a4a', name: 'Deep Teal' },
+        { value: '#5a7a6a', name: 'Muted Green' },
         { value: '#7d9a87', name: 'Sage' },
+        { value: '#9b7b5a', name: 'Warm Earth' },
         { value: '#c17f59', name: 'Terracotta' },
-        { value: '#2d5a4a', name: 'Teal' },
-        { value: '#d4a574', name: 'Sand' },
-        { value: '#5a6b62', name: 'Slate' },
-        { value: '#8b4513', name: 'Brown' },
-        { value: '#4a5568', name: 'Gray' }
+        { value: '#a08060', name: 'Walnut' },
+        { value: '#6b7c72', name: 'Stone' }
     ];
 
     document.getElementById('modal-title').textContent = 'Edit Group';
@@ -5566,10 +5544,8 @@ async function saveGathering(gatheringId = null) {
                 gathering.updatedAt = new Date().toISOString();
 
                 // If using Firebase, update Firestore
-                if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-                    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                    const gatheringRef = doc(db, 'gatherings', gatheringId);
-                    await updateDoc(gatheringRef, {
+                if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+                    await db.collection('gatherings').doc(gatheringId).update({
                         name,
                         description,
                         rhythm,
@@ -5600,9 +5576,8 @@ async function saveGathering(gatheringId = null) {
             MockDB.gatheringMembers[newId] = [];
 
             // If using Firebase, create in Firestore
-            if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                await setDoc(doc(db, 'gatherings', newId), newGathering);
+            if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+                await db.collection('gatherings').doc(newId).set(newGathering);
             }
 
             showToast('Group created', 'success');
@@ -5632,9 +5607,8 @@ async function deleteGathering(gatheringId) {
         delete MockDB.gatheringMembers[gatheringId];
 
         // If using Firebase, delete from Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            await deleteDoc(doc(db, 'gatherings', gatheringId));
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(gatheringId).delete();
         }
 
         showToast('Group deleted', 'success');
@@ -5666,11 +5640,9 @@ async function joinGroup(groupId) {
         }
 
         // If using Firebase, update Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, updateDoc, arrayUnion } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const gatheringRef = doc(db, 'gatherings', groupId);
-            await updateDoc(gatheringRef, {
-                members: arrayUnion(currentUser.id)
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(groupId).update({
+                members: firebase.firestore.FieldValue.arrayUnion(currentUser.id)
             });
         }
 
@@ -5701,11 +5673,9 @@ async function leaveGroup(groupId) {
         }
 
         // If using Firebase, update Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, updateDoc, arrayRemove } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const gatheringRef = doc(db, 'gatherings', groupId);
-            await updateDoc(gatheringRef, {
-                members: arrayRemove(currentUser.id)
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(groupId).update({
+                members: firebase.firestore.FieldValue.arrayRemove(currentUser.id)
             });
         }
 
@@ -6191,18 +6161,6 @@ function renderHostingPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Split into upcoming and past events
-    const upcomingEvents = manageableEvents.filter(e => new Date(e.date) >= today).slice(0, 10);
-    const pastEvents = manageableEvents.filter(e => new Date(e.date) < today).slice(0, 5);
-
-    // Calculate stats
-    const totalRSVPs = upcomingEvents.reduce((sum, e) => {
-        const attending = (e.rsvps || []).filter(r => !r.status || r.status === 'attending');
-        return sum + attending.reduce((count, r) => count + 1 + (r.attendees?.length || 0) + (r.guestCount || 0), 0);
-    }, 0);
-    const nextEvent = upcomingEvents[0];
-    const nextEventRSVPs = nextEvent ? (nextEvent.rsvps || []).filter(r => !r.status || r.status === 'attending').length : 0;
-
     // Get gatherings this user can host
     let hostableGatherings = MockDB.gatherings;
     if (currentUser.role === 'host' && currentUser.assignedGatherings) {
@@ -6211,43 +6169,91 @@ function renderHostingPage() {
         );
     }
 
+    // Calculate stats per gathering
+    const gatheringStats = hostableGatherings.map(g => {
+        const gatheringEvents = manageableEvents.filter(e => e.gatheringId === g.id);
+        const upcomingEvents = gatheringEvents.filter(e => new Date(e.date) >= today);
+        const totalRSVPs = upcomingEvents.reduce((sum, e) => {
+            const attending = (e.rsvps || []).filter(r => !r.status || r.status === 'attending');
+            return sum + attending.reduce((count, r) => count + 1 + (r.guestCount || 0), 0);
+        }, 0);
+        const nextEvent = upcomingEvents[0];
+        return { ...g, upcomingEvents: upcomingEvents.length, totalRSVPs, nextEvent };
+    });
+
+    // Global stats
+    const totalUpcoming = gatheringStats.reduce((sum, g) => sum + g.upcomingEvents, 0);
+    const totalRSVPs = gatheringStats.reduce((sum, g) => sum + g.totalRSVPs, 0);
+
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Hosting</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Manage your events and posts</p>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Manage your communities, events, and posts</p>
         </div>
 
         <!-- Quick Stats -->
         <div class="app-section" style="padding-top: 1rem;">
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
                 <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
-                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-forest);">${upcomingEvents.length}</div>
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-forest);">${hostableGatherings.length}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Communities</div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-sage);">${totalUpcoming}</div>
                     <div style="font-size: 0.75rem; color: var(--color-text-light);">Upcoming</div>
                 </div>
                 <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
-                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-sage);">${totalRSVPs}</div>
-                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Total RSVPs</div>
-                </div>
-                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
-                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-terracotta);">${hostableGatherings.length}</div>
-                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Communities</div>
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-terracotta);">${totalRSVPs}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">RSVPs</div>
                 </div>
             </div>
         </div>
 
-        ${nextEvent ? `
+        <!-- Communities Section -->
+        <div class="app-section">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Your Communities</h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">Click to manage</span>
+            </div>
+
+            ${hostableGatherings.length > 0 ? `
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    ${gatheringStats.map(g => `
+                        <div onclick="openHostingGroupModal('${g.id}')" style="background: var(--color-white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm); cursor: pointer; display: flex; gap: 1rem; align-items: center; transition: all 0.2s;" onmouseover="this.style.boxShadow='var(--shadow-md)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='var(--shadow-sm)'; this.style.transform='none'">
+                            <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: ${g.color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 500; margin-bottom: 0.25rem;">${g.name}</div>
+                                <div style="font-size: 0.8125rem; color: var(--color-text-light);">
+                                    ${g.upcomingEvents} upcoming event${g.upcomingEvents !== 1 ? 's' : ''} • ${g.totalRSVPs} RSVP${g.totalRSVPs !== 1 ? 's' : ''}
+                                </div>
+                                ${g.nextEvent ? `
+                                    <div style="font-size: 0.75rem; color: var(--color-sage); margin-top: 0.25rem;">
+                                        Next: ${g.nextEvent.title} (${formatDate(g.nextEvent.date)})
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2" style="flex-shrink: 0;">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                    <p>You don't have any communities to manage yet.</p>
+                </div>
+            `}
+        </div>
+
+        <!-- Quick Actions -->
         <div class="app-section" style="padding-top: 0;">
-            <div style="background: var(--color-sage-light); border-radius: var(--radius-md); padding: 1rem;">
-                <div style="font-size: 0.75rem; color: var(--color-forest); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Next Event</div>
-                <div style="font-weight: 500;">${nextEvent.title}</div>
-                <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: 0.25rem;">
-                    ${formatDate(nextEvent.date)} at ${formatTime(nextEvent.time)} • ${nextEventRSVPs} attending
-                </div>
-            </div>
-        </div>
-        ` : ''}
-
-        <div class="app-section" style="padding-top: 0.5rem;">
             <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="openCreateEventModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -6257,88 +6263,131 @@ function renderHostingPage() {
             </button>
         </div>
 
-        ${hostableGatherings.length > 0 ? `
-        <div class="app-section">
-            <div class="app-section-header">
-                <h3 class="app-section-title">Your Gatherings</h3>
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                ${hostableGatherings.map(g => `
-                    <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); font-size: 0.875rem;">
-                        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${g.color};"></span>
-                        ${g.name}
-                    </span>
-                `).join('')}
-            </div>
-        </div>
-        ` : ''}
-
-        <div class="app-section">
-            <div class="app-section-header">
-                <h3 class="app-section-title">Upcoming Events</h3>
-                <span style="font-size: 0.875rem; color: var(--color-text-light);">${upcomingEvents.length} events</span>
-            </div>
-            ${upcomingEvents.length > 0 ? upcomingEvents.map(event => {
-                const date = new Date(event.date);
-                const gathering = DataService.getGatheringById(event.gatheringId);
-                const rsvpCount = event.rsvps?.length || 0;
-                return `
-                    <div class="app-event-card" onclick="openEventModal('${event.id}')">
-                        <div class="app-event-date" style="background: ${gathering?.color || 'var(--color-sage)'};">
-                            <span class="app-event-date-day">${date.getDate()}</span>
-                            <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
-                        </div>
-                        <div class="app-event-info">
-                            <div class="app-event-title">${event.title}</div>
-                            <div class="app-event-meta">${formatTime(event.time)} • ${rsvpCount} RSVP${rsvpCount !== 1 ? 's' : ''}</div>
-                        </div>
-                        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openEditEventModal('${event.id}')" style="flex-shrink: 0;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                `;
-            }).join('') : `
-                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <p style="margin: 0;">No upcoming events.</p>
-                    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Create one to get started!</p>
-                </div>
-            `}
-        </div>
-
-        ${pastEvents.length > 0 ? `
-        <div class="app-section">
-            <div class="app-section-header">
-                <h3 class="app-section-title">Past Events</h3>
-            </div>
-            ${pastEvents.map(event => {
-                const date = new Date(event.date);
-                const rsvpCount = event.rsvps?.length || 0;
-                return `
-                    <div class="app-event-card" style="opacity: 0.6;" onclick="openEventModal('${event.id}')">
-                        <div class="app-event-date" style="background: var(--color-text-light);">
-                            <span class="app-event-date-day">${date.getDate()}</span>
-                            <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
-                        </div>
-                        <div class="app-event-info">
-                            <div class="app-event-title">${event.title}</div>
-                            <div class="app-event-meta">${rsvpCount} attended</div>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-        ` : ''}
         <div style="height: 20px;"></div>
     `;
+}
+
+// Open hosting modal for a specific group
+function openHostingGroupModal(gatheringId) {
+    const gathering = DataService.getGatheringById(gatheringId);
+    if (!gathering) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get events for this gathering
+    const allEvents = MockDB.events.filter(e => e.gatheringId === gatheringId);
+    const upcomingEvents = allEvents.filter(e => new Date(e.date) >= today).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const pastEvents = allEvents.filter(e => new Date(e.date) < today).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+
+    // Get posts for this gathering
+    const board = MockDB.messageBoards[gatheringId];
+    const recentPosts = board?.posts?.slice(0, 3) || [];
+
+    // Get members count
+    const members = MockDB.gatheringMembers[gatheringId] || [];
+
+    const bodyHTML = `
+        <div style="margin: -1rem; border-radius: var(--radius-lg); overflow: hidden;">
+            <!-- Group Header -->
+            <div style="background: ${gathering.color}; padding: 1.25rem; color: white;">
+                <h3 style="margin: 0; font-size: 1.25rem; color: white;">${gathering.name}</h3>
+                <p style="margin: 0.25rem 0 0; opacity: 0.9; font-size: 0.875rem;">${gathering.rhythm || 'No schedule set'}</p>
+                <div style="display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.875rem;">
+                    <span>${members.length} member${members.length !== 1 ? 's' : ''}</span>
+                    <span>${upcomingEvents.length} upcoming</span>
+                    <span>${gathering.isPublic ? 'Public' : 'Members Only'}</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="padding: 1rem; display: flex; gap: 0.5rem; border-bottom: 1px solid var(--color-cream-dark);">
+                <button class="btn btn-primary btn-sm" onclick="closeModal(); openCreateEventModal('${gatheringId}')" style="flex: 1;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    New Event
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="closeModal(); navigateTo('groups'); setTimeout(() => openGroupPage('${gatheringId}'), 100);" style="flex: 1;">
+                    View Group Page
+                </button>
+            </div>
+
+            <!-- Upcoming Events -->
+            <div style="padding: 1rem;">
+                <h4 style="font-size: 0.875rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem;">Upcoming Events</h4>
+                ${upcomingEvents.length > 0 ? upcomingEvents.slice(0, 5).map(event => {
+                    const date = new Date(event.date);
+                    const rsvpCount = event.rsvps?.length || 0;
+                    return `
+                        <div style="display: flex; gap: 0.75rem; padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.5rem; cursor: pointer;" onclick="closeModal(); openEventModal('${event.id}')">
+                            <div style="text-align: center; min-width: 40px;">
+                                <div style="font-size: 1.125rem; font-weight: 600; color: var(--color-forest);">${date.getDate()}</div>
+                                <div style="font-size: 0.625rem; color: var(--color-text-light);">${date.toLocaleDateString('en-NZ', { month: 'short' })}</div>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 500;">${event.title}</div>
+                                <div style="font-size: 0.75rem; color: var(--color-text-light);">${formatTime(event.time)} • ${rsvpCount} RSVP${rsvpCount !== 1 ? 's' : ''}</div>
+                            </div>
+                            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); closeModal(); openEditEventModal('${event.id}')" style="padding: 0.25rem;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                }).join('') : `
+                    <p style="color: var(--color-text-light); font-size: 0.875rem; text-align: center; padding: 1rem;">No upcoming events</p>
+                `}
+            </div>
+
+            <!-- Recent Posts -->
+            ${recentPosts.length > 0 ? `
+            <div style="padding: 0 1rem 1rem;">
+                <h4 style="font-size: 0.875rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem;">Recent Posts</h4>
+                ${recentPosts.map(post => {
+                    const author = MockDB.users.find(u => u.id === post.authorId);
+                    return `
+                        <div style="padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); margin-bottom: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 500; font-size: 0.9375rem;">${post.content?.substring(0, 50)}${post.content?.length > 50 ? '...' : ''}</div>
+                                    <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">
+                                        ${author?.displayName || 'Unknown'} • ${new Date(post.createdAt).toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            ` : ''}
+
+            <!-- Past Events (collapsed) -->
+            ${pastEvents.length > 0 ? `
+            <div style="padding: 0 1rem 1rem;">
+                <details>
+                    <summary style="font-size: 0.875rem; color: var(--color-text-light); cursor: pointer; user-select: none; padding: 0.5rem 0;">Past Events (${pastEvents.length})</summary>
+                    <div style="margin-top: 0.5rem;">
+                        ${pastEvents.map(event => {
+                            const date = new Date(event.date);
+                            return `
+                                <div style="display: flex; gap: 0.5rem; padding: 0.5rem; opacity: 0.7; font-size: 0.875rem;" onclick="closeModal(); openEventModal('${event.id}')">
+                                    <span style="color: var(--color-text-light);">${date.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}</span>
+                                    <span>${event.title}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </details>
+            </div>
+            ` : ''}
+        </div>
+    `;
+
+    openModal(`Manage: ${gathering.name}`, bodyHTML);
 }
 
 // Activity log storage
@@ -6856,6 +6905,12 @@ function renderCommunityForm(gathering) {
             </div>
 
             <div class="form-group">
+                <label class="form-label">Cover Image URL</label>
+                <input type="url" class="form-input" id="community-image" value="${isEdit && gathering.imageUrl ? escapeHtml(gathering.imageUrl) : ''}" placeholder="https://example.com/image.jpg">
+                <p style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">Optional. If provided, will be shown as the card background on the website.</p>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">Color</label>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     ${colors.map(c => `
@@ -6899,6 +6954,7 @@ async function saveCommunity(gatheringId) {
     const description = document.getElementById('community-description')?.value?.trim();
     const rhythm = document.getElementById('community-rhythm')?.value?.trim();
     const location = document.getElementById('community-location')?.value?.trim();
+    const imageUrl = document.getElementById('community-image')?.value?.trim() || '';
     const colorEl = document.querySelector('[name="community-color"]:checked');
     const color = colorEl?.value || '#1a3a2f';
     const isPublic = document.getElementById('community-public')?.checked ?? true;
@@ -6914,6 +6970,7 @@ async function saveCommunity(gatheringId) {
         description,
         rhythm,
         location,
+        imageUrl,
         color,
         isPublic,
         featured
@@ -6929,8 +6986,7 @@ async function saveCommunity(gatheringId) {
 
             // Update in Firebase if enabled
             if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-                await setDoc(doc(db, 'gatherings', gatheringId), communityData, { merge: true });
+                await db.collection('gatherings').doc(gatheringId).set(communityData, { merge: true });
             }
 
             logActivity('Community updated', `Updated "${name}"`, 'admin');
@@ -6943,8 +6999,7 @@ async function saveCommunity(gatheringId) {
 
             // Add to Firebase if enabled
             if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-                await setDoc(doc(db, 'gatherings', newId), newGathering);
+                await db.collection('gatherings').doc(newId).set(newGathering);
             }
 
             logActivity('Community added', `Created "${name}"`, 'admin');
@@ -6989,8 +7044,7 @@ async function deleteCommunity(gatheringId) {
 
         // Remove from Firebase if enabled
         if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-            await deleteDoc(doc(db, 'gatherings', gatheringId));
+            await db.collection('gatherings').doc(gatheringId).delete();
         }
 
         logActivity('Community deleted', `Deleted "${name}"`, 'admin');
@@ -7231,8 +7285,7 @@ async function saveResource(resourceId) {
 
             // Update in Firebase if enabled
             if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-                await setDoc(doc(db, 'resources', resourceId), resourceData, { merge: true });
+                await db.collection('resources').doc(resourceId).set(resourceData, { merge: true });
             }
 
             logActivity('Resource updated', `Updated "${title}"`, 'admin');
@@ -7245,8 +7298,7 @@ async function saveResource(resourceId) {
 
             // Add to Firebase if enabled
             if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-                await setDoc(doc(db, 'resources', newId), newResource);
+                await db.collection('resources').doc(newId).set(newResource);
             }
 
             logActivity('Resource created', `Added "${title}"`, 'admin');
@@ -7275,8 +7327,7 @@ async function deleteResource(resourceId) {
 
         // Remove from Firebase if enabled
         if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-            await deleteDoc(doc(db, 'resources', resourceId));
+            await db.collection('resources').doc(resourceId).delete();
         }
 
         logActivity('Resource deleted', `Deleted "${title}"`, 'admin');
@@ -7932,6 +7983,9 @@ function openCreateUserModal() {
         return;
     }
 
+    // Get private (members-only) groups
+    const privateGroups = MockDB.gatherings.filter(g => !g.isPublic);
+
     const bodyHTML = `
         <form id="create-user-form">
             <div class="form-group">
@@ -7976,6 +8030,21 @@ function openCreateUserModal() {
                 <label class="form-label" for="new-user-bio">Bio (optional)</label>
                 <textarea class="form-input" id="new-user-bio" rows="2" placeholder="A short bio about this person"></textarea>
             </div>
+            ${privateGroups.length > 0 ? `
+            <div class="form-group">
+                <label class="form-label">Add to Members-Only Groups</label>
+                <div style="max-height: 150px; overflow-y: auto; border: 1px solid var(--color-cream-dark); border-radius: var(--radius-sm); padding: 0.5rem;">
+                    ${privateGroups.map(g => `
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: var(--radius-sm);" onmouseover="this.style.background='var(--color-cream)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" name="new-user-groups" value="${g.id}">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${g.color}; flex-shrink: 0;"></span>
+                            <span style="flex: 1;">${g.name}</span>
+                        </label>
+                    `).join('')}
+                </div>
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Select groups to add this user to immediately</small>
+            </div>
+            ` : ''}
         </form>
     `;
 
@@ -7995,6 +8064,9 @@ async function createNewUser() {
     const role = document.getElementById('new-user-role').value;
     const phone = document.getElementById('new-user-phone').value.trim();
     const bio = document.getElementById('new-user-bio').value.trim();
+
+    // Get selected groups
+    const selectedGroups = Array.from(document.querySelectorAll('input[name="new-user-groups"]:checked')).map(cb => cb.value);
 
     if (!name || !email || !password) {
         showToast('Please fill in all required fields', 'error');
@@ -8068,6 +8140,41 @@ async function createNewUser() {
                 createdAt: timestamp
             });
 
+            // Add user to selected private groups
+            if (selectedGroups.length > 0) {
+                for (const groupId of selectedGroups) {
+                    try {
+                        await db.collection('gatherings').doc(groupId).update({
+                            members: firebase.firestore.FieldValue.arrayUnion(newUserId)
+                        });
+                        // Also update local MockDB
+                        if (!MockDB.gatheringMembers[groupId]) {
+                            MockDB.gatheringMembers[groupId] = [];
+                        }
+                        if (!MockDB.gatheringMembers[groupId].includes(newUserId)) {
+                            MockDB.gatheringMembers[groupId].push(newUserId);
+                        }
+                    } catch (err) {
+                        console.warn('Could not add user to group:', groupId, err);
+                    }
+                }
+            }
+
+            // Add the new user to MockDB.users so they appear in the list immediately
+            MockDB.users.push({
+                id: newUserId,
+                email: email,
+                displayName: name,
+                username: username || null,
+                role: 'member',
+                phone: phone || null,
+                bio: bio || null,
+                photoURL: null,
+                status: 'active',
+                dependants: [],
+                rsvps: []
+            });
+
             // Sign out the newly created user
             await auth.signOut();
 
@@ -8094,6 +8201,19 @@ async function createNewUser() {
                 rsvps: []
             };
             MockDB.users.push(newUser);
+
+            // Add user to selected private groups
+            if (selectedGroups.length > 0) {
+                for (const groupId of selectedGroups) {
+                    if (!MockDB.gatheringMembers[groupId]) {
+                        MockDB.gatheringMembers[groupId] = [];
+                    }
+                    if (!MockDB.gatheringMembers[groupId].includes(newUser.id)) {
+                        MockDB.gatheringMembers[groupId].push(newUser.id);
+                    }
+                }
+            }
+
             showToast(`User "${name}" created successfully!`, 'success');
             closeModal();
             renderPage();
@@ -9131,9 +9251,27 @@ function initPortal() {
 
     // If Firebase is enabled, listen for auth changes
     if (PortalConfig.useFirebase && window.Auth) {
-        Auth.onAuthChange((user, userData) => {
+        Auth.onAuthChange(async (user, userData) => {
             if (userData) {
                 state.currentUserData = userData;
+
+                // Load users from Firebase for admin users
+                if (userData.role === 'admin' || userData.role === 'host') {
+                    try {
+                        const firebaseUsers = await DB.getAllUsers();
+                        if (firebaseUsers && firebaseUsers.length > 0) {
+                            // Replace MockDB.users with Firebase users
+                            MockDB.users = firebaseUsers.map(u => ({
+                                ...u,
+                                dependants: u.dependants || [],
+                                rsvps: u.rsvps || []
+                            }));
+                            console.log('[Portal] Loaded', MockDB.users.length, 'users from Firebase');
+                        }
+                    } catch (err) {
+                        console.warn('[Portal] Could not load users from Firebase:', err);
+                    }
+                }
             }
             showAppState();
         });
