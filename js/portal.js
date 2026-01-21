@@ -7293,15 +7293,42 @@ async function changePassword() {
 // USER MANAGEMENT (Admin)
 // ============================================
 
+// User search state
+let userSearchQuery = '';
+let userRoleFilter = 'all';
+
 function renderUsersPage() {
     if (!DataService.isAdmin()) {
         navigateTo('home');
         return '';
     }
 
-    const users = MockDB.users;
-    const activeUsers = users.filter(u => u.status !== 'deactivated');
-    const deactivatedUsers = users.filter(u => u.status === 'deactivated');
+    const allUsers = MockDB.users;
+    const activeUsers = allUsers.filter(u => u.status !== 'deactivated');
+    const deactivatedUsers = allUsers.filter(u => u.status === 'deactivated');
+
+    // Apply filters
+    let filteredUsers = allUsers;
+    if (userSearchQuery) {
+        const query = userSearchQuery.toLowerCase();
+        filteredUsers = filteredUsers.filter(u =>
+            u.displayName.toLowerCase().includes(query) ||
+            u.email.toLowerCase().includes(query) ||
+            (u.username && u.username.toLowerCase().includes(query))
+        );
+    }
+    if (userRoleFilter !== 'all') {
+        if (userRoleFilter === 'inactive') {
+            filteredUsers = filteredUsers.filter(u => u.status === 'deactivated');
+        } else {
+            filteredUsers = filteredUsers.filter(u => u.role === userRoleFilter && u.status !== 'deactivated');
+        }
+    }
+
+    // Count by role
+    const adminCount = allUsers.filter(u => u.role === 'admin' && u.status !== 'deactivated').length;
+    const hostCount = allUsers.filter(u => u.role === 'host' && u.status !== 'deactivated').length;
+    const memberCount = allUsers.filter(u => u.role === 'member' && u.status !== 'deactivated').length;
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
@@ -7328,23 +7355,39 @@ function renderUsersPage() {
                     </svg>
                     Bulk Import
                 </button>
-                <button class="btn btn-ghost" onclick="navigateTo('directory')">
+                <button class="btn btn-ghost" onclick="exportUsersList()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    Member Directory
+                    Export
                 </button>
             </div>
         </div>
 
-        <div class="app-section">
-            <div class="app-section-header">
-                <h3 class="app-section-title">All Users</h3>
+        <!-- Search and Filter -->
+        <div class="app-section" style="padding-top: 0;">
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <input type="text" class="form-input" placeholder="Search users..." value="${escapeHtml(userSearchQuery)}" oninput="filterUsers(this.value, null)" style="width: 100%;">
+                </div>
+                <select class="form-input" style="width: auto;" onchange="filterUsers(null, this.value)">
+                    <option value="all" ${userRoleFilter === 'all' ? 'selected' : ''}>All Roles (${allUsers.length})</option>
+                    <option value="admin" ${userRoleFilter === 'admin' ? 'selected' : ''}>Admins (${adminCount})</option>
+                    <option value="host" ${userRoleFilter === 'host' ? 'selected' : ''}>Hosts (${hostCount})</option>
+                    <option value="member" ${userRoleFilter === 'member' ? 'selected' : ''}>Members (${memberCount})</option>
+                    <option value="inactive" ${userRoleFilter === 'inactive' ? 'selected' : ''}>Inactive (${deactivatedUsers.length})</option>
+                </select>
             </div>
-            ${users.map(user => `
+        </div>
+
+        <div class="app-section" style="padding-top: 0;">
+            <div class="app-section-header">
+                <h3 class="app-section-title">${userRoleFilter === 'all' ? 'All Users' : userRoleFilter === 'inactive' ? 'Inactive Users' : userRoleFilter.charAt(0).toUpperCase() + userRoleFilter.slice(1) + 's'}</h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''}</span>
+            </div>
+            ${filteredUsers.length > 0 ? filteredUsers.map(user => `
                 <div class="app-event-card" style="cursor: pointer; ${user.status === 'deactivated' ? 'opacity: 0.5;' : ''}" onclick="openUserModal('${user.id}')">
                     <div style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         ${user.photoURL
@@ -7363,10 +7406,53 @@ function renderUsersPage() {
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                 </div>
-            `).join('')}
+            `).join('') : `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <p style="margin: 0;">No users found matching your search</p>
+                </div>
+            `}
         </div>
         <div style="height: 20px;"></div>
     `;
+}
+
+// Filter users by search query and role
+function filterUsers(query, role) {
+    if (query !== null) userSearchQuery = query;
+    if (role !== null) userRoleFilter = role;
+    renderPage();
+}
+
+// Export users list as CSV
+function exportUsersList() {
+    const users = MockDB.users;
+    const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Username'];
+    const rows = users.map(u => [
+        u.displayName,
+        u.email,
+        u.role,
+        u.status === 'deactivated' ? 'Inactive' : 'Active',
+        u.phone || '',
+        u.username || ''
+    ]);
+
+    const csv = [headers, ...rows].map(row =>
+        row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kiwichurch-users-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast('Users exported to CSV', 'success');
 }
 
 function openUserModal(userId) {
@@ -7402,13 +7488,49 @@ function openUserModal(userId) {
         <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
             <div>
                 <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Role</label>
-                <select class="form-input" id="user-role" ${isCurrentUser ? 'disabled' : ''}>
+                <select class="form-input" id="user-role" ${isCurrentUser ? 'disabled' : ''} onchange="toggleHostGatheringsSection(this.value)">
                     <option value="member" ${user.role === 'member' ? 'selected' : ''}>Member</option>
                     <option value="host" ${user.role === 'host' ? 'selected' : ''}>Host</option>
                     <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
                 </select>
                 ${isCurrentUser ? '<small style="color: var(--color-text-light); font-size: 0.75rem;">Cannot change your own role</small>' : ''}
             </div>
+
+            <!-- Host Assigned Gatherings (shown when role is host) -->
+            <div id="host-gatherings-section" style="display: ${user.role === 'host' ? 'block' : 'none'};">
+                <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.5rem;">Assigned Gatherings</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 150px; overflow-y: auto; background: var(--color-cream); border-radius: var(--radius-sm); padding: 0.5rem;">
+                    ${MockDB.gatherings.map(g => `
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.25rem;">
+                            <input type="checkbox" name="user-gatherings" value="${g.id}" ${user.assignedGatherings?.includes(g.id) ? 'checked' : ''}>
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${g.color};"></span>
+                            <span style="font-size: 0.875rem;">${escapeHtml(g.name)}</span>
+                        </label>
+                    `).join('')}
+                </div>
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Select which communities this host can manage</small>
+            </div>
+
+            <!-- Group Memberships -->
+            <div>
+                <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.5rem;">Group Memberships</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 150px; overflow-y: auto; background: var(--color-cream); border-radius: var(--radius-sm); padding: 0.5rem;">
+                    ${MockDB.gatherings.filter(g => !g.isPublic).map(g => {
+                        const members = MockDB.gatheringMembers[g.id] || [];
+                        const isMember = members.includes(user.id);
+                        return `
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.25rem;">
+                                <input type="checkbox" name="user-memberships" value="${g.id}" ${isMember ? 'checked' : ''}>
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background: ${g.color};"></span>
+                                <span style="font-size: 0.875rem;">${escapeHtml(g.name)}</span>
+                                <span style="font-size: 0.75rem; color: var(--color-text-light);">(${members.length} members)</span>
+                            </label>
+                        `;
+                    }).join('') || '<p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0;">No private groups available</p>'}
+                </div>
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Manage which private groups this user belongs to</small>
+            </div>
+
             ${user.phone ? `
             <div>
                 <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Phone</label>
@@ -7433,31 +7555,76 @@ function openUserModal(userId) {
 
     let footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
     if (!isCurrentUser) {
-        footerHTML += `<button class="btn btn-primary" onclick="saveUserRole('${user.id}')">Save Changes</button>`;
+        footerHTML += `<button class="btn btn-primary" onclick="saveUserDetails('${user.id}')">Save Changes</button>`;
     }
 
     openModal('User Details', bodyHTML, footerHTML);
 }
 
-async function saveUserRole(userId) {
+// Toggle host gatherings section visibility
+function toggleHostGatheringsSection(role) {
+    const section = document.getElementById('host-gatherings-section');
+    if (section) {
+        section.style.display = role === 'host' ? 'block' : 'none';
+    }
+}
+
+async function saveUserDetails(userId) {
     const newRole = document.getElementById('user-role').value;
     const user = MockDB.users.find(u => u.id === userId);
 
     if (!user) return;
 
+    // Get assigned gatherings for hosts
+    const gatheringCheckboxes = document.querySelectorAll('input[name="user-gatherings"]:checked');
+    const assignedGatherings = Array.from(gatheringCheckboxes).map(cb => cb.value);
+
+    // Get group memberships
+    const membershipCheckboxes = document.querySelectorAll('input[name="user-memberships"]:checked');
+    const newMemberships = Array.from(membershipCheckboxes).map(cb => cb.value);
+
     try {
+        // Update role and assigned gatherings
         if (PortalConfig.useFirebase && window.DB) {
-            await DB.updateUser(userId, { role: newRole });
+            await DB.updateUser(userId, {
+                role: newRole,
+                assignedGatherings: newRole === 'host' ? assignedGatherings : []
+            });
         } else {
             user.role = newRole;
+            user.assignedGatherings = newRole === 'host' ? assignedGatherings : [];
         }
 
-        showToast(`${user.displayName}'s role updated to ${newRole}`, 'success');
+        // Update group memberships
+        MockDB.gatherings.filter(g => !g.isPublic).forEach(g => {
+            if (!MockDB.gatheringMembers[g.id]) {
+                MockDB.gatheringMembers[g.id] = [];
+            }
+
+            const currentMembers = MockDB.gatheringMembers[g.id];
+            const shouldBeMember = newMemberships.includes(g.id);
+            const isMember = currentMembers.includes(userId);
+
+            if (shouldBeMember && !isMember) {
+                // Add to group
+                currentMembers.push(userId);
+            } else if (!shouldBeMember && isMember) {
+                // Remove from group
+                MockDB.gatheringMembers[g.id] = currentMembers.filter(id => id !== userId);
+            }
+        });
+
+        showToast(`${user.displayName}'s details updated`, 'success');
         closeModal();
         renderPage();
     } catch (error) {
-        showToast(error.message || 'Could not update role', 'error');
+        showToast(error.message || 'Could not update user', 'error');
     }
+}
+
+// Legacy function name for compatibility
+async function saveUserRole(userId) {
+    return saveUserDetails(userId);
 }
 
 // ============================================
@@ -8151,12 +8318,14 @@ function generateTempPassword() {
 
 let userDirectorySearch = '';
 let userDirectoryFilter = 'all';
+let userDirectoryCommunity = 'all';
 
 function renderUserDirectory() {
     const currentUser = DataService.getCurrentUser();
     if (!currentUser) return '';
 
-    let users = [...MockDB.users].filter(u => u.status !== 'deactivated' || DataService.isAdmin());
+    const allUsers = [...MockDB.users].filter(u => u.status !== 'deactivated' || DataService.isAdmin());
+    let users = [...allUsers];
 
     // Apply search
     if (userDirectorySearch) {
@@ -8173,27 +8342,62 @@ function renderUserDirectory() {
         users = users.filter(u => u.role === userDirectoryFilter);
     }
 
+    // Apply community filter
+    if (userDirectoryCommunity !== 'all') {
+        const members = MockDB.gatheringMembers[userDirectoryCommunity] || [];
+        users = users.filter(u => members.includes(u.id));
+    }
+
     // Sort alphabetically
     users.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    // Count by role
+    const adminCount = allUsers.filter(u => u.role === 'admin').length;
+    const hostCount = allUsers.filter(u => u.role === 'host').length;
+    const memberCount = allUsers.filter(u => u.role === 'member').length;
+
+    // Get private groups for community filter
+    const privateGroups = MockDB.gatherings.filter(g => !g.isPublic);
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Member Directory</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">${users.length} members</p>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">${allUsers.length} total members</p>
         </div>
 
-        <div class="app-section" style="padding-top: 1rem;">
+        <!-- Quick Stats -->
+        <div class="app-section" style="padding-top: 1rem; padding-bottom: 0;">
+            <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                <button class="btn ${userDirectoryFilter === 'all' ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="updateDirectoryFilter('all')" style="white-space: nowrap;">
+                    All (${allUsers.length})
+                </button>
+                <button class="btn ${userDirectoryFilter === 'admin' ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="updateDirectoryFilter('admin')" style="white-space: nowrap;">
+                    Admins (${adminCount})
+                </button>
+                <button class="btn ${userDirectoryFilter === 'host' ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="updateDirectoryFilter('host')" style="white-space: nowrap;">
+                    Hosts (${hostCount})
+                </button>
+                <button class="btn ${userDirectoryFilter === 'member' ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="updateDirectoryFilter('member')" style="white-space: nowrap;">
+                    Members (${memberCount})
+                </button>
+            </div>
+        </div>
+
+        <div class="app-section" style="padding-top: 0.5rem;">
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 200px;">
                     <input type="text" class="form-input" placeholder="Search members..." value="${escapeHtml(userDirectorySearch)}" oninput="updateDirectorySearch(this.value)" style="padding: 0.625rem 1rem;">
                 </div>
-                <select class="form-input" style="width: auto;" onchange="updateDirectoryFilter(this.value)">
-                    <option value="all" ${userDirectoryFilter === 'all' ? 'selected' : ''}>All Roles</option>
-                    <option value="admin" ${userDirectoryFilter === 'admin' ? 'selected' : ''}>Admins</option>
-                    <option value="host" ${userDirectoryFilter === 'host' ? 'selected' : ''}>Hosts</option>
-                    <option value="member" ${userDirectoryFilter === 'member' ? 'selected' : ''}>Members</option>
+                ${privateGroups.length > 0 ? `
+                <select class="form-input" style="width: auto;" onchange="updateDirectoryCommunity(this.value)">
+                    <option value="all" ${userDirectoryCommunity === 'all' ? 'selected' : ''}>All Communities</option>
+                    ${privateGroups.map(g => `
+                        <option value="${g.id}" ${userDirectoryCommunity === g.id ? 'selected' : ''}>${escapeHtml(g.name)}</option>
+                    `).join('')}
                 </select>
+                ` : ''}
             </div>
+            ${users.length > 0 ? `<p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0.5rem 0 0;">Showing ${users.length} member${users.length !== 1 ? 's' : ''}</p>` : ''}
         </div>
 
         <div class="app-section">
@@ -8240,6 +8444,11 @@ function updateDirectorySearch(value) {
 
 function updateDirectoryFilter(value) {
     userDirectoryFilter = value;
+    renderPage();
+}
+
+function updateDirectoryCommunity(value) {
+    userDirectoryCommunity = value;
     renderPage();
 }
 
