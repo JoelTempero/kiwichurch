@@ -1005,6 +1005,9 @@ a:hover {
 
 .calendar-day-events {
     margin-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .calendar-event-dot {
@@ -1018,6 +1021,33 @@ a:hover {
 
 .calendar-event-dot.private {
     background: var(--color-sage);
+}
+
+.calendar-event-preview {
+    font-size: 0.6875rem;
+    padding: 2px 4px;
+    background: var(--color-sage-light);
+    border-radius: 2px;
+    color: var(--color-forest);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+.calendar-day.selected .calendar-event-preview {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+.calendar-event-more {
+    font-size: 0.625rem;
+    color: var(--color-text-light);
+    padding: 2px 4px;
+}
+
+.calendar-day.selected .calendar-event-more {
+    color: rgba(255,255,255,0.7);
 }
 
 /* Day Events Panel */
