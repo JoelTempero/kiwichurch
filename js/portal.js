@@ -18,42 +18,7 @@ const PortalConfig = {
 // ============================================
 
 const MockDB = {
-    users: [
-        {
-            id: 'user-1',
-            username: 'Utting',
-            password: 'Freedom',
-            displayName: 'Sarah Utting',
-            email: 'utting@kiwichurch.org.nz',
-            phone: '027-123-4567',
-            role: 'member',
-            dependants: ['James Utting', 'Emma Utting'],
-            rsvps: []
-        },
-        {
-            id: 'user-2',
-            username: 'Olds',
-            password: 'Prestons',
-            displayName: 'Michael Olds',
-            email: 'olds@kiwichurch.org.nz',
-            phone: '027-234-5678',
-            role: 'host',
-            dependants: ['Lucy Olds'],
-            assignedGatherings: ['gathering-3', 'gathering-6'],
-            rsvps: []
-        },
-        {
-            id: 'user-3',
-            username: 'Tempero',
-            password: 'Hansons',
-            displayName: 'Darryl Tempero',
-            email: 'tempero@kiwichurch.org.nz',
-            phone: '027-556-0055',
-            role: 'admin',
-            dependants: [],
-            rsvps: []
-        }
-    ],
+    users: [], // Users managed in Firebase - no demo users
 
     gatherings: [
         {
@@ -1483,9 +1448,10 @@ function openModal(title, bodyHTML, footerHTML = '') {
     const bodyEl = document.getElementById('modal-body');
     const footerEl = document.getElementById('modal-footer');
 
-    titleEl.textContent = title;
-    bodyEl.innerHTML = bodyHTML;
-    footerEl.innerHTML = footerHTML;
+    // Only set content if provided (allows pre-setting content before calling openModal)
+    if (title !== undefined) titleEl.textContent = title;
+    if (bodyHTML !== undefined) bodyEl.innerHTML = bodyHTML;
+    if (footerHTML) footerEl.innerHTML = footerHTML;
 
     // Set ARIA attributes
     overlay.setAttribute('role', 'dialog');
@@ -6133,18 +6099,6 @@ function renderHostingPage() {
             </button>
         </div>
 
-        <div class="app-section">
-            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="openCreateKetePostModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
-                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
-                    <path d="M2 2l7.586 7.586"></path>
-                    <circle cx="11" cy="11" r="2"></circle>
-                </svg>
-                Write Kete Post
-            </button>
-        </div>
-
         ${hostableGatherings.length > 0 ? `
         <div class="app-section">
             <div class="app-section-header">
@@ -7177,6 +7131,13 @@ async function createNewUser() {
         return;
     }
 
+    // Show loading state
+    const submitBtn = document.querySelector('#create-user-form + div button.btn-primary, .modal-footer button.btn-primary');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Creating...';
+    }
+
     try {
         if (PortalConfig.useFirebase && window.Auth) {
             // Check username availability
@@ -7184,40 +7145,44 @@ async function createNewUser() {
                 const isAvailable = await DB.checkUsernameAvailable(username);
                 if (!isAvailable) {
                     showToast('Username is already taken', 'error');
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = 'Create User'; }
                     return;
                 }
             }
 
-            // Store current admin credentials for re-authentication
-            const adminEmail = Auth.currentUser.email;
+            // Store the requested role (new user can only create with 'member', admin updates later)
+            const requestedRole = role;
 
-            // Create new user with Firebase Auth
+            // Create user via Auth (this will sign out admin and sign in new user)
             const result = await auth.createUserWithEmailAndPassword(email, password);
             const newUserId = result.user.uid;
 
-            // Update display name
+            // Update display name in Firebase Auth
             await result.user.updateProfile({ displayName: name });
 
-            // Create user document in Firestore with specified role
-            await db.collection('users').doc(newUserId).set({
+            // Create user document as the new user (they can only set role='member')
+            const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+            const userData = {
                 email: email,
                 displayName: name,
                 username: username || null,
-                role: role,
+                role: 'member',  // Start as member, admin will update after re-signing in
                 phone: phone || null,
                 bio: bio || null,
                 photoURL: null,
                 status: 'active',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                createdBy: Auth.uid
-            });
+                pendingRole: requestedRole !== 'member' ? requestedRole : null,  // Store requested role
+                createdAt: timestamp,
+                updatedAt: timestamp
+            };
+
+            await db.collection('users').doc(newUserId).set(userData);
 
             // Create username mapping if provided
             if (username) {
                 await db.collection('usernames').doc(username.toLowerCase()).set({
                     uid: newUserId,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    createdAt: timestamp
                 });
             }
 
@@ -7225,15 +7190,18 @@ async function createNewUser() {
             await db.collection('userProfiles').doc(newUserId).set({
                 displayName: name,
                 photoURL: null,
-                bio: bio || null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: timestamp
             });
 
             // Sign out the newly created user
             await auth.signOut();
 
-            // Prompt admin to sign back in
-            showToast(`User "${name}" created successfully! Please sign in again.`, 'success');
+            // Show success message
+            if (requestedRole !== 'member') {
+                showToast(`User "${name}" created as member. Sign in to update their role to ${requestedRole}.`, 'success');
+            } else {
+                showToast(`User "${name}" created successfully! Please sign in again.`, 'success');
+            }
             closeModal();
 
         } else {
@@ -7978,6 +7946,9 @@ let pullToRefreshState = {
 };
 
 function setupPullToRefresh() {
+    // Only enable on mobile devices (touch-enabled and narrow screens)
+    if (window.innerWidth >= 768) return;
+
     const main = document.getElementById('app-main');
     if (!main) return;
 
