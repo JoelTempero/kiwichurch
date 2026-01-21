@@ -6495,6 +6495,15 @@ function renderSettingsPage() {
                     </svg>
                     <span style="font-size: 0.875rem; font-weight: 500;">Settings</span>
                 </button>
+                <button class="btn btn-ghost" onclick="openResourcesManageModal()" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        <line x1="12" y1="6" x2="12" y2="14"></line>
+                        <line x1="8" y1="10" x2="16" y2="10"></line>
+                    </svg>
+                    <span style="font-size: 0.875rem; font-weight: 500;">Resources</span>
+                </button>
             </div>
         </div>
 
@@ -6990,6 +6999,292 @@ async function deleteCommunity(gatheringId) {
     } catch (error) {
         console.error('Error deleting community:', error);
         showToast('Error deleting community', 'error');
+    }
+}
+
+// ============================================
+// RESOURCES MANAGEMENT
+// ============================================
+
+// Default resources data for initialization
+const defaultResources = [
+    { id: 'r1', title: 'Online Prayer Zoom', description: 'Join our regular online prayer gatherings via Zoom.', category: 'links', type: 'link', url: '#', icon: 'arrow-right', order: 1 },
+    { id: 'r2', title: 'Shared Calendar', description: 'Subscribe to our community calendar in your preferred app.', category: 'links', type: 'link', url: 'calendar.html', icon: 'calendar', order: 2 },
+    { id: 'r3', title: 'Shared Documents', description: 'Access community documents, study guides, and resources.', category: 'links', type: 'link', url: '#', icon: 'document', order: 3 },
+    { id: 'r4', title: 'Daily Lectionary', description: 'Follow along with daily scripture readings from the lectionary.', category: 'links', type: 'external', url: 'https://lectionary.library.vanderbilt.edu/', icon: 'book', order: 4 },
+    { id: 'r5', title: 'The Ruthless Elimination of Hurry', description: 'John Mark Comer - On slowing down and practicing presence in a busy world.', category: 'reading', type: 'book', author: 'John Mark Comer', order: 5 },
+    { id: 'r6', title: 'Life Together', description: 'Dietrich Bonhoeffer - A classic on Christian community and shared life.', category: 'reading', type: 'book', author: 'Dietrich Bonhoeffer', order: 6 },
+    { id: 'r7', title: 'The Celtic Way of Evangelism', description: 'George Hunter III - Insights from Celtic Christianity for today.', category: 'reading', type: 'book', author: 'George Hunter III', order: 7 },
+    { id: 'r8', title: 'Simply Christian', description: 'N.T. Wright - An accessible introduction to Christianity.', category: 'reading', type: 'book', author: 'N.T. Wright', order: 8 },
+    { id: 'r9', title: 'Daily Prayer Office', description: 'A simple morning and evening prayer structure you can use at home.', category: 'prayer', type: 'download', url: '#', icon: 'clock', order: 9 },
+    { id: 'r10', title: 'Lectio 365', description: 'We recommend Lectio 365 and Pray As You Go for daily prayer.', category: 'prayer', type: 'external', url: 'https://www.24-7prayer.com/resource/lectio-365/', icon: 'bell', order: 10 },
+    { id: 'r11', title: 'Examen Guide', description: 'Learn the ancient practice of Ignatian Examen for daily reflection.', category: 'prayer', type: 'download', url: '#', icon: 'document', order: 11 },
+    { id: 'r12', title: 'The Bible Project', description: 'Excellent animated videos exploring the books and themes of the Bible.', category: 'media', type: 'video', url: 'https://bibleproject.com/', icon: 'video', order: 12 },
+    { id: 'r13', title: 'Podcasts We Love', description: 'A curated list of podcasts for spiritual growth and theological exploration.', category: 'media', type: 'link', url: '#', icon: 'headphones', order: 13 }
+];
+
+// Initialize resources in MockDB if not present
+if (!MockDB.resources) {
+    MockDB.resources = [...defaultResources];
+}
+
+function openResourcesManageModal() {
+    const resources = MockDB.resources || [];
+    const categories = ['links', 'reading', 'prayer', 'media'];
+    const categoryLabels = { links: 'Quick Links', reading: 'Reading', prayer: 'Prayer & Practice', media: 'Media' };
+
+    document.getElementById('modal-title').textContent = 'Manage Resources';
+    document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.875rem; color: var(--color-text-light);">${resources.length} resources</span>
+            <button class="btn btn-primary btn-sm" onclick="openResourceEditModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Resource
+            </button>
+        </div>
+
+        <div style="max-height: 400px; overflow-y: auto;">
+            ${categories.map(cat => {
+                const catResources = resources.filter(r => r.category === cat).sort((a, b) => (a.order || 0) - (b.order || 0));
+                if (catResources.length === 0) return '';
+                return `
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="font-size: 0.875rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">${categoryLabels[cat]}</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            ${catResources.map(resource => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-weight: 500;">${escapeHtml(resource.title)}</div>
+                                        <div style="font-size: 0.75rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(resource.description)}</div>
+                                    </div>
+                                    <div style="display: flex; gap: 0.25rem; flex-shrink: 0;">
+                                        <button class="btn btn-ghost btn-sm" onclick="openResourceEditModal('${resource.id}')" title="Edit">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                        </button>
+                                        <button class="btn btn-ghost btn-sm" onclick="deleteResource('${resource.id}')" title="Delete" style="color: #dc2626;">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()" style="width: 100%;">Close</button>
+        </div>
+    `;
+    openModal();
+}
+
+function openResourceEditModal(resourceId = null) {
+    const resource = resourceId ? MockDB.resources.find(r => r.id === resourceId) : null;
+    const isEdit = !!resource;
+
+    const categories = [
+        { value: 'links', label: 'Quick Links' },
+        { value: 'reading', label: 'Reading' },
+        { value: 'prayer', label: 'Prayer & Practice' },
+        { value: 'media', label: 'Media' }
+    ];
+
+    const types = [
+        { value: 'link', label: 'Internal Link' },
+        { value: 'external', label: 'External Link' },
+        { value: 'download', label: 'Download' },
+        { value: 'video', label: 'Video' },
+        { value: 'book', label: 'Book Recommendation' }
+    ];
+
+    const icons = [
+        { value: 'arrow-right', label: 'Arrow' },
+        { value: 'calendar', label: 'Calendar' },
+        { value: 'document', label: 'Document' },
+        { value: 'book', label: 'Book' },
+        { value: 'clock', label: 'Clock' },
+        { value: 'bell', label: 'Bell' },
+        { value: 'video', label: 'Video' },
+        { value: 'headphones', label: 'Headphones' }
+    ];
+
+    document.getElementById('modal-title').textContent = isEdit ? 'Edit Resource' : 'Add Resource';
+    document.getElementById('modal-body').innerHTML = `
+        <form id="resource-form" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="form-group">
+                <label class="form-label">Title *</label>
+                <input type="text" class="form-input" id="resource-title" value="${isEdit ? escapeHtml(resource.title) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description *</label>
+                <textarea class="form-input" id="resource-description" rows="2" required>${isEdit ? escapeHtml(resource.description) : ''}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Category *</label>
+                    <select class="form-input" id="resource-category" required>
+                        ${categories.map(c => `<option value="${c.value}" ${resource?.category === c.value ? 'selected' : ''}>${c.label}</option>`).join('')}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Type *</label>
+                    <select class="form-input" id="resource-type" required onchange="toggleResourceFields()">
+                        ${types.map(t => `<option value="${t.value}" ${resource?.type === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" id="resource-url-group" style="${resource?.type === 'book' ? 'display: none;' : ''}">
+                <label class="form-label">URL</label>
+                <input type="text" class="form-input" id="resource-url" value="${isEdit && resource.url ? escapeHtml(resource.url) : ''}" placeholder="https://...">
+            </div>
+
+            <div class="form-group" id="resource-author-group" style="${resource?.type !== 'book' ? 'display: none;' : ''}">
+                <label class="form-label">Author</label>
+                <input type="text" class="form-input" id="resource-author" value="${isEdit && resource.author ? escapeHtml(resource.author) : ''}" placeholder="Author name">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Icon</label>
+                    <select class="form-input" id="resource-icon">
+                        <option value="">None</option>
+                        ${icons.map(i => `<option value="${i.value}" ${resource?.icon === i.value ? 'selected' : ''}>${i.label}</option>`).join('')}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Display Order</label>
+                    <input type="number" class="form-input" id="resource-order" value="${isEdit ? (resource.order || 0) : MockDB.resources.length + 1}" min="1">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
+                <button type="button" class="btn btn-ghost" onclick="openResourcesManageModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Save Changes' : 'Add Resource'}</button>
+            </div>
+        </form>
+    `;
+
+    document.getElementById('resource-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await saveResource(resourceId);
+    });
+
+    openModal();
+}
+
+window.toggleResourceFields = function() {
+    const type = document.getElementById('resource-type').value;
+    document.getElementById('resource-url-group').style.display = type === 'book' ? 'none' : '';
+    document.getElementById('resource-author-group').style.display = type === 'book' ? '' : 'none';
+};
+
+async function saveResource(resourceId) {
+    const title = document.getElementById('resource-title').value.trim();
+    const description = document.getElementById('resource-description').value.trim();
+    const category = document.getElementById('resource-category').value;
+    const type = document.getElementById('resource-type').value;
+    const url = document.getElementById('resource-url').value.trim();
+    const author = document.getElementById('resource-author').value.trim();
+    const icon = document.getElementById('resource-icon').value;
+    const order = parseInt(document.getElementById('resource-order').value) || 1;
+
+    if (!title || !description) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const resourceData = {
+        title,
+        description,
+        category,
+        type,
+        url: type !== 'book' ? url : '',
+        author: type === 'book' ? author : '',
+        icon,
+        order,
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        if (resourceId) {
+            // Update existing resource
+            const index = MockDB.resources.findIndex(r => r.id === resourceId);
+            if (index !== -1) {
+                MockDB.resources[index] = { ...MockDB.resources[index], ...resourceData };
+            }
+
+            // Update in Firebase if enabled
+            if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+                await setDoc(doc(db, 'resources', resourceId), resourceData, { merge: true });
+            }
+
+            logActivity('Resource updated', `Updated "${title}"`, 'admin');
+            showToast('Resource updated', 'success');
+        } else {
+            // Create new resource
+            const newId = 'r' + Date.now();
+            const newResource = { id: newId, ...resourceData, createdAt: new Date().toISOString() };
+            MockDB.resources.push(newResource);
+
+            // Add to Firebase if enabled
+            if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+                await setDoc(doc(db, 'resources', newId), newResource);
+            }
+
+            logActivity('Resource created', `Added "${title}"`, 'admin');
+            showToast('Resource added', 'success');
+        }
+
+        openResourcesManageModal();
+    } catch (error) {
+        console.error('Error saving resource:', error);
+        showToast('Error saving resource', 'error');
+    }
+}
+
+async function deleteResource(resourceId) {
+    if (!confirm('Are you sure you want to delete this resource?')) return;
+
+    const resource = MockDB.resources.find(r => r.id === resourceId);
+    const title = resource?.title || 'Resource';
+
+    try {
+        // Remove from MockDB
+        const index = MockDB.resources.findIndex(r => r.id === resourceId);
+        if (index !== -1) {
+            MockDB.resources.splice(index, 1);
+        }
+
+        // Remove from Firebase if enabled
+        if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+            await deleteDoc(doc(db, 'resources', resourceId));
+        }
+
+        logActivity('Resource deleted', `Deleted "${title}"`, 'admin');
+        showToast('Resource deleted', 'default');
+        openResourcesManageModal();
+    } catch (error) {
+        console.error('Error deleting resource:', error);
+        showToast('Error deleting resource', 'error');
     }
 }
 

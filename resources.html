@@ -88,6 +88,135 @@
             font-size: 0.9375rem;
             margin-bottom: 1rem;
         }
+
+        /* Category Tabs */
+        .category-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+        .category-tab {
+            padding: 0.625rem 1.25rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-full);
+            background: var(--color-white);
+            color: var(--color-text);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+        .category-tab:hover {
+            border-color: var(--color-forest);
+            color: var(--color-forest);
+        }
+        .category-tab.active {
+            background: var(--color-forest);
+            border-color: var(--color-forest);
+            color: white;
+        }
+
+        /* Search Box */
+        .resource-search {
+            max-width: 500px;
+            margin: 0 auto 2rem;
+        }
+        .resource-search input {
+            width: 100%;
+            padding: 0.875rem 1.25rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-full);
+            font-size: 1rem;
+            transition: all var(--transition-base);
+        }
+        .resource-search input:focus {
+            outline: none;
+            border-color: var(--color-forest);
+            box-shadow: 0 0 0 3px rgba(26, 58, 47, 0.1);
+        }
+
+        /* Getting Started Section */
+        .getting-started {
+            background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-sage) 100%);
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: var(--radius-xl);
+            margin-bottom: 3rem;
+        }
+        .getting-started h2 {
+            color: white;
+            margin-bottom: 1rem;
+        }
+        .getting-started p {
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+            max-width: 600px;
+        }
+        .getting-started-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .getting-started-step {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: white;
+            color: var(--color-forest);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.125rem;
+            margin: 0 auto 1rem;
+        }
+        .getting-started-step h4 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+        .getting-started-step p {
+            font-size: 0.875rem;
+            margin-bottom: 0;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--color-text-light);
+        }
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            opacity: 0.5;
+            margin-bottom: 1rem;
+        }
+
+        /* Resource Type Badge */
+        .resource-type {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            background: var(--color-sage-light);
+            color: var(--color-forest);
+            margin-bottom: 0.75rem;
+        }
+        .resource-type.external { background: #e8f4fd; color: #1e88e5; }
+        .resource-type.download { background: #fef3e8; color: #e65100; }
+        .resource-type.video { background: #fce4ec; color: #c2185b; }
     </style>
 </head>
 <body>
@@ -141,144 +270,75 @@
             </div>
         </section>
 
-        <!-- Quick Links -->
-        <section class="section" aria-labelledby="quick-links-heading">
+        <!-- Getting Started Section -->
+        <section class="section" aria-labelledby="getting-started-heading">
             <div class="container">
-                <div class="section-header">
-                    <span class="section-label">Quick Access</span>
-                    <h2 class="section-title" id="quick-links-heading">Essential Links</h2>
-                </div>
+                <div class="getting-started">
+                    <span class="section-label" style="color: rgba(255,255,255,0.8);">New Here?</span>
+                    <h2 id="getting-started-heading">Getting Started with Kiwi Church</h2>
+                    <p>Welcome! We're so glad you're exploring our community. Here's how to take your first steps with us.</p>
 
-                <div class="resources-grid">
-                    <div class="resource-card">
-                        <div class="resource-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M15 10l5 5-5 5"></path>
-                                <path d="M4 4v7a4 4 0 0 0 4 4h12"></path>
-                            </svg>
+                    <div class="getting-started-steps">
+                        <div class="getting-started-step">
+                            <div class="step-number">1</div>
+                            <h4>Visit a Gathering</h4>
+                            <p>Join one of our open gatherings to meet the community and see what we're about.</p>
                         </div>
-                        <h3>Online Prayer Zoom</h3>
-                        <p>Join our regular online prayer gatherings via Zoom.</p>
-                        <a href="#" class="btn btn-primary btn-sm">Join Meeting</a>
-                    </div>
-
-                    <div class="resource-card">
-                        <div class="resource-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                <line x1="3" y1="9" x2="21" y2="9"></line>
-                                <line x1="9" y1="21" x2="9" y2="9"></line>
-                            </svg>
+                        <div class="getting-started-step">
+                            <div class="step-number">2</div>
+                            <h4>Connect Online</h4>
+                            <p>Join our online prayer meetings or check out our Kete for resources and reflections.</p>
                         </div>
-                        <h3>Shared Calendar</h3>
-                        <p>Subscribe to our community calendar in your preferred app.</p>
-                        <a href="calendar.html" class="btn btn-primary btn-sm">View Calendar</a>
-                    </div>
-
-                    <div class="resource-card">
-                        <div class="resource-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
+                        <div class="getting-started-step">
+                            <div class="step-number">3</div>
+                            <h4>Find Your Community</h4>
+                            <p>Explore our different communities and find one that fits your rhythm of life.</p>
                         </div>
-                        <h3>Shared Documents</h3>
-                        <p>Access community documents, study guides, and resources.</p>
-                        <a href="#" class="btn btn-primary btn-sm">Open Drive</a>
-                    </div>
-
-                    <div class="resource-card">
-                        <div class="resource-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                            </svg>
+                        <div class="getting-started-step">
+                            <div class="step-number">4</div>
+                            <h4>Get Involved</h4>
+                            <p>Once you're settled, there are many ways to contribute and grow with us.</p>
                         </div>
-                        <h3>Daily Lectionary</h3>
-                        <p>Follow along with daily scripture readings from the lectionary.</p>
-                        <a href="https://lectionary.library.vanderbilt.edu/" target="_blank" rel="noopener" class="btn btn-primary btn-sm">View Readings</a>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Recommended Reading -->
-        <section class="section section-sage" aria-labelledby="reading-heading">
+        <!-- All Resources Section -->
+        <section class="section" aria-labelledby="all-resources-heading">
             <div class="container">
                 <div class="section-header">
-                    <span class="section-label">Grow Deeper</span>
-                    <h2 class="section-title" id="reading-heading">Recommended Reading</h2>
-                    <p class="section-desc">Books that have shaped our community's thinking and practice.</p>
+                    <span class="section-label">Browse</span>
+                    <h2 class="section-title" id="all-resources-heading">All Resources</h2>
+                    <p class="section-desc">Find what you need to support your faith journey.</p>
                 </div>
 
-                <div class="resources-grid">
-                    <div class="resource-card">
-                        <h3>"The Ruthless Elimination of Hurry"</h3>
-                        <p><em>John Mark Comer</em> - On slowing down and practicing presence in a busy world.</p>
-                    </div>
-                    <div class="resource-card">
-                        <h3>"Life Together"</h3>
-                        <p><em>Dietrich Bonhoeffer</em> - A classic on Christian community and shared life.</p>
-                    </div>
-                    <div class="resource-card">
-                        <h3>"The Celtic Way of Evangelism"</h3>
-                        <p><em>George Hunter III</em> - Insights from Celtic Christianity for today.</p>
-                    </div>
-                    <div class="resource-card">
-                        <h3>"Simply Christian"</h3>
-                        <p><em>N.T. Wright</em> - An accessible introduction to Christianity.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Prayer Resources -->
-        <section class="section" aria-labelledby="prayer-heading">
-            <div class="container">
-                <div class="section-header">
-                    <span class="section-label">Spiritual Practice</span>
-                    <h2 class="section-title" id="prayer-heading">Prayer & Meditation</h2>
+                <!-- Search -->
+                <div class="resource-search">
+                    <input type="text" id="resource-search-input" placeholder="Search resources..." oninput="filterResources()">
                 </div>
 
-                <div class="resources-grid">
-                    <div class="resource-card">
-                        <div class="resource-icon" style="background: var(--color-terracotta-light);">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
-                                <path d="M12 6v6l4 2"></path>
-                            </svg>
-                        </div>
-                        <h3>Daily Prayer Office</h3>
-                        <p>A simple morning and evening prayer structure you can use at home.</p>
-                        <a href="#" class="btn btn-primary btn-sm">Download PDF</a>
-                    </div>
+                <!-- Category Tabs -->
+                <div class="category-tabs" id="category-tabs">
+                    <button class="category-tab active" data-category="all" onclick="setCategory('all')">All</button>
+                    <button class="category-tab" data-category="links" onclick="setCategory('links')">Quick Links</button>
+                    <button class="category-tab" data-category="reading" onclick="setCategory('reading')">Reading</button>
+                    <button class="category-tab" data-category="prayer" onclick="setCategory('prayer')">Prayer & Practice</button>
+                    <button class="category-tab" data-category="media" onclick="setCategory('media')">Media</button>
+                </div>
 
-                    <div class="resource-card">
-                        <div class="resource-icon" style="background: var(--color-terracotta-light);">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                            </svg>
-                        </div>
-                        <h3>Contemplative Apps</h3>
-                        <p>We recommend Lectio 365 and Pray As You Go for daily prayer.</p>
-                        <a href="https://www.24-7prayer.com/resource/lectio-365/" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Get Lectio 365</a>
-                    </div>
+                <!-- Resources Grid -->
+                <div class="resources-grid" id="resources-grid">
+                    <!-- Resources will be loaded dynamically -->
+                </div>
 
-                    <div class="resource-card">
-                        <div class="resource-icon" style="background: var(--color-terracotta-light);">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                            </svg>
-                        </div>
-                        <h3>Examen Guide</h3>
-                        <p>Learn the ancient practice of Ignatian Examen for daily reflection.</p>
-                        <a href="#" class="btn btn-primary btn-sm">Learn More</a>
-                    </div>
+                <!-- Empty State -->
+                <div class="empty-state" id="empty-state" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <p>No resources found matching your search.</p>
                 </div>
             </div>
         </section>
@@ -326,5 +386,291 @@
 
     <!-- Scripts -->
     <script src="js/main.js"></script>
+    <script type="module">
+        // Firebase imports
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getFirestore, collection, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyB5h8RkqjCLlCyiQxwKG5qdaKp3bL5CNUQ",
+            authDomain: "kiwi-church.firebaseapp.com",
+            projectId: "kiwi-church",
+            storageBucket: "kiwi-church.appspot.com",
+            messagingSenderId: "548742588847",
+            appId: "1:548742588847:web:c33c2c8e27d91fb3e8b2c8"
+        };
+
+        // Fallback resources data
+        const fallbackResources = [
+            {
+                id: '1',
+                title: 'Online Prayer Zoom',
+                description: 'Join our regular online prayer gatherings via Zoom.',
+                category: 'links',
+                type: 'link',
+                url: '#',
+                icon: 'arrow-right',
+                order: 1
+            },
+            {
+                id: '2',
+                title: 'Shared Calendar',
+                description: 'Subscribe to our community calendar in your preferred app.',
+                category: 'links',
+                type: 'link',
+                url: 'calendar.html',
+                icon: 'calendar',
+                order: 2
+            },
+            {
+                id: '3',
+                title: 'Shared Documents',
+                description: 'Access community documents, study guides, and resources.',
+                category: 'links',
+                type: 'link',
+                url: '#',
+                icon: 'document',
+                order: 3
+            },
+            {
+                id: '4',
+                title: 'Daily Lectionary',
+                description: 'Follow along with daily scripture readings from the lectionary.',
+                category: 'links',
+                type: 'external',
+                url: 'https://lectionary.library.vanderbilt.edu/',
+                icon: 'book',
+                order: 4
+            },
+            {
+                id: '5',
+                title: 'The Ruthless Elimination of Hurry',
+                description: 'John Mark Comer - On slowing down and practicing presence in a busy world.',
+                category: 'reading',
+                type: 'book',
+                author: 'John Mark Comer',
+                order: 5
+            },
+            {
+                id: '6',
+                title: 'Life Together',
+                description: 'Dietrich Bonhoeffer - A classic on Christian community and shared life.',
+                category: 'reading',
+                type: 'book',
+                author: 'Dietrich Bonhoeffer',
+                order: 6
+            },
+            {
+                id: '7',
+                title: 'The Celtic Way of Evangelism',
+                description: 'George Hunter III - Insights from Celtic Christianity for today.',
+                category: 'reading',
+                type: 'book',
+                author: 'George Hunter III',
+                order: 7
+            },
+            {
+                id: '8',
+                title: 'Simply Christian',
+                description: 'N.T. Wright - An accessible introduction to Christianity.',
+                category: 'reading',
+                type: 'book',
+                author: 'N.T. Wright',
+                order: 8
+            },
+            {
+                id: '9',
+                title: 'Daily Prayer Office',
+                description: 'A simple morning and evening prayer structure you can use at home.',
+                category: 'prayer',
+                type: 'download',
+                url: '#',
+                icon: 'clock',
+                order: 9
+            },
+            {
+                id: '10',
+                title: 'Lectio 365',
+                description: 'We recommend Lectio 365 and Pray As You Go for daily prayer.',
+                category: 'prayer',
+                type: 'external',
+                url: 'https://www.24-7prayer.com/resource/lectio-365/',
+                icon: 'bell',
+                order: 10
+            },
+            {
+                id: '11',
+                title: 'Examen Guide',
+                description: 'Learn the ancient practice of Ignatian Examen for daily reflection.',
+                category: 'prayer',
+                type: 'download',
+                url: '#',
+                icon: 'document',
+                order: 11
+            },
+            {
+                id: '12',
+                title: 'The Bible Project',
+                description: 'Excellent animated videos exploring the books and themes of the Bible.',
+                category: 'media',
+                type: 'video',
+                url: 'https://bibleproject.com/',
+                icon: 'video',
+                order: 12
+            },
+            {
+                id: '13',
+                title: 'Podcasts We Love',
+                description: 'A curated list of podcasts for spiritual growth and theological exploration.',
+                category: 'media',
+                type: 'link',
+                url: '#',
+                icon: 'headphones',
+                order: 13
+            }
+        ];
+
+        // State
+        let resources = fallbackResources;
+        let selectedCategory = 'all';
+        let searchQuery = '';
+
+        // Initialize Firebase and load resources
+        async function loadFromFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                const resourcesRef = collection(db, 'resources');
+                const q = query(resourcesRef, orderBy('order', 'asc'));
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    resources = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                }
+            } catch (error) {
+                console.log('Using fallback resources data:', error.message);
+            }
+            renderResources();
+        }
+
+        // Icons SVG paths
+        const icons = {
+            'arrow-right': '<path d="M15 10l5 5-5 5"></path><path d="M4 4v7a4 4 0 0 0 4 4h12"></path>',
+            'calendar': '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line>',
+            'document': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line>',
+            'book': '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>',
+            'clock': '<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="M12 6v6l4 2"></path>',
+            'bell': '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path>',
+            'video': '<polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>',
+            'headphones': '<path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>'
+        };
+
+        // Get icon background color based on category
+        function getIconBg(category) {
+            const colors = {
+                'links': 'var(--color-sage-light)',
+                'reading': 'var(--color-gold-light, #fef9e8)',
+                'prayer': 'var(--color-terracotta-light)',
+                'media': '#e8f4fd'
+            };
+            return colors[category] || 'var(--color-sage-light)';
+        }
+
+        // Get type badge class
+        function getTypeBadge(type) {
+            const badges = {
+                'external': 'external',
+                'download': 'download',
+                'video': 'video'
+            };
+            return badges[type] || '';
+        }
+
+        // Render resources
+        function renderResources() {
+            const grid = document.getElementById('resources-grid');
+            const emptyState = document.getElementById('empty-state');
+
+            // Filter resources
+            let filtered = resources;
+
+            if (selectedCategory !== 'all') {
+                filtered = filtered.filter(r => r.category === selectedCategory);
+            }
+
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                filtered = filtered.filter(r =>
+                    r.title.toLowerCase().includes(query) ||
+                    r.description.toLowerCase().includes(query) ||
+                    (r.author && r.author.toLowerCase().includes(query))
+                );
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            grid.innerHTML = filtered.map(resource => {
+                const iconSvg = icons[resource.icon] || icons['document'];
+                const iconBg = getIconBg(resource.category);
+                const typeBadge = getTypeBadge(resource.type);
+                const isExternal = resource.type === 'external' || (resource.url && resource.url.startsWith('http'));
+
+                let actionButton = '';
+                if (resource.url) {
+                    const buttonText = resource.type === 'download' ? 'Download' :
+                                      resource.type === 'video' ? 'Watch' :
+                                      resource.type === 'book' ? 'Learn More' : 'View';
+                    actionButton = `<a href="${resource.url}" ${isExternal ? 'target="_blank" rel="noopener"' : ''} class="btn btn-primary btn-sm">${buttonText}</a>`;
+                }
+
+                return `
+                    <div class="resource-card">
+                        ${resource.icon ? `
+                        <div class="resource-icon" style="background: ${iconBg};">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                ${iconSvg}
+                            </svg>
+                        </div>
+                        ` : ''}
+                        ${typeBadge ? `<span class="resource-type ${typeBadge}">${resource.type}</span>` : ''}
+                        <h3>${resource.title}</h3>
+                        <p>${resource.description}</p>
+                        ${actionButton}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Set category filter
+        window.setCategory = function(category) {
+            selectedCategory = category;
+
+            // Update tab styling
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.category === category);
+            });
+
+            renderResources();
+        };
+
+        // Filter resources by search
+        window.filterResources = function() {
+            searchQuery = document.getElementById('resource-search-input').value;
+            renderResources();
+        };
+
+        // Initialize
+        loadFromFirebase();
+    </script>
 </body>
 </html>
