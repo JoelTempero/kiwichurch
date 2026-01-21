@@ -1168,6 +1168,9 @@ a:hover {
 
 .blog-card-content {
     padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
 }
 
 .blog-card-date {
@@ -1178,11 +1181,16 @@ a:hover {
 
 .blog-card-title {
     margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+    line-height: 1.3;
 }
 
 .blog-card-excerpt {
     color: var(--color-text-light);
     font-size: 0.9375rem;
+    line-height: 1.6;
+    flex: 1;
+    margin-bottom: 1rem;
 }
 
 /* ============================================
