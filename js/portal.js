@@ -516,9 +516,9 @@ const DataService = {
     },
 
     // RSVP with status and notes
-    async rsvpWithDetails(eventId, userId, status, notes = '', attendees = []) {
+    async rsvpWithDetails(eventId, userId, status, notes = '', attendees = [], guestCount = 0) {
         if (PortalConfig.useFirebase && window.DB) {
-            return await DB.setRSVP(eventId, userId, status, notes, attendees);
+            return await DB.setRSVP(eventId, userId, status, notes, attendees, guestCount);
         }
         const event = MockDB.events.find(e => e.id === eventId);
         if (event) {
@@ -532,6 +532,7 @@ const DataService = {
                 status, // 'attending', 'maybe', 'not-attending'
                 notes,
                 attendees, // dependants attending
+                guestCount, // friends/guests not in system
                 updatedAt: new Date().toISOString()
             });
         }
@@ -1588,9 +1589,9 @@ function openEventModal(eventId) {
     const maybeRSVPs = allRSVPs.filter(r => r.status === 'maybe');
     const notAttendingRSVPs = allRSVPs.filter(r => r.status === 'not-attending');
 
-    // Count total attendees (including dependants)
+    // Count total attendees (including dependants and guests)
     const totalAttending = attendingRSVPs.reduce((count, r) => {
-        return count + 1 + (r.attendees?.length || 0);
+        return count + 1 + (r.attendees?.length || 0) + (r.guestCount || 0);
     }, 0);
 
     // Capacity info
@@ -1710,10 +1711,10 @@ function openEventModal(eventId) {
                 <div class="rsvp-list" style="margin-bottom: 0.75rem;">
                     ${attendingRSVPs.map(r => {
                         const isYou = r.userId === currentUser?.id;
-                        const attendeeCount = r.attendees?.length || 0;
+                        const plusCount = (r.attendees?.length || 0) + (r.guestCount || 0);
                         const isCheckedIn = event.checkedIn?.includes(r.userId);
                         return `<span class="rsvp-chip ${isYou ? 'you' : ''}" title="${r.notes || ''}" style="${isCheckedIn ? 'border: 2px solid var(--color-sage);' : ''}">
-                            ${isCheckedIn ? '✓ ' : ''}${isYou ? 'You' : (r.userName || 'Unknown').split(' ')[0]}${attendeeCount > 0 ? ` +${attendeeCount}` : ''}
+                            ${isCheckedIn ? '✓ ' : ''}${isYou ? 'You' : (r.userName || 'Unknown').split(' ')[0]}${plusCount > 0 ? ` +${plusCount}` : ''}
                         </span>`;
                     }).join('')}
                 </div>
@@ -1911,6 +1912,24 @@ function openCreateEventModal(prefillGatheringId = null) {
                     <option value="private">Private - Members only</option>
                 </select>
             </div>
+
+            <div class="form-group">
+                <label class="form-label">Recurring Event</label>
+                <select class="form-input" id="event-recurring" onchange="toggleRecurringOptions(this.value)">
+                    <option value="">One-time event</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="fortnightly">Fortnightly</option>
+                    <option value="monthly">Monthly</option>
+                </select>
+            </div>
+
+            <div id="recurring-options" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label" for="event-recurring-until">Repeat until</label>
+                    <input type="date" class="form-input" id="event-recurring-until">
+                    <small style="color: var(--color-text-light); font-size: 0.75rem;">Events will be created up to this date</small>
+                </div>
+            </div>
         </form>
     `;
 
@@ -1971,6 +1990,23 @@ function previewEventImage(input, previewId) {
     }
 }
 
+// Toggle recurring event options
+function toggleRecurringOptions(value) {
+    const optionsDiv = document.getElementById('recurring-options');
+    if (optionsDiv) {
+        optionsDiv.style.display = value ? 'block' : 'none';
+        if (value) {
+            // Default end date to 3 months from start date
+            const startDate = document.getElementById('event-date')?.value;
+            if (startDate) {
+                const endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + 3);
+                document.getElementById('event-recurring-until').value = endDate.toISOString().split('T')[0];
+            }
+        }
+    }
+}
+
 async function saveNewEvent() {
     const title = document.getElementById('event-title').value.trim();
     const gatheringId = document.getElementById('event-gathering').value;
@@ -1983,6 +2019,8 @@ async function saveNewEvent() {
     const capacity = capacityInput ? parseInt(capacityInput) : null;
     const reminder = document.getElementById('event-reminder').value;
     const visibility = document.getElementById('event-visibility').value;
+    const recurring = document.getElementById('event-recurring')?.value || '';
+    const recurringUntil = document.getElementById('event-recurring-until')?.value;
 
     // Validation
     if (!title || !gatheringId || !date || !time || !location) {
@@ -2011,11 +2049,10 @@ async function saveNewEvent() {
             }
         }
 
-        await DataService.createEvent({
+        const baseEventData = {
             title,
             gatheringId,
             category,
-            date,
             time,
             location,
             description: description || `Join us for ${title.toLowerCase()}.`,
@@ -2025,15 +2062,65 @@ async function saveNewEvent() {
             coverImage: coverImageUrl,
             status: 'active',
             checkedIn: []
-        });
+        };
 
-        pendingEventImage = null;
-        showToast('Event created successfully!', 'success');
+        // Handle recurring events
+        if (recurring && recurringUntil) {
+            const dates = generateRecurringDates(date, recurringUntil, recurring);
+            let createdCount = 0;
+
+            for (const eventDate of dates) {
+                await DataService.createEvent({
+                    ...baseEventData,
+                    date: eventDate,
+                    recurringId: `rec-${Date.now()}`, // Link recurring events
+                    recurringPattern: recurring
+                });
+                createdCount++;
+            }
+
+            pendingEventImage = null;
+            showToast(`Created ${createdCount} recurring events!`, 'success');
+        } else {
+            // Single event
+            await DataService.createEvent({
+                ...baseEventData,
+                date
+            });
+            pendingEventImage = null;
+            showToast('Event created successfully!', 'success');
+        }
+
         closeModal();
         renderPage();
     } catch (error) {
         showToast(error.message || 'Could not create event', 'error');
     }
+}
+
+// Generate dates for recurring events
+function generateRecurringDates(startDate, endDate, pattern) {
+    const dates = [];
+    const current = new Date(startDate);
+    const end = new Date(endDate);
+
+    const intervals = {
+        'weekly': 7,
+        'fortnightly': 14,
+        'monthly': 30 // Approximation, handled specially below
+    };
+
+    while (current <= end) {
+        dates.push(current.toISOString().split('T')[0]);
+
+        if (pattern === 'monthly') {
+            current.setMonth(current.getMonth() + 1);
+        } else {
+            current.setDate(current.getDate() + intervals[pattern]);
+        }
+    }
+
+    return dates;
 }
 
 function openEditEventModal(eventId) {
@@ -2674,7 +2761,6 @@ function openRSVPModal(eventId) {
                 </div>
             </div>
 
-            ${currentUser.dependants && currentUser.dependants.length > 0 ? `
             <div class="form-group">
                 <label class="form-label">Who's coming?</label>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -2682,15 +2768,25 @@ function openRSVPModal(eventId) {
                         <input type="checkbox" value="self" checked disabled>
                         <span>${currentUser.displayName.split(' ')[0]} (you)</span>
                     </label>
-                    ${currentUser.dependants.map(d => `
+                    ${currentUser.dependants && currentUser.dependants.length > 0 ? currentUser.dependants.map(d => `
                         <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer;">
                             <input type="checkbox" name="rsvp-attendees" value="${d}" ${existingRSVP?.attendees?.includes(d) ? 'checked' : ''}>
                             <span>${d}</span>
                         </label>
-                    `).join('')}
+                    `).join('') : ''}
                 </div>
             </div>
-            ` : ''}
+
+            <div class="form-group">
+                <label class="form-label">Bringing a friend?</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="updateGuestCount(-1)" style="width: 36px; height: 36px; padding: 0;">-</button>
+                    <input type="number" id="rsvp-guests" value="${existingRSVP?.guestCount || 0}" min="0" max="10" style="width: 60px; text-align: center;" class="form-input" readonly>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="updateGuestCount(1)" style="width: 36px; height: 36px; padding: 0;">+</button>
+                    <span style="font-size: 0.875rem; color: var(--color-text-light);">extra guest(s)</span>
+                </div>
+                <small style="color: var(--color-text-light); font-size: 0.75rem; margin-top: 0.25rem; display: block;">For friends not in our system</small>
+            </div>
 
             <div class="form-group">
                 <label class="form-label" for="rsvp-notes">Notes (optional)</label>
@@ -2708,6 +2804,15 @@ function openRSVPModal(eventId) {
     openModal('RSVP', bodyHTML, footerHTML);
 }
 
+// Helper for guest count buttons
+function updateGuestCount(delta) {
+    const input = document.getElementById('rsvp-guests');
+    if (!input) return;
+    const current = parseInt(input.value) || 0;
+    const newValue = Math.max(0, Math.min(10, current + delta));
+    input.value = newValue;
+}
+
 async function submitRSVP(eventId) {
     const currentUser = DataService.getCurrentUser();
     if (!currentUser) return;
@@ -2719,8 +2824,11 @@ async function submitRSVP(eventId) {
     const attendeeCheckboxes = document.querySelectorAll('input[name="rsvp-attendees"]:checked');
     const attendees = Array.from(attendeeCheckboxes).map(cb => cb.value);
 
+    // Get guest count (friends not in system)
+    const guestCount = parseInt(document.getElementById('rsvp-guests')?.value) || 0;
+
     try {
-        await DataService.rsvpWithDetails(eventId, currentUser.id, status, notes, attendees);
+        await DataService.rsvpWithDetails(eventId, currentUser.id, status, notes, attendees, guestCount);
 
         const statusMessages = {
             'attending': 'See you there!',
@@ -6087,6 +6195,14 @@ function renderHostingPage() {
     const upcomingEvents = manageableEvents.filter(e => new Date(e.date) >= today).slice(0, 10);
     const pastEvents = manageableEvents.filter(e => new Date(e.date) < today).slice(0, 5);
 
+    // Calculate stats
+    const totalRSVPs = upcomingEvents.reduce((sum, e) => {
+        const attending = (e.rsvps || []).filter(r => !r.status || r.status === 'attending');
+        return sum + attending.reduce((count, r) => count + 1 + (r.attendees?.length || 0) + (r.guestCount || 0), 0);
+    }, 0);
+    const nextEvent = upcomingEvents[0];
+    const nextEventRSVPs = nextEvent ? (nextEvent.rsvps || []).filter(r => !r.status || r.status === 'attending').length : 0;
+
     // Get gatherings this user can host
     let hostableGatherings = MockDB.gatherings;
     if (currentUser.role === 'host' && currentUser.assignedGatherings) {
@@ -6101,7 +6217,37 @@ function renderHostingPage() {
             <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Manage your events and posts</p>
         </div>
 
-        <div class="app-section" style="padding-top: 1.5rem;">
+        <!-- Quick Stats -->
+        <div class="app-section" style="padding-top: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-forest);">${upcomingEvents.length}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Upcoming</div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-sage);">${totalRSVPs}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Total RSVPs</div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-terracotta);">${hostableGatherings.length}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Communities</div>
+                </div>
+            </div>
+        </div>
+
+        ${nextEvent ? `
+        <div class="app-section" style="padding-top: 0;">
+            <div style="background: var(--color-sage-light); border-radius: var(--radius-md); padding: 1rem;">
+                <div style="font-size: 0.75rem; color: var(--color-forest); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Next Event</div>
+                <div style="font-weight: 500;">${nextEvent.title}</div>
+                <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: 0.25rem;">
+                    ${formatDate(nextEvent.date)} at ${formatTime(nextEvent.time)} • ${nextEventRSVPs} attending
+                </div>
+            </div>
+        </div>
+        ` : ''}
+
+        <div class="app-section" style="padding-top: 0.5rem;">
             <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="openCreateEventModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
