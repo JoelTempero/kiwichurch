@@ -82,7 +82,7 @@
                 <a href="calendar.html" class="nav-link">Calendar</a>
                 <a href="kete.html" class="nav-link active">Kete</a>
                 <a href="resources.html" class="nav-link">Resources</a>
-                <a href="giving.html" class="nav-link">Giving</a>
+                
                 <a href="portal.html" class="btn btn-outline">Portal</a>
             </nav>
 
@@ -104,7 +104,7 @@
         <a href="calendar.html" class="mobile-nav-link">Calendar</a>
         <a href="kete.html" class="mobile-nav-link">Kete</a>
         <a href="resources.html" class="mobile-nav-link">Resources</a>
-        <a href="giving.html" class="mobile-nav-link">Giving</a>
+        
         <a href="portal.html" class="mobile-nav-link">Member Portal</a>
     </nav>
 
@@ -127,16 +127,41 @@
             </div>
         </section>
 
+        <!-- Search and Filter -->
+        <section class="section section-sm" style="padding-bottom: 0;">
+            <div class="container">
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <input type="text" id="kete-search" placeholder="Search posts..." style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-cream-dark); border-radius: var(--radius-md); font-size: 1rem;" oninput="filterPosts()">
+                    </div>
+                    <div id="category-filters" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Blog Posts -->
         <section class="section" aria-labelledby="posts-heading">
             <div class="container">
                 <h2 class="sr-only" id="posts-heading">All Posts</h2>
+                <p id="posts-count" style="color: var(--color-text-light); margin-bottom: 1.5rem;"></p>
                 <div class="blog-grid" id="kete-posts">
                     <!-- Populated by JavaScript -->
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- Post Modal -->
+    <div id="post-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <button class="modal-close" onclick="closePostModal()" aria-label="Close modal">&times;</button>
+            <div id="post-modal-content">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="footer">
@@ -158,7 +183,7 @@
                 <h4 class="footer-title">Connect</h4>
                 <ul class="footer-links">
                     <li><a href="resources.html">Resources</a></li>
-                    <li><a href="giving.html">Giving</a></li>
+                    
                     <li><a href="portal.html">Member Portal</a></li>
                 </ul>
             </div>
@@ -180,99 +205,299 @@
 
     <!-- Scripts -->
     <script src="js/main.js"></script>
-    <script>
-        const posts = [
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getFirestore, collection, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAd1I0cDraUbABCKX3JMxmtW6lPxvvdFv8",
+            authDomain: "kiwi-church.firebaseapp.com",
+            projectId: "kiwi-church",
+            storageBucket: "kiwi-church.firebasestorage.app",
+            messagingSenderId: "773909055908",
+            appId: "1:773909055908:web:dca65e7e1c4fd26a0ee93f"
+        };
+
+        // Fallback posts (used if Firebase unavailable)
+        const fallbackPosts = [
             {
                 id: 'finding-sacred',
                 title: 'Finding Sacred in the Ordinary',
-                excerpt: 'Reflections on discovering God in everyday moments and mundane routines. How the practice of presence can transform our experience of the divine.',
-                content: 'Full article content would go here...',
-                date: '2024-01-10',
-                author: 'Darryl Tempero',
-                category: 'Reflection'
+                excerpt: 'Reflections on discovering God in everyday moments and mundane routines.',
+                content: `There's a moment each morning, somewhere between the first sip of coffee and the rush of the day, where I find myself pausing. It's not a grand spiritual practice—just a breath, a noticing.
+
+I've been learning that God doesn't only show up in the mountain-top experiences or the carefully crafted worship services. Sometimes the sacred sneaks in through the back door: in the steam rising from a cup, in the sound of rain on the roof, in the mundane rhythm of washing dishes.
+
+Brother Lawrence called it "practicing the presence of God." I'm calling it "paying attention."
+
+What if our everyday moments—the commute, the grocery run, the bedtime routine—are all invitations to encounter? What if the ordinary is already holy, and we just need eyes to see?
+
+This week, I'm trying something simple: before I rush into each task, I'll take one breath and ask, "Where are you here, God?"
+
+Maybe you'd like to try it too.`,
+                publishedAt: '2024-01-10',
+                authorName: 'Darryl Tempero',
+                category: 'reflection'
             },
             {
                 id: 'winter-update',
-                title: 'Community Update: Winter 2024',
-                excerpt: 'A look back at what God has been doing in our communities over the past season. New faces, growing connections, and stories of transformation.',
-                content: 'Full article content would go here...',
-                date: '2024-01-03',
-                author: 'Kiwi Church Team',
-                category: 'Update'
+                title: 'Community Update: Summer 2024',
+                excerpt: 'A look back at what God has been doing in our communities over the past season.',
+                content: `As we head into the new year, we wanted to take a moment to celebrate what God has been doing in our communities over the summer.
+
+## Thin Place
+Our fortnightly gatherings have continued to be a space of deep encounter and honest conversation. We've welcomed several new faces and have been moved by the stories shared around our tables.
+
+## Prestons Community
+The Friday night dinners have become a highlight for many families. There's something beautiful about sharing a meal together, watching the kids play, and simply being present with one another.
+
+## Rito Shack
+Our creative gathering has been exploring new ways of expressing faith through art. Last month's collaborative painting project was a powerful reminder that we're all part of something bigger.
+
+## Looking Ahead
+As we move into 2024, we're excited about what's to come. We're dreaming about new ways to serve our neighborhoods and deepen our connections with one another.
+
+Thank you for being part of this community. You belong here.`,
+                publishedAt: '2024-01-03',
+                authorName: 'Kiwi Church Team',
+                category: 'update'
             },
             {
                 id: 'art-of-showing-up',
                 title: 'The Art of Showing Up',
-                excerpt: 'Why consistent presence matters more than perfect attendance. Thoughts on faithfulness, community, and the power of simply being there.',
-                content: 'Full article content would go here...',
-                date: '2023-12-20',
-                author: 'Sarah Utting',
-                category: 'Reflection'
-            },
-            {
-                id: 'table-fellowship',
-                title: 'Why We Eat Together',
-                excerpt: 'Exploring the theology of table fellowship and why sharing meals is central to how we practice community at Kiwi Church.',
-                content: 'Full article content would go here...',
-                date: '2023-12-12',
-                author: 'Michael Olds',
-                category: 'Teaching'
-            },
-            {
-                id: 'advent-waiting',
-                title: 'Learning to Wait: Advent Reflections',
-                excerpt: 'In a culture of instant everything, what can the ancient practice of Advent teach us about patience, hope, and expectation?',
-                content: 'Full article content would go here...',
-                date: '2023-12-05',
-                author: 'Darryl Tempero',
-                category: 'Devotion'
-            },
-            {
-                id: 'new-community-prestons',
-                title: 'A New Community in Prestons',
-                excerpt: 'We\'re excited to announce the launch of our newest gathering in the Prestons area. Here\'s the story of how it came together.',
-                content: 'Full article content would go here...',
-                date: '2023-11-28',
-                author: 'Kiwi Church Team',
-                category: 'Update'
+                excerpt: 'Why consistent presence matters more than perfect attendance.',
+                content: `I used to think that being part of a community meant never missing a gathering. That good members showed up every single time, fully present and engaged.
+
+But life doesn't work that way, does it?
+
+There are seasons when we're overwhelmed, when the kids are sick, when work is demanding, when we simply don't have the energy. And in those moments, I've learned something important: **showing up doesn't have to be perfect to be meaningful**.
+
+Sometimes showing up means dragging yourself to the gathering even when you'd rather stay home. Other times, it means sending a text to say "I'm thinking of you" when you can't be there in person. And sometimes, it means receiving grace when you've been absent for weeks.
+
+Community isn't built on perfect attendance. It's built on consistent presence over time—the kind that weathers the ups and downs, the busy seasons and the quiet ones.
+
+So if you've been away for a while, know this: you're still part of us. And when you're ready, there's always a seat at the table with your name on it.`,
+                publishedAt: '2023-12-20',
+                authorName: 'Sarah Utting',
+                category: 'reflection'
             }
         ];
 
-        function renderPosts() {
-            const container = document.getElementById('kete-posts');
+        let posts = fallbackPosts;
+        let selectedCategory = null;
+        let searchQuery = '';
+
+        // Category definitions
+        const categories = {
+            'reflection': { name: 'Reflection', color: '#1a3a2f' },
+            'update': { name: 'Update', color: '#c17f59' },
+            'teaching': { name: 'Teaching', color: '#7d9a87' },
+            'devotion': { name: 'Devotion', color: '#d4a574' },
+            'story': { name: 'Story', color: '#5a6b62' }
+        };
+
+        // Calculate reading time
+        function calculateReadingTime(content) {
+            const wordsPerMinute = 200;
+            const words = content?.split(/\s+/).length || 0;
+            return Math.max(1, Math.ceil(words / wordsPerMinute));
+        }
+
+        // Load from Firebase
+        async function loadFromFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                const q = query(
+                    collection(db, 'kete'),
+                    where('published', '==', true),
+                    orderBy('publishedAt', 'desc')
+                );
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const firebasePosts = [];
+                    querySnapshot.forEach((doc) => {
+                        firebasePosts.push({ id: doc.id, ...doc.data() });
+                    });
+                    posts = firebasePosts;
+                }
+            } catch (error) {
+                console.log('Using fallback data:', error.message);
+            }
+            renderCategoryFilters();
+            renderPosts();
+        }
+
+        // Render category filter buttons
+        function renderCategoryFilters() {
+            const container = document.getElementById('category-filters');
             if (!container) return;
 
-            container.innerHTML = posts.map(post => {
-                const date = new Date(post.date);
+            const usedCategories = [...new Set(posts.map(p => p.category).filter(Boolean))];
+
+            container.innerHTML = `
+                <button onclick="window.setCategory(null)" class="btn btn-sm ${!selectedCategory ? 'btn-primary' : 'btn-ghost'}" style="border-radius: 999px;">All</button>
+                ${usedCategories.map(catId => {
+                    const cat = categories[catId] || { name: catId, color: '#666' };
+                    const isActive = selectedCategory === catId;
+                    return `<button onclick="window.setCategory('${catId}')" class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-ghost'}" style="border-radius: 999px; ${isActive ? `background: ${cat.color}; border-color: ${cat.color};` : ''}">${cat.name}</button>`;
+                }).join('')}
+            `;
+        }
+
+        // Filter posts
+        window.filterPosts = function() {
+            searchQuery = document.getElementById('kete-search')?.value?.toLowerCase() || '';
+            renderPosts();
+        };
+
+        // Set category filter
+        window.setCategory = function(category) {
+            selectedCategory = category;
+            renderCategoryFilters();
+            renderPosts();
+        };
+
+        // Render posts
+        function renderPosts() {
+            const container = document.getElementById('kete-posts');
+            const countEl = document.getElementById('posts-count');
+            if (!container) return;
+
+            // Filter posts
+            let filteredPosts = posts;
+            if (selectedCategory) {
+                filteredPosts = filteredPosts.filter(p => p.category === selectedCategory);
+            }
+            if (searchQuery) {
+                filteredPosts = filteredPosts.filter(p =>
+                    p.title?.toLowerCase().includes(searchQuery) ||
+                    p.excerpt?.toLowerCase().includes(searchQuery) ||
+                    p.authorName?.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            if (countEl) {
+                countEl.textContent = `${filteredPosts.length} post${filteredPosts.length !== 1 ? 's' : ''}`;
+            }
+
+            if (filteredPosts.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--color-text-light);">
+                        <p>No posts found matching your search.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredPosts.map(post => {
+                const date = new Date(post.publishedAt || post.date);
                 const formattedDate = date.toLocaleDateString('en-NZ', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                 });
+                const readingTime = calculateReadingTime(post.content);
+                const cat = categories[post.category] || { name: post.category || 'Post', color: '#666' };
 
                 return `
                     <article class="blog-card" id="${post.id}">
-                        <div class="blog-card-image" style="display: flex; align-items: center; justify-content: center;">
-                            <span style="color: var(--color-white); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7;">${post.category}</span>
+                        <div class="blog-card-image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, ${cat.color} 0%, ${cat.color}cc 100%);">
+                            <span style="color: var(--color-white); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9;">${cat.name}</span>
                         </div>
                         <div class="blog-card-content">
-                            <span class="blog-card-date">${formattedDate} &bull; ${post.author}</span>
+                            <span class="blog-card-date">${formattedDate} &bull; ${post.authorName || 'Kiwi Church'}</span>
                             <h3 class="blog-card-title">${post.title}</h3>
                             <p class="blog-card-excerpt">${post.excerpt}</p>
-                            <button class="btn btn-ghost btn-sm" onclick="viewPost('${post.id}')">Read More</button>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                                <span style="font-size: 0.875rem; color: var(--color-sage);">${readingTime} min read</span>
+                                <button class="btn btn-ghost btn-sm" onclick="window.viewPost('${post.id}')">Read More</button>
+                            </div>
                         </div>
                     </article>
                 `;
             }).join('');
         }
 
-        function viewPost(postId) {
-            // In a full implementation, this would navigate to a dedicated post page
-            // For now, show a toast
-            KiwiChurch.showToast('Full post view coming soon!', 'default');
-        }
+        // View post in modal
+        window.viewPost = function(postId) {
+            const post = posts.find(p => p.id === postId);
+            if (!post) return;
 
-        document.addEventListener('DOMContentLoaded', renderPosts);
+            const modal = document.getElementById('post-modal');
+            const content = document.getElementById('post-modal-content');
+            if (!modal || !content) return;
+
+            const date = new Date(post.publishedAt || post.date);
+            const formattedDate = date.toLocaleDateString('en-NZ', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const readingTime = calculateReadingTime(post.content);
+            const cat = categories[post.category] || { name: post.category || 'Post', color: '#666' };
+
+            // Convert markdown-like formatting to HTML
+            let htmlContent = (post.content || '')
+                .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+                .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+            htmlContent = '<p>' + htmlContent + '</p>';
+
+            content.innerHTML = `
+                <article style="padding: 1rem;">
+                    <div style="margin-bottom: 1.5rem;">
+                        <span style="background: ${cat.color}; color: white; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; text-transform: uppercase;">${cat.name}</span>
+                    </div>
+                    <h1 style="font-family: var(--font-display); font-size: 2rem; color: var(--color-forest); margin: 0 0 1rem;">${post.title}</h1>
+                    <div style="display: flex; gap: 1rem; align-items: center; color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-cream-dark);">
+                        <span>${post.authorName || 'Kiwi Church'}</span>
+                        <span>&bull;</span>
+                        <span>${formattedDate}</span>
+                        <span>&bull;</span>
+                        <span>${readingTime} min read</span>
+                    </div>
+                    <div style="font-size: 1.0625rem; line-height: 1.8; color: var(--color-text);">
+                        ${htmlContent}
+                    </div>
+                </article>
+            `;
+
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        };
+
+        // Close post modal
+        window.closePostModal = function() {
+            const modal = document.getElementById('post-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        };
+
+        // Close modal on backdrop click
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                window.closePostModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.closePostModal();
+            }
+        });
+
+        // Load on page ready
+        document.addEventListener('DOMContentLoaded', loadFromFirebase);
     </script>
 </body>
 </html>
