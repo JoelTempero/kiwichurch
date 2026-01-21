@@ -286,12 +286,15 @@
                 if (isSelected) classes += ' selected';
                 if (dayEvents.length > 0) classes += ' has-events';
 
-                // Show event titles instead of just dots
+                // Show event titles with time and location
                 let eventInfo = '';
                 if (dayEvents.length > 0) {
                     eventInfo = '<div class="calendar-day-events">';
                     dayEvents.slice(0, 2).forEach(e => {
-                        eventInfo += `<div class="calendar-event-preview" title="${e.title} - ${KiwiChurch.formatTime(e.time)}">${e.title}</div>`;
+                        eventInfo += `<div class="calendar-event-preview" title="${e.title} - ${KiwiChurch.formatTime(e.time)} @ ${e.location}">
+                            <span class="event-title">${e.title}</span>
+                            <span class="event-time">${KiwiChurch.formatTime(e.time)}</span>
+                        </div>`;
                     });
                     if (dayEvents.length > 2) {
                         eventInfo += `<div class="calendar-event-more">+${dayEvents.length - 2} more</div>`;

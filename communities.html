@@ -273,7 +273,7 @@
             container.innerHTML = sortedGatherings.map(g => `
                 <article class="gathering-card ${g.featured ? 'featured' : ''}" id="${g.id}">
                     ${g.featured ? '<span class="featured-badge">Featured</span>' : ''}
-                    <div class="gathering-card-header" style="background: linear-gradient(135deg, ${g.color} 0%, ${g.color}cc 100%);">
+                    <div class="gathering-card-header" style="background: ${g.imageUrl ? `linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%), url('${g.imageUrl}') center/cover` : `linear-gradient(135deg, ${g.color} 0%, ${g.color}cc 100%)`};">
                         <h3>${g.name}</h3>
                     </div>
                     <div class="gathering-card-body">
@@ -286,10 +286,13 @@
                         </span>
                         <p class="gathering-card-desc">${g.description}</p>
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-cream-dark);">
-                            <p style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: 0.5rem;">
-                                <strong>Location:</strong> ${g.location || 'TBA'}
+                            <p style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: 0;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                ${g.location || 'TBA'}
                             </p>
-                            <span class="event-badge">Open to all</span>
                         </div>
                     </div>
                 </article>
