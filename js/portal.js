@@ -3752,10 +3752,9 @@ async function saveNotificationSettings() {
         currentUser.notificationSettings = settings;
 
         // Save to Firebase if enabled
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
             try {
-                const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                await updateDoc(doc(db, 'users', currentUser.id), {
+                await db.collection('users').doc(currentUser.id).update({
                     notificationSettings: settings
                 });
             } catch (error) {
@@ -4352,19 +4351,19 @@ function renderEventsPage() {
             const isToday = isCurrentMonth && day === todayDate;
             const hasEvents = dayEvents.length > 0;
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const firstEvent = dayEvents[0];
 
             calendarHTML += `
                 <div
-                    style="aspect-ratio: 1; padding: 0.25rem; background: ${isToday ? 'var(--color-sage-light)' : hasEvents ? 'var(--color-cream)' : 'transparent'}; border-radius: var(--radius-sm); cursor: ${hasEvents ? 'pointer' : 'default'}; display: flex; flex-direction: column; align-items: center;"
+                    style="min-height: 70px; padding: 0.25rem; background: ${isToday ? 'var(--color-sage-light)' : hasEvents ? 'var(--color-cream)' : 'transparent'}; border-radius: var(--radius-sm); cursor: ${hasEvents ? 'pointer' : 'default'}; display: flex; flex-direction: column;"
                     ${hasEvents ? `onclick="showDayEvents('${dateStr}')"` : ''}
                 >
-                    <span style="font-weight: ${isToday ? '600' : '400'}; font-size: 0.875rem; color: ${isToday ? 'var(--color-forest)' : 'inherit'};">${day}</span>
-                    ${hasEvents ? `
-                        <div style="display: flex; gap: 2px; margin-top: 2px;">
-                            ${dayEvents.slice(0, 3).map(e => {
-                                const gathering = DataService.getGatheringById(e.gatheringId);
-                                return `<span style="width: 6px; height: 6px; border-radius: 50%; background: ${gathering?.color || 'var(--color-sage)'};"></span>`;
-                            }).join('')}
+                    <span style="font-weight: ${isToday ? '600' : '400'}; font-size: 0.875rem; color: ${isToday ? 'var(--color-forest)' : 'inherit'}; text-align: center;">${day}</span>
+                    ${hasEvents && firstEvent ? `
+                        <div style="flex: 1; display: flex; flex-direction: column; margin-top: 2px; overflow: hidden;">
+                            <div style="font-size: 0.625rem; font-weight: 500; line-height: 1.2; color: var(--color-forest); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${firstEvent.title}</div>
+                            <div style="font-size: 0.5625rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${formatTime(firstEvent.time)}</div>
+                            ${dayEvents.length > 1 ? `<div style="font-size: 0.5625rem; color: var(--color-sage); margin-top: auto;">+${dayEvents.length - 1} more</div>` : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -4378,69 +4377,47 @@ function renderEventsPage() {
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Events</h2>
-                    <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">View and RSVP to gatherings</p>
-                </div>
-                <div style="display: flex; gap: 0.25rem; background: rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 0.25rem;">
-                    <button class="btn btn-ghost btn-sm" style="color: white; ${viewMode === 'list' ? 'background: rgba(255,255,255,0.2);' : ''}" onclick="setEventsView('list')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="8" y1="6" x2="21" y2="6"></line>
-                            <line x1="8" y1="12" x2="21" y2="12"></line>
-                            <line x1="8" y1="18" x2="21" y2="18"></line>
-                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                        </svg>
-                    </button>
-                    <button class="btn btn-ghost btn-sm" style="color: white; ${viewMode === 'calendar' ? 'background: rgba(255,255,255,0.2);' : ''}" onclick="setEventsView('calendar')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                    </button>
-                </div>
+            <div>
+                <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Events</h2>
+                <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">View and RSVP to gatherings</p>
             </div>
         </div>
 
-        ${viewMode === 'calendar' ? `
-            <div class="app-section" style="padding-top: 1.5rem;">
-                <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm);">
-                    ${renderCalendar()}
-                </div>
+        <!-- Calendar always shown at top -->
+        <div class="app-section" style="padding-top: 1.5rem;">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm);">
+                ${renderCalendar()}
             </div>
-            <div id="day-events-container"></div>
-        ` : `
-            <div class="app-section" style="padding-top: 1.5rem;">
-                <div class="app-section-header">
-                    <h3 class="app-section-title">Upcoming</h3>
-                </div>
-                ${events.length > 0 ? events.map(event => {
-                    const date = new Date(event.date);
-                    const rsvpStatus = getUserRSVPStatus(event);
-                    const gathering = DataService.getGatheringById(event.gatheringId);
-                    return `
-                        <div class="app-event-card" onclick="openEventModal('${event.id}')">
-                            <div class="app-event-date" style="background: ${gathering?.color || (!event.isPublic ? 'var(--color-terracotta)' : 'var(--color-sage)')};">
-                                <span class="app-event-date-day">${date.getDate()}</span>
-                                <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
-                            </div>
-                            <div class="app-event-info">
-                                <div class="app-event-title">
-                                    ${event.title}
-                                    ${rsvpStatus === 'attending' ? '<span style="color: var(--color-sage);">&#10003;</span>' : ''}
-                                    ${rsvpStatus === 'maybe' ? '<span style="color: var(--color-terracotta);">?</span>' : ''}
-                                </div>
-                                <div class="app-event-meta">${formatTime(event.time)} - ${event.location}</div>
-                            </div>
+        </div>
+        <div id="day-events-container"></div>
+
+        <!-- Events list always shown below calendar -->
+        <div class="app-section" style="padding-top: 1rem;">
+            <div class="app-section-header">
+                <h3 class="app-section-title">Upcoming Events</h3>
+            </div>
+            ${events.length > 0 ? events.map(event => {
+                const date = new Date(event.date);
+                const rsvpStatus = getUserRSVPStatus(event);
+                const gathering = DataService.getGatheringById(event.gatheringId);
+                return `
+                    <div class="app-event-card" onclick="openEventModal('${event.id}')">
+                        <div class="app-event-date" style="background: ${gathering?.color || (!event.isPublic ? 'var(--color-terracotta)' : 'var(--color-sage)')};">
+                            <span class="app-event-date-day">${date.getDate()}</span>
+                            <span class="app-event-date-month">${date.toLocaleDateString('en-NZ', { month: 'short' })}</span>
                         </div>
-                    `;
-                }).join('') : '<p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No upcoming events</p>'}
-            </div>
-        `}
+                        <div class="app-event-info">
+                            <div class="app-event-title">
+                                ${event.title}
+                                ${rsvpStatus === 'attending' ? '<span style="color: var(--color-sage);">&#10003;</span>' : ''}
+                                ${rsvpStatus === 'maybe' ? '<span style="color: var(--color-terracotta);">?</span>' : ''}
+                            </div>
+                            <div class="app-event-meta">${formatTime(event.time)} - ${event.location}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<p style="color: var(--color-text-light); text-align: center; padding: 2rem;">No upcoming events</p>'}
+        </div>
         <div style="height: 20px;"></div>
     `;
 }
@@ -4957,11 +4934,10 @@ async function submitBoardPost(groupId) {
 
         // Upload attachment if present
         if (attachmentFile) {
-            if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-                const { ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js');
-                const storageRef = ref(storage, `posts/${groupId}/${Date.now()}_${attachmentFile.name}`);
-                const snapshot = await uploadBytes(storageRef, attachmentFile);
-                const url = await getDownloadURL(snapshot.ref);
+            if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof storage !== 'undefined') {
+                const storageRef = storage.ref(`posts/${groupId}/${Date.now()}_${attachmentFile.name}`);
+                const snapshot = await storageRef.put(attachmentFile);
+                const url = await snapshot.ref.getDownloadURL();
                 attachment = {
                     type: attachmentFile.type.startsWith('image/') ? 'image' : 'file',
                     url: url,
@@ -5088,10 +5064,10 @@ async function togglePinPost(groupId, postId) {
         post.isPinned = !post.isPinned;
 
         // If using Firebase, update Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const postRef = doc(db, 'gatherings', groupId, 'posts', postId);
-            await updateDoc(postRef, { isPinned: post.isPinned });
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(groupId).collection('posts').doc(postId).update({
+                isPinned: post.isPinned
+            });
         }
 
         showToast(post.isPinned ? 'Post pinned' : 'Post unpinned', 'success');
@@ -5131,10 +5107,10 @@ async function toggleReaction(groupId, postId, emoji) {
         }
 
         // If using Firebase, update Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const postRef = doc(db, 'gatherings', groupId, 'posts', postId);
-            await updateDoc(postRef, { reactions: post.reactions });
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(groupId).collection('posts').doc(postId).update({
+                reactions: post.reactions
+            });
         }
 
         // Close reaction picker if open
@@ -5388,15 +5364,16 @@ function openImageModal(imageUrl) {
 
 // Open create gathering modal
 function openCreateGatheringModal() {
+    // Cohesive color palette matching Kiwi Church brand
     const colors = [
         { value: '#1a3a2f', name: 'Forest' },
+        { value: '#2d5a4a', name: 'Deep Teal' },
+        { value: '#5a7a6a', name: 'Muted Green' },
         { value: '#7d9a87', name: 'Sage' },
+        { value: '#9b7b5a', name: 'Warm Earth' },
         { value: '#c17f59', name: 'Terracotta' },
-        { value: '#2d5a4a', name: 'Teal' },
-        { value: '#d4a574', name: 'Sand' },
-        { value: '#5a6b62', name: 'Slate' },
-        { value: '#8b4513', name: 'Brown' },
-        { value: '#4a5568', name: 'Gray' }
+        { value: '#a08060', name: 'Walnut' },
+        { value: '#6b7c72', name: 'Stone' }
     ];
 
     document.getElementById('modal-title').textContent = 'Create New Group';
@@ -5466,15 +5443,16 @@ function openEditGatheringModal(gatheringId) {
     const gathering = DataService.getGatheringById(gatheringId);
     if (!gathering) return;
 
+    // Cohesive color palette matching Kiwi Church brand
     const colors = [
         { value: '#1a3a2f', name: 'Forest' },
+        { value: '#2d5a4a', name: 'Deep Teal' },
+        { value: '#5a7a6a', name: 'Muted Green' },
         { value: '#7d9a87', name: 'Sage' },
+        { value: '#9b7b5a', name: 'Warm Earth' },
         { value: '#c17f59', name: 'Terracotta' },
-        { value: '#2d5a4a', name: 'Teal' },
-        { value: '#d4a574', name: 'Sand' },
-        { value: '#5a6b62', name: 'Slate' },
-        { value: '#8b4513', name: 'Brown' },
-        { value: '#4a5568', name: 'Gray' }
+        { value: '#a08060', name: 'Walnut' },
+        { value: '#6b7c72', name: 'Stone' }
     ];
 
     document.getElementById('modal-title').textContent = 'Edit Group';
@@ -5566,10 +5544,8 @@ async function saveGathering(gatheringId = null) {
                 gathering.updatedAt = new Date().toISOString();
 
                 // If using Firebase, update Firestore
-                if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-                    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                    const gatheringRef = doc(db, 'gatherings', gatheringId);
-                    await updateDoc(gatheringRef, {
+                if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+                    await db.collection('gatherings').doc(gatheringId).update({
                         name,
                         description,
                         rhythm,
@@ -5600,9 +5576,8 @@ async function saveGathering(gatheringId = null) {
             MockDB.gatheringMembers[newId] = [];
 
             // If using Firebase, create in Firestore
-            if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                await setDoc(doc(db, 'gatherings', newId), newGathering);
+            if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+                await db.collection('gatherings').doc(newId).set(newGathering);
             }
 
             showToast('Group created', 'success');
@@ -5632,9 +5607,8 @@ async function deleteGathering(gatheringId) {
         delete MockDB.gatheringMembers[gatheringId];
 
         // If using Firebase, delete from Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            await deleteDoc(doc(db, 'gatherings', gatheringId));
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(gatheringId).delete();
         }
 
         showToast('Group deleted', 'success');
@@ -5666,11 +5640,9 @@ async function joinGroup(groupId) {
         }
 
         // If using Firebase, update Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, updateDoc, arrayUnion } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const gatheringRef = doc(db, 'gatherings', groupId);
-            await updateDoc(gatheringRef, {
-                members: arrayUnion(currentUser.id)
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(groupId).update({
+                members: firebase.firestore.FieldValue.arrayUnion(currentUser.id)
             });
         }
 
@@ -5701,11 +5673,9 @@ async function leaveGroup(groupId) {
         }
 
         // If using Firebase, update Firestore
-        if (PortalConfig.useFirebase && !PortalConfig.demoMode) {
-            const { doc, updateDoc, arrayRemove } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const gatheringRef = doc(db, 'gatherings', groupId);
-            await updateDoc(gatheringRef, {
-                members: arrayRemove(currentUser.id)
+        if (PortalConfig.useFirebase && !PortalConfig.demoMode && typeof db !== 'undefined') {
+            await db.collection('gatherings').doc(groupId).update({
+                members: firebase.firestore.FieldValue.arrayRemove(currentUser.id)
             });
         }
 
@@ -6856,6 +6826,12 @@ function renderCommunityForm(gathering) {
             </div>
 
             <div class="form-group">
+                <label class="form-label">Cover Image URL</label>
+                <input type="url" class="form-input" id="community-image" value="${isEdit && gathering.imageUrl ? escapeHtml(gathering.imageUrl) : ''}" placeholder="https://example.com/image.jpg">
+                <p style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">Optional. If provided, will be shown as the card background on the website.</p>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">Color</label>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     ${colors.map(c => `
@@ -6899,6 +6875,7 @@ async function saveCommunity(gatheringId) {
     const description = document.getElementById('community-description')?.value?.trim();
     const rhythm = document.getElementById('community-rhythm')?.value?.trim();
     const location = document.getElementById('community-location')?.value?.trim();
+    const imageUrl = document.getElementById('community-image')?.value?.trim() || '';
     const colorEl = document.querySelector('[name="community-color"]:checked');
     const color = colorEl?.value || '#1a3a2f';
     const isPublic = document.getElementById('community-public')?.checked ?? true;
@@ -6914,6 +6891,7 @@ async function saveCommunity(gatheringId) {
         description,
         rhythm,
         location,
+        imageUrl,
         color,
         isPublic,
         featured
@@ -6929,8 +6907,7 @@ async function saveCommunity(gatheringId) {
 
             // Update in Firebase if enabled
             if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-                await setDoc(doc(db, 'gatherings', gatheringId), communityData, { merge: true });
+                await db.collection('gatherings').doc(gatheringId).set(communityData, { merge: true });
             }
 
             logActivity('Community updated', `Updated "${name}"`, 'admin');
@@ -6943,8 +6920,7 @@ async function saveCommunity(gatheringId) {
 
             // Add to Firebase if enabled
             if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-                await setDoc(doc(db, 'gatherings', newId), newGathering);
+                await db.collection('gatherings').doc(newId).set(newGathering);
             }
 
             logActivity('Community added', `Created "${name}"`, 'admin');
@@ -6989,8 +6965,7 @@ async function deleteCommunity(gatheringId) {
 
         // Remove from Firebase if enabled
         if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-            await deleteDoc(doc(db, 'gatherings', gatheringId));
+            await db.collection('gatherings').doc(gatheringId).delete();
         }
 
         logActivity('Community deleted', `Deleted "${name}"`, 'admin');
@@ -7231,8 +7206,7 @@ async function saveResource(resourceId) {
 
             // Update in Firebase if enabled
             if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-                await setDoc(doc(db, 'resources', resourceId), resourceData, { merge: true });
+                await db.collection('resources').doc(resourceId).set(resourceData, { merge: true });
             }
 
             logActivity('Resource updated', `Updated "${title}"`, 'admin');
@@ -7245,8 +7219,7 @@ async function saveResource(resourceId) {
 
             // Add to Firebase if enabled
             if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-                await setDoc(doc(db, 'resources', newId), newResource);
+                await db.collection('resources').doc(newId).set(newResource);
             }
 
             logActivity('Resource created', `Added "${title}"`, 'admin');
@@ -7275,8 +7248,7 @@ async function deleteResource(resourceId) {
 
         // Remove from Firebase if enabled
         if (PortalConfig.useFirebase && typeof db !== 'undefined') {
-            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-            await deleteDoc(doc(db, 'resources', resourceId));
+            await db.collection('resources').doc(resourceId).delete();
         }
 
         logActivity('Resource deleted', `Deleted "${title}"`, 'admin');
