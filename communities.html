@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Primary Meta Tags -->
-    <title>Communities - Kiwi Church | Small Groups in Christchurch</title>
-    <meta name="title" content="Communities - Kiwi Church | Small Groups in Christchurch">
-    <meta name="description" content="Explore Kiwi Church small group communities across Christchurch. Find a gathering that suits your rhythm - from contemplative prayer to family-friendly dinners.">
+    <title>Communities & Gatherings - Kiwi Church | Small Groups in Christchurch</title>
+    <meta name="title" content="Communities & Gatherings - Kiwi Church | Small Groups in Christchurch">
+    <meta name="description" content="Explore Kiwi Church communities and gatherings across Christchurch. Find a gathering that suits your rhythm - from contemplative prayer to creative workshops.">
     <meta name="keywords" content="small groups Christchurch, house church NZ, Christian community groups, church gatherings, Bible study groups">
     <meta name="author" content="Kiwi Church">
     <meta name="robots" content="index, follow">
@@ -22,8 +22,8 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://kiwichurch.org.nz/communities.html">
-    <meta property="og:title" content="Communities - Kiwi Church">
-    <meta property="og:description" content="Explore Kiwi Church small group communities across Christchurch.">
+    <meta property="og:title" content="Communities & Gatherings - Kiwi Church">
+    <meta property="og:description" content="Explore Kiwi Church communities and gatherings across Christchurch.">
     <meta property="og:image" content="https://kiwichurch.org.nz/images/og-image.jpg">
     <meta property="og:locale" content="en_NZ">
     <meta property="og:site_name" content="Kiwi Church">
@@ -31,8 +31,8 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://kiwichurch.org.nz/communities.html">
-    <meta name="twitter:title" content="Communities - Kiwi Church">
-    <meta name="twitter:description" content="Explore Kiwi Church small group communities across Christchurch.">
+    <meta name="twitter:title" content="Communities & Gatherings - Kiwi Church">
+    <meta name="twitter:description" content="Explore Kiwi Church communities and gatherings across Christchurch.">
     <meta name="twitter:image" content="https://kiwichurch.org.nz/images/og-image.jpg">
 
     <!-- Favicon & Icons -->
@@ -63,7 +63,7 @@
                 <a href="calendar.html" class="nav-link">Calendar</a>
                 <a href="kete.html" class="nav-link">Kete</a>
                 <a href="resources.html" class="nav-link">Resources</a>
-                <a href="giving.html" class="nav-link">Giving</a>
+                
                 <a href="portal.html" class="btn btn-outline">Portal</a>
             </nav>
 
@@ -85,7 +85,7 @@
         <a href="calendar.html" class="mobile-nav-link">Calendar</a>
         <a href="kete.html" class="mobile-nav-link">Kete</a>
         <a href="resources.html" class="mobile-nav-link">Resources</a>
-        <a href="giving.html" class="mobile-nav-link">Giving</a>
+        
         <a href="portal.html" class="mobile-nav-link">Member Portal</a>
     </nav>
 
@@ -94,7 +94,7 @@
         <!-- Hero Section -->
         <section class="about-hero" aria-labelledby="communities-heading">
             <div class="about-hero-content">
-                <h1 id="communities-heading">Our Communities</h1>
+                <h1 id="communities-heading">Communities & Gatherings</h1>
                 <p>Small groups meeting across Christchurch. Find your place at the table.</p>
             </div>
         </section>
@@ -102,8 +102,15 @@
         <!-- Introduction -->
         <section class="section" aria-labelledby="intro-heading">
             <div class="container-sm" style="text-align: center;">
-                <p style="font-size: 1.25rem; color: var(--color-text-light);" id="intro-heading">
-                    Each of our gatherings has its own personality and rhythm. Some meet weekly, some fortnightly. Some are contemplative, some are lively. All are welcoming. Explore below to find a community that resonates with you.
+                <h2 class="section-title" id="intro-heading">What We Mean by Community</h2>
+                <p style="font-size: 1.125rem; color: var(--color-text-light); margin-bottom: 1.5rem;">
+                    At Kiwi Church, we believe faith grows best in the context of relationship. Our communities are small groups where people gather regularly to share life, explore faith, and support one another. Each has its own personality, rhythm, and focus.
+                </p>
+                <p style="font-size: 1.125rem; color: var(--color-text-light); margin-bottom: 1.5rem;">
+                    <strong>Communities</strong> are our ongoing small groups that meet regularly and build deep relationships over time. <strong>Gatherings</strong> are one-off or occasional events open to everyone—a chance to connect without commitment.
+                </p>
+                <p style="font-size: 1.125rem; color: var(--color-text-light);">
+                    Whether you're looking for contemplative prayer, creative expression, deep study, or simply a shared meal with good conversation, there's a place for you here.
                 </p>
             </div>
         </section>
@@ -150,7 +157,7 @@
                 <h4 class="footer-title">Connect</h4>
                 <ul class="footer-links">
                     <li><a href="resources.html">Resources</a></li>
-                    <li><a href="giving.html">Giving</a></li>
+                    
                     <li><a href="portal.html">Member Portal</a></li>
                 </ul>
             </div>
@@ -172,16 +179,32 @@
 
     <!-- Scripts -->
     <script src="js/main.js"></script>
-    <script>
-        const gatherings = [
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAd1I0cDraUbABCKX3JMxmtW6lPxvvdFv8",
+            authDomain: "kiwi-church.firebaseapp.com",
+            projectId: "kiwi-church",
+            storageBucket: "kiwi-church.firebasestorage.app",
+            messagingSenderId: "773aboret09055908",
+            appId: "1:773909055908:web:dca65e7e1c4fd26a0ee93f"
+        };
+
+        // Fallback data (used if Firebase is unavailable)
+        const fallbackGatherings = [
             {
                 id: 'thin-place',
                 name: 'Thin Place',
                 description: 'A contemplative gathering exploring Celtic spirituality and the spaces where heaven and earth feel close. We practice ancient prayers, share silence, and explore faith through poetry, art, and reflection.',
                 rhythm: 'Fortnightly Wednesdays, 6:30pm',
                 location: 'Hansons Lane, Central Christchurch',
-                type: 'Open to all',
-                color: '#1a3a2f'
+                isPublic: true,
+                color: '#1a3a2f',
+                featured: true
             },
             {
                 id: 'online-prayer',
@@ -189,17 +212,9 @@
                 description: 'Start your day with prayer and reflection. A simple, accessible way to connect with community no matter where you are. We gather on Zoom for 30 minutes of guided prayer and silence.',
                 rhythm: 'Weekly - Tuesday & Thursday, 7:00am',
                 location: 'Zoom (link provided on signup)',
-                type: 'Open to all',
-                color: '#7d9a87'
-            },
-            {
-                id: 'prestons',
-                name: 'Prestons Community',
-                description: 'A family-friendly gathering in the Prestons area. Shared meals, kids running around, and real conversations about faith and life. We eat together, study together, and support each other.',
-                rhythm: 'Weekly Fridays, 6:00pm',
-                location: 'Prestons, North Christchurch',
-                type: 'Members & Invited Guests',
-                color: '#c17f59'
+                isPublic: true,
+                color: '#7d9a87',
+                featured: true
             },
             {
                 id: 'rito-shack',
@@ -207,17 +222,9 @@
                 description: 'A creative community exploring faith through art, music, and making. We believe creativity is a form of worship and that making things together builds connection.',
                 rhythm: 'Monthly - First Saturday, 10:00am',
                 location: 'Various locations',
-                type: 'Open to all',
-                color: '#d4a574'
-            },
-            {
-                id: 'digging-deeper',
-                name: 'Digging Deeper',
-                description: 'For those who want to go deeper into scripture and theology. We read books together, discuss challenging ideas, and wrestle with difficult questions about faith.',
-                rhythm: 'Fortnightly Tuesdays, 7:30pm',
-                location: 'Rotating homes',
-                type: 'Members & Invited Guests',
-                color: '#2d5a4a'
+                isPublic: true,
+                color: '#d4a574',
+                featured: false
             },
             {
                 id: 'reel-life',
@@ -225,17 +232,47 @@
                 description: 'Faith and film come together as we watch movies and discuss the spiritual themes, moral questions, and human experiences they explore. Great for those who love good stories.',
                 rhythm: 'Monthly - Third Friday, 7:00pm',
                 location: 'Rotating homes',
-                type: 'Open to all',
-                color: '#5a6b62'
+                isPublic: true,
+                color: '#5a6b62',
+                featured: false
             }
         ];
+
+        let gatherings = fallbackGatherings;
+
+        // Try to load from Firebase
+        async function loadFromFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                const querySnapshot = await getDocs(collection(db, 'gatherings'));
+
+                if (!querySnapshot.empty) {
+                    const firebaseGatherings = [];
+                    querySnapshot.forEach((doc) => {
+                        firebaseGatherings.push({ id: doc.id, ...doc.data() });
+                    });
+                    gatherings = firebaseGatherings;
+                }
+            } catch (error) {
+                console.log('Using fallback data:', error.message);
+            }
+            renderGatherings();
+        }
 
         function renderGatherings() {
             const container = document.getElementById('gatherings-list');
             if (!container) return;
 
-            container.innerHTML = gatherings.map(g => `
-                <article class="gathering-card" id="${g.id}">
+            // Only show public gatherings on the website
+            const publicGatherings = gatherings.filter(g => g.isPublic === true);
+
+            // Sort so featured communities appear first
+            const sortedGatherings = [...publicGatherings].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+
+            container.innerHTML = sortedGatherings.map(g => `
+                <article class="gathering-card ${g.featured ? 'featured' : ''}" id="${g.id}">
+                    ${g.featured ? '<span class="featured-badge">Featured</span>' : ''}
                     <div class="gathering-card-header" style="background: linear-gradient(135deg, ${g.color} 0%, ${g.color}cc 100%);">
                         <h3>${g.name}</h3>
                     </div>
@@ -250,16 +287,17 @@
                         <p class="gathering-card-desc">${g.description}</p>
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-cream-dark);">
                             <p style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: 0.5rem;">
-                                <strong>Location:</strong> ${g.location}
+                                <strong>Location:</strong> ${g.location || 'TBA'}
                             </p>
-                            <span class="event-badge ${g.type.includes('Members') ? 'private' : ''}">${g.type}</span>
+                            <span class="event-badge">Open to all</span>
                         </div>
                     </div>
                 </article>
             `).join('');
         }
 
-        document.addEventListener('DOMContentLoaded', renderGatherings);
+        // Load gatherings on page load
+        document.addEventListener('DOMContentLoaded', loadFromFirebase);
     </script>
 </body>
 </html>

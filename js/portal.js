@@ -18,90 +18,67 @@ const PortalConfig = {
 // ============================================
 
 const MockDB = {
-    users: [
-        {
-            id: 'user-1',
-            username: 'Utting',
-            password: 'Freedom',
-            displayName: 'Sarah Utting',
-            email: 'utting@kiwichurch.org.nz',
-            phone: '027-123-4567',
-            role: 'member',
-            dependants: ['James Utting', 'Emma Utting'],
-            rsvps: []
-        },
-        {
-            id: 'user-2',
-            username: 'Olds',
-            password: 'Prestons',
-            displayName: 'Michael Olds',
-            email: 'olds@kiwichurch.org.nz',
-            phone: '027-234-5678',
-            role: 'host',
-            dependants: ['Lucy Olds'],
-            assignedGatherings: ['gathering-3', 'gathering-6'],
-            rsvps: []
-        },
-        {
-            id: 'user-3',
-            username: 'Tempero',
-            password: 'Hansons',
-            displayName: 'Darryl Tempero',
-            email: 'tempero@kiwichurch.org.nz',
-            phone: '027-556-0055',
-            role: 'admin',
-            dependants: [],
-            rsvps: []
-        }
-    ],
+    users: [], // Users managed in Firebase - no demo users
 
     gatherings: [
         {
             id: 'gathering-1',
             name: 'Thin Place',
-            description: 'A space for allowing our humanity to be held gently. A space for wonder, for being at home, for lamenting, hoping, playing, and encounter.',
+            description: 'A contemplative gathering exploring Celtic spirituality and the spaces where heaven and earth feel close. We practice ancient prayers, share silence, and explore faith through poetry, art, and reflection.',
             rhythm: 'Fortnightly Wednesdays, 6:30pm',
+            location: 'Hansons Lane, Central Christchurch',
             isPublic: true,
+            featured: true,
             color: '#1a3a2f'
         },
         {
             id: 'gathering-2',
             name: 'Online Prayer',
-            description: 'Join us in the Zoom room for prayer and connection. All are welcome to these times of shared spiritual practice.',
-            rhythm: 'Tues & Thu mornings, 7:00am',
+            description: 'Start your day with prayer and reflection. A simple, accessible way to connect with community no matter where you are. We gather on Zoom for 30 minutes of guided prayer and silence.',
+            rhythm: 'Weekly - Tuesday & Thursday, 7:00am',
+            location: 'Zoom (link provided on signup)',
             isPublic: true,
+            featured: true,
             color: '#7d9a87'
         },
         {
             id: 'gathering-3',
             name: 'Prestons Community',
-            description: 'A geographical community gathering in the Prestons area. We share food, fellowship, and faith together.',
+            description: 'A family-friendly gathering in the Prestons area. Shared meals, kids running around, and real conversations about faith and life. We eat together, study together, and support each other.',
             rhythm: 'Weekly Fridays, 6:00pm',
+            location: 'Prestons, North Christchurch',
             isPublic: false,
+            featured: false,
             color: '#c17f59'
         },
         {
             id: 'gathering-4',
             name: 'Rito Shack',
-            description: 'A creative gathering space exploring faith through art, music, and making together.',
-            rhythm: 'Monthly - First Saturday',
+            description: 'A creative community exploring faith through art, music, and making. We believe creativity is a form of worship and that making things together builds connection.',
+            rhythm: 'Monthly - First Saturday, 10:00am',
+            location: 'Various locations',
             isPublic: true,
-            color: '#2d5a4a'
+            featured: false,
+            color: '#d4a574'
         },
         {
             id: 'gathering-5',
             name: 'Digging Deeper',
-            description: 'A time where we go deeper into God\'s story, exploring ways to listen to God\'s word.',
+            description: 'For those who want to go deeper into scripture and theology. We read books together, discuss challenging ideas, and wrestle with difficult questions about faith.',
             rhythm: 'Fortnightly Tuesdays, 7:30pm',
+            location: 'Rotating homes',
             isPublic: false,
-            color: '#d4a574'
+            featured: false,
+            color: '#2d5a4a'
         },
         {
             id: 'gathering-6',
             name: 'Reel Life',
-            description: 'For those who love movies, acknowledging God is in all things. We watch together and reflect.',
-            rhythm: 'Monthly - Third Friday',
+            description: 'Faith and film come together as we watch movies and discuss the spiritual themes, moral questions, and human experiences they explore. Great for those who love good stories.',
+            rhythm: 'Monthly - Third Friday, 7:00pm',
+            location: 'Rotating homes',
             isPublic: true,
+            featured: false,
             color: '#5a6b62'
         }
     ],
@@ -539,9 +516,9 @@ const DataService = {
     },
 
     // RSVP with status and notes
-    async rsvpWithDetails(eventId, userId, status, notes = '', attendees = []) {
+    async rsvpWithDetails(eventId, userId, status, notes = '', attendees = [], guestCount = 0) {
         if (PortalConfig.useFirebase && window.DB) {
-            return await DB.setRSVP(eventId, userId, status, notes, attendees);
+            return await DB.setRSVP(eventId, userId, status, notes, attendees, guestCount);
         }
         const event = MockDB.events.find(e => e.id === eventId);
         if (event) {
@@ -555,6 +532,7 @@ const DataService = {
                 status, // 'attending', 'maybe', 'not-attending'
                 notes,
                 attendees, // dependants attending
+                guestCount, // friends/guests not in system
                 updatedAt: new Date().toISOString()
             });
         }
@@ -1483,9 +1461,10 @@ function openModal(title, bodyHTML, footerHTML = '') {
     const bodyEl = document.getElementById('modal-body');
     const footerEl = document.getElementById('modal-footer');
 
-    titleEl.textContent = title;
-    bodyEl.innerHTML = bodyHTML;
-    footerEl.innerHTML = footerHTML;
+    // Only set content if provided (allows pre-setting content before calling openModal)
+    if (title !== undefined) titleEl.textContent = title;
+    if (bodyHTML !== undefined) bodyEl.innerHTML = bodyHTML;
+    if (footerHTML) footerEl.innerHTML = footerHTML;
 
     // Set ARIA attributes
     overlay.setAttribute('role', 'dialog');
@@ -1610,9 +1589,9 @@ function openEventModal(eventId) {
     const maybeRSVPs = allRSVPs.filter(r => r.status === 'maybe');
     const notAttendingRSVPs = allRSVPs.filter(r => r.status === 'not-attending');
 
-    // Count total attendees (including dependants)
+    // Count total attendees (including dependants and guests)
     const totalAttending = attendingRSVPs.reduce((count, r) => {
-        return count + 1 + (r.attendees?.length || 0);
+        return count + 1 + (r.attendees?.length || 0) + (r.guestCount || 0);
     }, 0);
 
     // Capacity info
@@ -1732,10 +1711,10 @@ function openEventModal(eventId) {
                 <div class="rsvp-list" style="margin-bottom: 0.75rem;">
                     ${attendingRSVPs.map(r => {
                         const isYou = r.userId === currentUser?.id;
-                        const attendeeCount = r.attendees?.length || 0;
+                        const plusCount = (r.attendees?.length || 0) + (r.guestCount || 0);
                         const isCheckedIn = event.checkedIn?.includes(r.userId);
                         return `<span class="rsvp-chip ${isYou ? 'you' : ''}" title="${r.notes || ''}" style="${isCheckedIn ? 'border: 2px solid var(--color-sage);' : ''}">
-                            ${isCheckedIn ? '✓ ' : ''}${isYou ? 'You' : (r.userName || 'Unknown').split(' ')[0]}${attendeeCount > 0 ? ` +${attendeeCount}` : ''}
+                            ${isCheckedIn ? '✓ ' : ''}${isYou ? 'You' : (r.userName || 'Unknown').split(' ')[0]}${plusCount > 0 ? ` +${plusCount}` : ''}
                         </span>`;
                     }).join('')}
                 </div>
@@ -1933,6 +1912,24 @@ function openCreateEventModal(prefillGatheringId = null) {
                     <option value="private">Private - Members only</option>
                 </select>
             </div>
+
+            <div class="form-group">
+                <label class="form-label">Recurring Event</label>
+                <select class="form-input" id="event-recurring" onchange="toggleRecurringOptions(this.value)">
+                    <option value="">One-time event</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="fortnightly">Fortnightly</option>
+                    <option value="monthly">Monthly</option>
+                </select>
+            </div>
+
+            <div id="recurring-options" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label" for="event-recurring-until">Repeat until</label>
+                    <input type="date" class="form-input" id="event-recurring-until">
+                    <small style="color: var(--color-text-light); font-size: 0.75rem;">Events will be created up to this date</small>
+                </div>
+            </div>
         </form>
     `;
 
@@ -1993,6 +1990,23 @@ function previewEventImage(input, previewId) {
     }
 }
 
+// Toggle recurring event options
+function toggleRecurringOptions(value) {
+    const optionsDiv = document.getElementById('recurring-options');
+    if (optionsDiv) {
+        optionsDiv.style.display = value ? 'block' : 'none';
+        if (value) {
+            // Default end date to 3 months from start date
+            const startDate = document.getElementById('event-date')?.value;
+            if (startDate) {
+                const endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + 3);
+                document.getElementById('event-recurring-until').value = endDate.toISOString().split('T')[0];
+            }
+        }
+    }
+}
+
 async function saveNewEvent() {
     const title = document.getElementById('event-title').value.trim();
     const gatheringId = document.getElementById('event-gathering').value;
@@ -2005,6 +2019,8 @@ async function saveNewEvent() {
     const capacity = capacityInput ? parseInt(capacityInput) : null;
     const reminder = document.getElementById('event-reminder').value;
     const visibility = document.getElementById('event-visibility').value;
+    const recurring = document.getElementById('event-recurring')?.value || '';
+    const recurringUntil = document.getElementById('event-recurring-until')?.value;
 
     // Validation
     if (!title || !gatheringId || !date || !time || !location) {
@@ -2033,11 +2049,10 @@ async function saveNewEvent() {
             }
         }
 
-        await DataService.createEvent({
+        const baseEventData = {
             title,
             gatheringId,
             category,
-            date,
             time,
             location,
             description: description || `Join us for ${title.toLowerCase()}.`,
@@ -2047,15 +2062,65 @@ async function saveNewEvent() {
             coverImage: coverImageUrl,
             status: 'active',
             checkedIn: []
-        });
+        };
 
-        pendingEventImage = null;
-        showToast('Event created successfully!', 'success');
+        // Handle recurring events
+        if (recurring && recurringUntil) {
+            const dates = generateRecurringDates(date, recurringUntil, recurring);
+            let createdCount = 0;
+
+            for (const eventDate of dates) {
+                await DataService.createEvent({
+                    ...baseEventData,
+                    date: eventDate,
+                    recurringId: `rec-${Date.now()}`, // Link recurring events
+                    recurringPattern: recurring
+                });
+                createdCount++;
+            }
+
+            pendingEventImage = null;
+            showToast(`Created ${createdCount} recurring events!`, 'success');
+        } else {
+            // Single event
+            await DataService.createEvent({
+                ...baseEventData,
+                date
+            });
+            pendingEventImage = null;
+            showToast('Event created successfully!', 'success');
+        }
+
         closeModal();
         renderPage();
     } catch (error) {
         showToast(error.message || 'Could not create event', 'error');
     }
+}
+
+// Generate dates for recurring events
+function generateRecurringDates(startDate, endDate, pattern) {
+    const dates = [];
+    const current = new Date(startDate);
+    const end = new Date(endDate);
+
+    const intervals = {
+        'weekly': 7,
+        'fortnightly': 14,
+        'monthly': 30 // Approximation, handled specially below
+    };
+
+    while (current <= end) {
+        dates.push(current.toISOString().split('T')[0]);
+
+        if (pattern === 'monthly') {
+            current.setMonth(current.getMonth() + 1);
+        } else {
+            current.setDate(current.getDate() + intervals[pattern]);
+        }
+    }
+
+    return dates;
 }
 
 function openEditEventModal(eventId) {
@@ -2696,7 +2761,6 @@ function openRSVPModal(eventId) {
                 </div>
             </div>
 
-            ${currentUser.dependants && currentUser.dependants.length > 0 ? `
             <div class="form-group">
                 <label class="form-label">Who's coming?</label>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -2704,15 +2768,25 @@ function openRSVPModal(eventId) {
                         <input type="checkbox" value="self" checked disabled>
                         <span>${currentUser.displayName.split(' ')[0]} (you)</span>
                     </label>
-                    ${currentUser.dependants.map(d => `
+                    ${currentUser.dependants && currentUser.dependants.length > 0 ? currentUser.dependants.map(d => `
                         <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer;">
                             <input type="checkbox" name="rsvp-attendees" value="${d}" ${existingRSVP?.attendees?.includes(d) ? 'checked' : ''}>
                             <span>${d}</span>
                         </label>
-                    `).join('')}
+                    `).join('') : ''}
                 </div>
             </div>
-            ` : ''}
+
+            <div class="form-group">
+                <label class="form-label">Bringing a friend?</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="updateGuestCount(-1)" style="width: 36px; height: 36px; padding: 0;">-</button>
+                    <input type="number" id="rsvp-guests" value="${existingRSVP?.guestCount || 0}" min="0" max="10" style="width: 60px; text-align: center;" class="form-input" readonly>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="updateGuestCount(1)" style="width: 36px; height: 36px; padding: 0;">+</button>
+                    <span style="font-size: 0.875rem; color: var(--color-text-light);">extra guest(s)</span>
+                </div>
+                <small style="color: var(--color-text-light); font-size: 0.75rem; margin-top: 0.25rem; display: block;">For friends not in our system</small>
+            </div>
 
             <div class="form-group">
                 <label class="form-label" for="rsvp-notes">Notes (optional)</label>
@@ -2730,6 +2804,15 @@ function openRSVPModal(eventId) {
     openModal('RSVP', bodyHTML, footerHTML);
 }
 
+// Helper for guest count buttons
+function updateGuestCount(delta) {
+    const input = document.getElementById('rsvp-guests');
+    if (!input) return;
+    const current = parseInt(input.value) || 0;
+    const newValue = Math.max(0, Math.min(10, current + delta));
+    input.value = newValue;
+}
+
 async function submitRSVP(eventId) {
     const currentUser = DataService.getCurrentUser();
     if (!currentUser) return;
@@ -2741,8 +2824,11 @@ async function submitRSVP(eventId) {
     const attendeeCheckboxes = document.querySelectorAll('input[name="rsvp-attendees"]:checked');
     const attendees = Array.from(attendeeCheckboxes).map(cb => cb.value);
 
+    // Get guest count (friends not in system)
+    const guestCount = parseInt(document.getElementById('rsvp-guests')?.value) || 0;
+
     try {
-        await DataService.rsvpWithDetails(eventId, currentUser.id, status, notes, attendees);
+        await DataService.rsvpWithDetails(eventId, currentUser.id, status, notes, attendees, guestCount);
 
         const statusMessages = {
             'attending': 'See you there!',
@@ -6109,6 +6195,14 @@ function renderHostingPage() {
     const upcomingEvents = manageableEvents.filter(e => new Date(e.date) >= today).slice(0, 10);
     const pastEvents = manageableEvents.filter(e => new Date(e.date) < today).slice(0, 5);
 
+    // Calculate stats
+    const totalRSVPs = upcomingEvents.reduce((sum, e) => {
+        const attending = (e.rsvps || []).filter(r => !r.status || r.status === 'attending');
+        return sum + attending.reduce((count, r) => count + 1 + (r.attendees?.length || 0) + (r.guestCount || 0), 0);
+    }, 0);
+    const nextEvent = upcomingEvents[0];
+    const nextEventRSVPs = nextEvent ? (nextEvent.rsvps || []).filter(r => !r.status || r.status === 'attending').length : 0;
+
     // Get gatherings this user can host
     let hostableGatherings = MockDB.gatherings;
     if (currentUser.role === 'host' && currentUser.assignedGatherings) {
@@ -6123,25 +6217,43 @@ function renderHostingPage() {
             <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">Manage your events and posts</p>
         </div>
 
-        <div class="app-section" style="padding-top: 1.5rem;">
+        <!-- Quick Stats -->
+        <div class="app-section" style="padding-top: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-forest);">${upcomingEvents.length}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Upcoming</div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-sage);">${totalRSVPs}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Total RSVPs</div>
+                </div>
+                <div style="background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--color-terracotta);">${hostableGatherings.length}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-light);">Communities</div>
+                </div>
+            </div>
+        </div>
+
+        ${nextEvent ? `
+        <div class="app-section" style="padding-top: 0;">
+            <div style="background: var(--color-sage-light); border-radius: var(--radius-md); padding: 1rem;">
+                <div style="font-size: 0.75rem; color: var(--color-forest); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Next Event</div>
+                <div style="font-weight: 500;">${nextEvent.title}</div>
+                <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: 0.25rem;">
+                    ${formatDate(nextEvent.date)} at ${formatTime(nextEvent.time)} • ${nextEventRSVPs} attending
+                </div>
+            </div>
+        </div>
+        ` : ''}
+
+        <div class="app-section" style="padding-top: 0.5rem;">
             <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="openCreateEventModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
                 Create Event
-            </button>
-        </div>
-
-        <div class="app-section">
-            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="openCreateKetePostModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
-                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
-                    <path d="M2 2l7.586 7.586"></path>
-                    <circle cx="11" cy="11" r="2"></circle>
-                </svg>
-                Write Kete Post
             </button>
         </div>
 
@@ -6351,6 +6463,13 @@ function renderSettingsPage() {
                     </svg>
                     <span style="font-size: 0.875rem; font-weight: 500;">Users</span>
                 </button>
+                <button class="btn btn-ghost" onclick="openCommunitiesManageModal()" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-gold)" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span style="font-size: 0.875rem; font-weight: 500;">Communities</span>
+                </button>
                 <button class="btn btn-ghost" onclick="openActivityLogsModal()" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -6375,6 +6494,15 @@ function renderSettingsPage() {
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
                     <span style="font-size: 0.875rem; font-weight: 500;">Settings</span>
+                </button>
+                <button class="btn btn-ghost" onclick="openResourcesManageModal()" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        <line x1="12" y1="6" x2="12" y2="14"></line>
+                        <line x1="8" y1="10" x2="16" y2="10"></line>
+                    </svg>
+                    <span style="font-size: 0.875rem; font-weight: 500;">Resources</span>
                 </button>
             </div>
         </div>
@@ -6624,6 +6752,540 @@ function saveSiteSettings() {
     showToast('Settings saved', 'success');
     closeModal();
     renderPage();
+}
+
+// ============================================
+// COMMUNITIES MANAGEMENT (Admin)
+// ============================================
+
+// Open Communities Management Modal
+function openCommunitiesManageModal() {
+    const gatherings = MockDB.gatherings;
+
+    document.getElementById('modal-title').textContent = 'Manage Communities';
+    document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.875rem; color: var(--color-text-light);">${gatherings.length} communities</span>
+            <button class="btn btn-primary btn-sm" onclick="openAddCommunityModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add New
+            </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
+            ${gatherings.map(g => `
+                <div style="padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-md); display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: ${g.color}; flex-shrink: 0;"></div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 500; font-size: 0.9375rem; display: flex; align-items: center; gap: 0.5rem;">
+                            ${escapeHtml(g.name)}
+                            ${g.featured ? '<span style="font-size: 0.625rem; background: var(--color-gold); color: var(--color-forest); padding: 0.125rem 0.375rem; border-radius: 999px;">Featured</span>' : ''}
+                            ${!g.isPublic ? '<span style="font-size: 0.625rem; background: var(--color-terracotta-light); color: var(--color-terracotta); padding: 0.125rem 0.375rem; border-radius: 999px;">Private</span>' : ''}
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-light);">${escapeHtml(g.rhythm || '')}</div>
+                    </div>
+                    <div style="display: flex; gap: 0.25rem;">
+                        <button class="btn btn-ghost btn-sm" onclick="openEditCommunityModal('${g.id}')" title="Edit">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-cream-dark);">
+            <p style="font-size: 0.75rem; color: var(--color-text-light); margin: 0;">
+                Public communities are visible on the website. Private communities are only visible to members in the portal.
+            </p>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()" style="width: 100%;">Close</button>
+        </div>
+    `;
+    openModal();
+}
+
+// Open Add Community Modal
+function openAddCommunityModal() {
+    document.getElementById('modal-title').textContent = 'Add New Community';
+    document.getElementById('modal-body').innerHTML = renderCommunityForm(null);
+    // Don't call openModal() again since it's already open
+}
+
+// Open Edit Community Modal
+function openEditCommunityModal(gatheringId) {
+    const gathering = MockDB.gatherings.find(g => g.id === gatheringId);
+    if (!gathering) return;
+
+    document.getElementById('modal-title').textContent = 'Edit Community';
+    document.getElementById('modal-body').innerHTML = renderCommunityForm(gathering);
+}
+
+// Render Community Form (for both add and edit)
+function renderCommunityForm(gathering) {
+    const isEdit = !!gathering;
+    const colors = ['#1a3a2f', '#7d9a87', '#c17f59', '#d4a574', '#2d5a4a', '#5a6b62'];
+
+    return `
+        <form id="community-form" onsubmit="event.preventDefault(); saveCommunity(${isEdit ? `'${gathering.id}'` : 'null'});">
+            <div class="form-group">
+                <label class="form-label">Name *</label>
+                <input type="text" class="form-input" id="community-name" value="${isEdit ? escapeHtml(gathering.name) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description *</label>
+                <textarea class="form-input" id="community-description" rows="3" required>${isEdit ? escapeHtml(gathering.description) : ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Meeting Rhythm</label>
+                <input type="text" class="form-input" id="community-rhythm" value="${isEdit ? escapeHtml(gathering.rhythm || '') : ''}" placeholder="e.g., Weekly Fridays, 6:00pm">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-input" id="community-location" value="${isEdit ? escapeHtml(gathering.location || '') : ''}" placeholder="e.g., Central Christchurch">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Color</label>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    ${colors.map(c => `
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="community-color" value="${c}" ${(isEdit && gathering.color === c) || (!isEdit && c === colors[0]) ? 'checked' : ''} style="display: none;">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${c}; border: 3px solid transparent; transition: border-color 0.2s;"
+                                 onclick="this.parentElement.querySelector('input').checked = true; document.querySelectorAll('[name=community-color]').forEach(i => i.parentElement.querySelector('div').style.borderColor = 'transparent'); this.style.borderColor = 'var(--color-forest)';"
+                                 ${(isEdit && gathering.color === c) || (!isEdit && c === colors[0]) ? 'class="selected-color"' : ''}></div>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div style="margin: 1rem 0; display: flex; flex-direction: column; gap: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                    <input type="checkbox" id="community-public" ${!isEdit || gathering.isPublic ? 'checked' : ''}>
+                    <span style="font-size: 0.9375rem;">Public (visible on website)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                    <input type="checkbox" id="community-featured" ${isEdit && gathering.featured ? 'checked' : ''}>
+                    <span style="font-size: 0.9375rem;">Featured (highlighted on website)</span>
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: space-between; margin-top: 1.5rem;">
+                ${isEdit ? `
+                    <button type="button" class="btn btn-ghost" onclick="confirmDeleteCommunity('${gathering.id}')" style="color: #dc2626;">Delete</button>
+                ` : '<div></div>'}
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn btn-ghost" onclick="openCommunitiesManageModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">${isEdit ? 'Save Changes' : 'Add Community'}</button>
+                </div>
+            </div>
+        </form>
+    `;
+}
+
+// Save Community (add or edit)
+async function saveCommunity(gatheringId) {
+    const name = document.getElementById('community-name')?.value?.trim();
+    const description = document.getElementById('community-description')?.value?.trim();
+    const rhythm = document.getElementById('community-rhythm')?.value?.trim();
+    const location = document.getElementById('community-location')?.value?.trim();
+    const colorEl = document.querySelector('[name="community-color"]:checked');
+    const color = colorEl?.value || '#1a3a2f';
+    const isPublic = document.getElementById('community-public')?.checked ?? true;
+    const featured = document.getElementById('community-featured')?.checked ?? false;
+
+    if (!name || !description) {
+        showToast('Please fill in required fields', 'error');
+        return;
+    }
+
+    const communityData = {
+        name,
+        description,
+        rhythm,
+        location,
+        color,
+        isPublic,
+        featured
+    };
+
+    try {
+        if (gatheringId) {
+            // Update existing
+            const index = MockDB.gatherings.findIndex(g => g.id === gatheringId);
+            if (index !== -1) {
+                MockDB.gatherings[index] = { ...MockDB.gatherings[index], ...communityData };
+            }
+
+            // Update in Firebase if enabled
+            if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+                await setDoc(doc(db, 'gatherings', gatheringId), communityData, { merge: true });
+            }
+
+            logActivity('Community updated', `Updated "${name}"`, 'admin');
+            showToast('Community updated', 'success');
+        } else {
+            // Add new
+            const newId = 'gathering-' + Date.now();
+            const newGathering = { id: newId, ...communityData };
+            MockDB.gatherings.push(newGathering);
+
+            // Add to Firebase if enabled
+            if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+                await setDoc(doc(db, 'gatherings', newId), newGathering);
+            }
+
+            logActivity('Community added', `Created "${name}"`, 'admin');
+            showToast('Community added', 'success');
+        }
+
+        openCommunitiesManageModal(); // Return to list
+    } catch (error) {
+        console.error('Error saving community:', error);
+        showToast('Error saving community', 'error');
+    }
+}
+
+// Confirm Delete Community
+function confirmDeleteCommunity(gatheringId) {
+    const gathering = MockDB.gatherings.find(g => g.id === gatheringId);
+    if (!gathering) return;
+
+    document.getElementById('modal-title').textContent = 'Delete Community?';
+    document.getElementById('modal-body').innerHTML = `
+        <p style="margin-bottom: 1.5rem;">
+            Are you sure you want to delete <strong>${escapeHtml(gathering.name)}</strong>? This action cannot be undone.
+        </p>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <button class="btn btn-ghost" onclick="openCommunitiesManageModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="deleteCommunity('${gatheringId}')" style="background: #dc2626;">Delete</button>
+        </div>
+    `;
+}
+
+// Delete Community
+async function deleteCommunity(gatheringId) {
+    const gathering = MockDB.gatherings.find(g => g.id === gatheringId);
+    const name = gathering?.name || 'Community';
+
+    try {
+        // Remove from MockDB
+        const index = MockDB.gatherings.findIndex(g => g.id === gatheringId);
+        if (index !== -1) {
+            MockDB.gatherings.splice(index, 1);
+        }
+
+        // Remove from Firebase if enabled
+        if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+            await deleteDoc(doc(db, 'gatherings', gatheringId));
+        }
+
+        logActivity('Community deleted', `Deleted "${name}"`, 'admin');
+        showToast('Community deleted', 'default');
+        openCommunitiesManageModal();
+    } catch (error) {
+        console.error('Error deleting community:', error);
+        showToast('Error deleting community', 'error');
+    }
+}
+
+// ============================================
+// RESOURCES MANAGEMENT
+// ============================================
+
+// Default resources data for initialization
+const defaultResources = [
+    { id: 'r1', title: 'Online Prayer Zoom', description: 'Join our regular online prayer gatherings via Zoom.', category: 'links', type: 'link', url: '#', icon: 'arrow-right', order: 1 },
+    { id: 'r2', title: 'Shared Calendar', description: 'Subscribe to our community calendar in your preferred app.', category: 'links', type: 'link', url: 'calendar.html', icon: 'calendar', order: 2 },
+    { id: 'r3', title: 'Shared Documents', description: 'Access community documents, study guides, and resources.', category: 'links', type: 'link', url: '#', icon: 'document', order: 3 },
+    { id: 'r4', title: 'Daily Lectionary', description: 'Follow along with daily scripture readings from the lectionary.', category: 'links', type: 'external', url: 'https://lectionary.library.vanderbilt.edu/', icon: 'book', order: 4 },
+    { id: 'r5', title: 'The Ruthless Elimination of Hurry', description: 'John Mark Comer - On slowing down and practicing presence in a busy world.', category: 'reading', type: 'book', author: 'John Mark Comer', order: 5 },
+    { id: 'r6', title: 'Life Together', description: 'Dietrich Bonhoeffer - A classic on Christian community and shared life.', category: 'reading', type: 'book', author: 'Dietrich Bonhoeffer', order: 6 },
+    { id: 'r7', title: 'The Celtic Way of Evangelism', description: 'George Hunter III - Insights from Celtic Christianity for today.', category: 'reading', type: 'book', author: 'George Hunter III', order: 7 },
+    { id: 'r8', title: 'Simply Christian', description: 'N.T. Wright - An accessible introduction to Christianity.', category: 'reading', type: 'book', author: 'N.T. Wright', order: 8 },
+    { id: 'r9', title: 'Daily Prayer Office', description: 'A simple morning and evening prayer structure you can use at home.', category: 'prayer', type: 'download', url: '#', icon: 'clock', order: 9 },
+    { id: 'r10', title: 'Lectio 365', description: 'We recommend Lectio 365 and Pray As You Go for daily prayer.', category: 'prayer', type: 'external', url: 'https://www.24-7prayer.com/resource/lectio-365/', icon: 'bell', order: 10 },
+    { id: 'r11', title: 'Examen Guide', description: 'Learn the ancient practice of Ignatian Examen for daily reflection.', category: 'prayer', type: 'download', url: '#', icon: 'document', order: 11 },
+    { id: 'r12', title: 'The Bible Project', description: 'Excellent animated videos exploring the books and themes of the Bible.', category: 'media', type: 'video', url: 'https://bibleproject.com/', icon: 'video', order: 12 },
+    { id: 'r13', title: 'Podcasts We Love', description: 'A curated list of podcasts for spiritual growth and theological exploration.', category: 'media', type: 'link', url: '#', icon: 'headphones', order: 13 }
+];
+
+// Initialize resources in MockDB if not present
+if (!MockDB.resources) {
+    MockDB.resources = [...defaultResources];
+}
+
+function openResourcesManageModal() {
+    const resources = MockDB.resources || [];
+    const categories = ['links', 'reading', 'prayer', 'media'];
+    const categoryLabels = { links: 'Quick Links', reading: 'Reading', prayer: 'Prayer & Practice', media: 'Media' };
+
+    document.getElementById('modal-title').textContent = 'Manage Resources';
+    document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.875rem; color: var(--color-text-light);">${resources.length} resources</span>
+            <button class="btn btn-primary btn-sm" onclick="openResourceEditModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Resource
+            </button>
+        </div>
+
+        <div style="max-height: 400px; overflow-y: auto;">
+            ${categories.map(cat => {
+                const catResources = resources.filter(r => r.category === cat).sort((a, b) => (a.order || 0) - (b.order || 0));
+                if (catResources.length === 0) return '';
+                return `
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="font-size: 0.875rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">${categoryLabels[cat]}</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            ${catResources.map(resource => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-weight: 500;">${escapeHtml(resource.title)}</div>
+                                        <div style="font-size: 0.75rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(resource.description)}</div>
+                                    </div>
+                                    <div style="display: flex; gap: 0.25rem; flex-shrink: 0;">
+                                        <button class="btn btn-ghost btn-sm" onclick="openResourceEditModal('${resource.id}')" title="Edit">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                        </button>
+                                        <button class="btn btn-ghost btn-sm" onclick="deleteResource('${resource.id}')" title="Delete" style="color: #dc2626;">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()" style="width: 100%;">Close</button>
+        </div>
+    `;
+    openModal();
+}
+
+function openResourceEditModal(resourceId = null) {
+    const resource = resourceId ? MockDB.resources.find(r => r.id === resourceId) : null;
+    const isEdit = !!resource;
+
+    const categories = [
+        { value: 'links', label: 'Quick Links' },
+        { value: 'reading', label: 'Reading' },
+        { value: 'prayer', label: 'Prayer & Practice' },
+        { value: 'media', label: 'Media' }
+    ];
+
+    const types = [
+        { value: 'link', label: 'Internal Link' },
+        { value: 'external', label: 'External Link' },
+        { value: 'download', label: 'Download' },
+        { value: 'video', label: 'Video' },
+        { value: 'book', label: 'Book Recommendation' }
+    ];
+
+    const icons = [
+        { value: 'arrow-right', label: 'Arrow' },
+        { value: 'calendar', label: 'Calendar' },
+        { value: 'document', label: 'Document' },
+        { value: 'book', label: 'Book' },
+        { value: 'clock', label: 'Clock' },
+        { value: 'bell', label: 'Bell' },
+        { value: 'video', label: 'Video' },
+        { value: 'headphones', label: 'Headphones' }
+    ];
+
+    document.getElementById('modal-title').textContent = isEdit ? 'Edit Resource' : 'Add Resource';
+    document.getElementById('modal-body').innerHTML = `
+        <form id="resource-form" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="form-group">
+                <label class="form-label">Title *</label>
+                <input type="text" class="form-input" id="resource-title" value="${isEdit ? escapeHtml(resource.title) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description *</label>
+                <textarea class="form-input" id="resource-description" rows="2" required>${isEdit ? escapeHtml(resource.description) : ''}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Category *</label>
+                    <select class="form-input" id="resource-category" required>
+                        ${categories.map(c => `<option value="${c.value}" ${resource?.category === c.value ? 'selected' : ''}>${c.label}</option>`).join('')}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Type *</label>
+                    <select class="form-input" id="resource-type" required onchange="toggleResourceFields()">
+                        ${types.map(t => `<option value="${t.value}" ${resource?.type === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" id="resource-url-group" style="${resource?.type === 'book' ? 'display: none;' : ''}">
+                <label class="form-label">URL</label>
+                <input type="text" class="form-input" id="resource-url" value="${isEdit && resource.url ? escapeHtml(resource.url) : ''}" placeholder="https://...">
+            </div>
+
+            <div class="form-group" id="resource-author-group" style="${resource?.type !== 'book' ? 'display: none;' : ''}">
+                <label class="form-label">Author</label>
+                <input type="text" class="form-input" id="resource-author" value="${isEdit && resource.author ? escapeHtml(resource.author) : ''}" placeholder="Author name">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Icon</label>
+                    <select class="form-input" id="resource-icon">
+                        <option value="">None</option>
+                        ${icons.map(i => `<option value="${i.value}" ${resource?.icon === i.value ? 'selected' : ''}>${i.label}</option>`).join('')}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Display Order</label>
+                    <input type="number" class="form-input" id="resource-order" value="${isEdit ? (resource.order || 0) : MockDB.resources.length + 1}" min="1">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
+                <button type="button" class="btn btn-ghost" onclick="openResourcesManageModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Save Changes' : 'Add Resource'}</button>
+            </div>
+        </form>
+    `;
+
+    document.getElementById('resource-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await saveResource(resourceId);
+    });
+
+    openModal();
+}
+
+window.toggleResourceFields = function() {
+    const type = document.getElementById('resource-type').value;
+    document.getElementById('resource-url-group').style.display = type === 'book' ? 'none' : '';
+    document.getElementById('resource-author-group').style.display = type === 'book' ? '' : 'none';
+};
+
+async function saveResource(resourceId) {
+    const title = document.getElementById('resource-title').value.trim();
+    const description = document.getElementById('resource-description').value.trim();
+    const category = document.getElementById('resource-category').value;
+    const type = document.getElementById('resource-type').value;
+    const url = document.getElementById('resource-url').value.trim();
+    const author = document.getElementById('resource-author').value.trim();
+    const icon = document.getElementById('resource-icon').value;
+    const order = parseInt(document.getElementById('resource-order').value) || 1;
+
+    if (!title || !description) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const resourceData = {
+        title,
+        description,
+        category,
+        type,
+        url: type !== 'book' ? url : '',
+        author: type === 'book' ? author : '',
+        icon,
+        order,
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        if (resourceId) {
+            // Update existing resource
+            const index = MockDB.resources.findIndex(r => r.id === resourceId);
+            if (index !== -1) {
+                MockDB.resources[index] = { ...MockDB.resources[index], ...resourceData };
+            }
+
+            // Update in Firebase if enabled
+            if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+                await setDoc(doc(db, 'resources', resourceId), resourceData, { merge: true });
+            }
+
+            logActivity('Resource updated', `Updated "${title}"`, 'admin');
+            showToast('Resource updated', 'success');
+        } else {
+            // Create new resource
+            const newId = 'r' + Date.now();
+            const newResource = { id: newId, ...resourceData, createdAt: new Date().toISOString() };
+            MockDB.resources.push(newResource);
+
+            // Add to Firebase if enabled
+            if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+                await setDoc(doc(db, 'resources', newId), newResource);
+            }
+
+            logActivity('Resource created', `Added "${title}"`, 'admin');
+            showToast('Resource added', 'success');
+        }
+
+        openResourcesManageModal();
+    } catch (error) {
+        console.error('Error saving resource:', error);
+        showToast('Error saving resource', 'error');
+    }
+}
+
+async function deleteResource(resourceId) {
+    if (!confirm('Are you sure you want to delete this resource?')) return;
+
+    const resource = MockDB.resources.find(r => r.id === resourceId);
+    const title = resource?.title || 'Resource';
+
+    try {
+        // Remove from MockDB
+        const index = MockDB.resources.findIndex(r => r.id === resourceId);
+        if (index !== -1) {
+            MockDB.resources.splice(index, 1);
+        }
+
+        // Remove from Firebase if enabled
+        if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+            await deleteDoc(doc(db, 'resources', resourceId));
+        }
+
+        logActivity('Resource deleted', `Deleted "${title}"`, 'admin');
+        showToast('Resource deleted', 'default');
+        openResourcesManageModal();
+    } catch (error) {
+        console.error('Error deleting resource:', error);
+        showToast('Error deleting resource', 'error');
+    }
 }
 
 // ============================================
@@ -6926,15 +7588,42 @@ async function changePassword() {
 // USER MANAGEMENT (Admin)
 // ============================================
 
+// User search state
+let userSearchQuery = '';
+let userRoleFilter = 'all';
+
 function renderUsersPage() {
     if (!DataService.isAdmin()) {
         navigateTo('home');
         return '';
     }
 
-    const users = MockDB.users;
-    const activeUsers = users.filter(u => u.status !== 'deactivated');
-    const deactivatedUsers = users.filter(u => u.status === 'deactivated');
+    const allUsers = MockDB.users;
+    const activeUsers = allUsers.filter(u => u.status !== 'deactivated');
+    const deactivatedUsers = allUsers.filter(u => u.status === 'deactivated');
+
+    // Apply filters
+    let filteredUsers = allUsers;
+    if (userSearchQuery) {
+        const query = userSearchQuery.toLowerCase();
+        filteredUsers = filteredUsers.filter(u =>
+            u.displayName.toLowerCase().includes(query) ||
+            u.email.toLowerCase().includes(query) ||
+            (u.username && u.username.toLowerCase().includes(query))
+        );
+    }
+    if (userRoleFilter !== 'all') {
+        if (userRoleFilter === 'inactive') {
+            filteredUsers = filteredUsers.filter(u => u.status === 'deactivated');
+        } else {
+            filteredUsers = filteredUsers.filter(u => u.role === userRoleFilter && u.status !== 'deactivated');
+        }
+    }
+
+    // Count by role
+    const adminCount = allUsers.filter(u => u.role === 'admin' && u.status !== 'deactivated').length;
+    const hostCount = allUsers.filter(u => u.role === 'host' && u.status !== 'deactivated').length;
+    const memberCount = allUsers.filter(u => u.role === 'member' && u.status !== 'deactivated').length;
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
@@ -6961,23 +7650,39 @@ function renderUsersPage() {
                     </svg>
                     Bulk Import
                 </button>
-                <button class="btn btn-ghost" onclick="navigateTo('directory')">
+                <button class="btn btn-ghost" onclick="exportUsersList()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    Member Directory
+                    Export
                 </button>
             </div>
         </div>
 
-        <div class="app-section">
-            <div class="app-section-header">
-                <h3 class="app-section-title">All Users</h3>
+        <!-- Search and Filter -->
+        <div class="app-section" style="padding-top: 0;">
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <input type="text" class="form-input" placeholder="Search users..." value="${escapeHtml(userSearchQuery)}" oninput="filterUsers(this.value, null)" style="width: 100%;">
+                </div>
+                <select class="form-input" style="width: auto;" onchange="filterUsers(null, this.value)">
+                    <option value="all" ${userRoleFilter === 'all' ? 'selected' : ''}>All Roles (${allUsers.length})</option>
+                    <option value="admin" ${userRoleFilter === 'admin' ? 'selected' : ''}>Admins (${adminCount})</option>
+                    <option value="host" ${userRoleFilter === 'host' ? 'selected' : ''}>Hosts (${hostCount})</option>
+                    <option value="member" ${userRoleFilter === 'member' ? 'selected' : ''}>Members (${memberCount})</option>
+                    <option value="inactive" ${userRoleFilter === 'inactive' ? 'selected' : ''}>Inactive (${deactivatedUsers.length})</option>
+                </select>
             </div>
-            ${users.map(user => `
+        </div>
+
+        <div class="app-section" style="padding-top: 0;">
+            <div class="app-section-header">
+                <h3 class="app-section-title">${userRoleFilter === 'all' ? 'All Users' : userRoleFilter === 'inactive' ? 'Inactive Users' : userRoleFilter.charAt(0).toUpperCase() + userRoleFilter.slice(1) + 's'}</h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''}</span>
+            </div>
+            ${filteredUsers.length > 0 ? filteredUsers.map(user => `
                 <div class="app-event-card" style="cursor: pointer; ${user.status === 'deactivated' ? 'opacity: 0.5;' : ''}" onclick="openUserModal('${user.id}')">
                     <div style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         ${user.photoURL
@@ -6996,10 +7701,53 @@ function renderUsersPage() {
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                 </div>
-            `).join('')}
+            `).join('') : `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <p style="margin: 0;">No users found matching your search</p>
+                </div>
+            `}
         </div>
         <div style="height: 20px;"></div>
     `;
+}
+
+// Filter users by search query and role
+function filterUsers(query, role) {
+    if (query !== null) userSearchQuery = query;
+    if (role !== null) userRoleFilter = role;
+    renderPage();
+}
+
+// Export users list as CSV
+function exportUsersList() {
+    const users = MockDB.users;
+    const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Username'];
+    const rows = users.map(u => [
+        u.displayName,
+        u.email,
+        u.role,
+        u.status === 'deactivated' ? 'Inactive' : 'Active',
+        u.phone || '',
+        u.username || ''
+    ]);
+
+    const csv = [headers, ...rows].map(row =>
+        row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kiwichurch-users-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast('Users exported to CSV', 'success');
 }
 
 function openUserModal(userId) {
@@ -7035,13 +7783,49 @@ function openUserModal(userId) {
         <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
             <div>
                 <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Role</label>
-                <select class="form-input" id="user-role" ${isCurrentUser ? 'disabled' : ''}>
+                <select class="form-input" id="user-role" ${isCurrentUser ? 'disabled' : ''} onchange="toggleHostGatheringsSection(this.value)">
                     <option value="member" ${user.role === 'member' ? 'selected' : ''}>Member</option>
                     <option value="host" ${user.role === 'host' ? 'selected' : ''}>Host</option>
                     <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
                 </select>
                 ${isCurrentUser ? '<small style="color: var(--color-text-light); font-size: 0.75rem;">Cannot change your own role</small>' : ''}
             </div>
+
+            <!-- Host Assigned Gatherings (shown when role is host) -->
+            <div id="host-gatherings-section" style="display: ${user.role === 'host' ? 'block' : 'none'};">
+                <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.5rem;">Assigned Gatherings</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 150px; overflow-y: auto; background: var(--color-cream); border-radius: var(--radius-sm); padding: 0.5rem;">
+                    ${MockDB.gatherings.map(g => `
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.25rem;">
+                            <input type="checkbox" name="user-gatherings" value="${g.id}" ${user.assignedGatherings?.includes(g.id) ? 'checked' : ''}>
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${g.color};"></span>
+                            <span style="font-size: 0.875rem;">${escapeHtml(g.name)}</span>
+                        </label>
+                    `).join('')}
+                </div>
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Select which communities this host can manage</small>
+            </div>
+
+            <!-- Group Memberships -->
+            <div>
+                <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.5rem;">Group Memberships</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 150px; overflow-y: auto; background: var(--color-cream); border-radius: var(--radius-sm); padding: 0.5rem;">
+                    ${MockDB.gatherings.filter(g => !g.isPublic).map(g => {
+                        const members = MockDB.gatheringMembers[g.id] || [];
+                        const isMember = members.includes(user.id);
+                        return `
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.25rem;">
+                                <input type="checkbox" name="user-memberships" value="${g.id}" ${isMember ? 'checked' : ''}>
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background: ${g.color};"></span>
+                                <span style="font-size: 0.875rem;">${escapeHtml(g.name)}</span>
+                                <span style="font-size: 0.75rem; color: var(--color-text-light);">(${members.length} members)</span>
+                            </label>
+                        `;
+                    }).join('') || '<p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0;">No private groups available</p>'}
+                </div>
+                <small style="color: var(--color-text-light); font-size: 0.75rem;">Manage which private groups this user belongs to</small>
+            </div>
+
             ${user.phone ? `
             <div>
                 <label style="font-size: 0.75rem; color: var(--color-text-light); display: block; margin-bottom: 0.25rem;">Phone</label>
@@ -7066,31 +7850,76 @@ function openUserModal(userId) {
 
     let footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
     if (!isCurrentUser) {
-        footerHTML += `<button class="btn btn-primary" onclick="saveUserRole('${user.id}')">Save Changes</button>`;
+        footerHTML += `<button class="btn btn-primary" onclick="saveUserDetails('${user.id}')">Save Changes</button>`;
     }
 
     openModal('User Details', bodyHTML, footerHTML);
 }
 
-async function saveUserRole(userId) {
+// Toggle host gatherings section visibility
+function toggleHostGatheringsSection(role) {
+    const section = document.getElementById('host-gatherings-section');
+    if (section) {
+        section.style.display = role === 'host' ? 'block' : 'none';
+    }
+}
+
+async function saveUserDetails(userId) {
     const newRole = document.getElementById('user-role').value;
     const user = MockDB.users.find(u => u.id === userId);
 
     if (!user) return;
 
+    // Get assigned gatherings for hosts
+    const gatheringCheckboxes = document.querySelectorAll('input[name="user-gatherings"]:checked');
+    const assignedGatherings = Array.from(gatheringCheckboxes).map(cb => cb.value);
+
+    // Get group memberships
+    const membershipCheckboxes = document.querySelectorAll('input[name="user-memberships"]:checked');
+    const newMemberships = Array.from(membershipCheckboxes).map(cb => cb.value);
+
     try {
+        // Update role and assigned gatherings
         if (PortalConfig.useFirebase && window.DB) {
-            await DB.updateUser(userId, { role: newRole });
+            await DB.updateUser(userId, {
+                role: newRole,
+                assignedGatherings: newRole === 'host' ? assignedGatherings : []
+            });
         } else {
             user.role = newRole;
+            user.assignedGatherings = newRole === 'host' ? assignedGatherings : [];
         }
 
-        showToast(`${user.displayName}'s role updated to ${newRole}`, 'success');
+        // Update group memberships
+        MockDB.gatherings.filter(g => !g.isPublic).forEach(g => {
+            if (!MockDB.gatheringMembers[g.id]) {
+                MockDB.gatheringMembers[g.id] = [];
+            }
+
+            const currentMembers = MockDB.gatheringMembers[g.id];
+            const shouldBeMember = newMemberships.includes(g.id);
+            const isMember = currentMembers.includes(userId);
+
+            if (shouldBeMember && !isMember) {
+                // Add to group
+                currentMembers.push(userId);
+            } else if (!shouldBeMember && isMember) {
+                // Remove from group
+                MockDB.gatheringMembers[g.id] = currentMembers.filter(id => id !== userId);
+            }
+        });
+
+        showToast(`${user.displayName}'s details updated`, 'success');
         closeModal();
         renderPage();
     } catch (error) {
-        showToast(error.message || 'Could not update role', 'error');
+        showToast(error.message || 'Could not update user', 'error');
     }
+}
+
+// Legacy function name for compatibility
+async function saveUserRole(userId) {
+    return saveUserDetails(userId);
 }
 
 // ============================================
@@ -7177,6 +8006,13 @@ async function createNewUser() {
         return;
     }
 
+    // Show loading state
+    const submitBtn = document.querySelector('#create-user-form + div button.btn-primary, .modal-footer button.btn-primary');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Creating...';
+    }
+
     try {
         if (PortalConfig.useFirebase && window.Auth) {
             // Check username availability
@@ -7184,40 +8020,44 @@ async function createNewUser() {
                 const isAvailable = await DB.checkUsernameAvailable(username);
                 if (!isAvailable) {
                     showToast('Username is already taken', 'error');
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = 'Create User'; }
                     return;
                 }
             }
 
-            // Store current admin credentials for re-authentication
-            const adminEmail = Auth.currentUser.email;
+            // Store the requested role (new user can only create with 'member', admin updates later)
+            const requestedRole = role;
 
-            // Create new user with Firebase Auth
+            // Create user via Auth (this will sign out admin and sign in new user)
             const result = await auth.createUserWithEmailAndPassword(email, password);
             const newUserId = result.user.uid;
 
-            // Update display name
+            // Update display name in Firebase Auth
             await result.user.updateProfile({ displayName: name });
 
-            // Create user document in Firestore with specified role
-            await db.collection('users').doc(newUserId).set({
+            // Create user document as the new user (they can only set role='member')
+            const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+            const userData = {
                 email: email,
                 displayName: name,
                 username: username || null,
-                role: role,
+                role: 'member',  // Start as member, admin will update after re-signing in
                 phone: phone || null,
                 bio: bio || null,
                 photoURL: null,
                 status: 'active',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                createdBy: Auth.uid
-            });
+                pendingRole: requestedRole !== 'member' ? requestedRole : null,  // Store requested role
+                createdAt: timestamp,
+                updatedAt: timestamp
+            };
+
+            await db.collection('users').doc(newUserId).set(userData);
 
             // Create username mapping if provided
             if (username) {
                 await db.collection('usernames').doc(username.toLowerCase()).set({
                     uid: newUserId,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    createdAt: timestamp
                 });
             }
 
@@ -7225,15 +8065,18 @@ async function createNewUser() {
             await db.collection('userProfiles').doc(newUserId).set({
                 displayName: name,
                 photoURL: null,
-                bio: bio || null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: timestamp
             });
 
             // Sign out the newly created user
             await auth.signOut();
 
-            // Prompt admin to sign back in
-            showToast(`User "${name}" created successfully! Please sign in again.`, 'success');
+            // Show success message
+            if (requestedRole !== 'member') {
+                showToast(`User "${name}" created as member. Sign in to update their role to ${requestedRole}.`, 'success');
+            } else {
+                showToast(`User "${name}" created successfully! Please sign in again.`, 'success');
+            }
             closeModal();
 
         } else {
@@ -7770,12 +8613,14 @@ function generateTempPassword() {
 
 let userDirectorySearch = '';
 let userDirectoryFilter = 'all';
+let userDirectoryCommunity = 'all';
 
 function renderUserDirectory() {
     const currentUser = DataService.getCurrentUser();
     if (!currentUser) return '';
 
-    let users = [...MockDB.users].filter(u => u.status !== 'deactivated' || DataService.isAdmin());
+    const allUsers = [...MockDB.users].filter(u => u.status !== 'deactivated' || DataService.isAdmin());
+    let users = [...allUsers];
 
     // Apply search
     if (userDirectorySearch) {
@@ -7792,27 +8637,62 @@ function renderUserDirectory() {
         users = users.filter(u => u.role === userDirectoryFilter);
     }
 
+    // Apply community filter
+    if (userDirectoryCommunity !== 'all') {
+        const members = MockDB.gatheringMembers[userDirectoryCommunity] || [];
+        users = users.filter(u => members.includes(u.id));
+    }
+
     // Sort alphabetically
     users.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    // Count by role
+    const adminCount = allUsers.filter(u => u.role === 'admin').length;
+    const hostCount = allUsers.filter(u => u.role === 'host').length;
+    const memberCount = allUsers.filter(u => u.role === 'member').length;
+
+    // Get private groups for community filter
+    const privateGroups = MockDB.gatherings.filter(g => !g.isPublic);
 
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 1.5rem; color: white;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">Member Directory</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">${users.length} members</p>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem;">${allUsers.length} total members</p>
         </div>
 
-        <div class="app-section" style="padding-top: 1rem;">
+        <!-- Quick Stats -->
+        <div class="app-section" style="padding-top: 1rem; padding-bottom: 0;">
+            <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                <button class="btn ${userDirectoryFilter === 'all' ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="updateDirectoryFilter('all')" style="white-space: nowrap;">
+                    All (${allUsers.length})
+                </button>
+                <button class="btn ${userDirectoryFilter === 'admin' ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="updateDirectoryFilter('admin')" style="white-space: nowrap;">
+                    Admins (${adminCount})
+                </button>
+                <button class="btn ${userDirectoryFilter === 'host' ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="updateDirectoryFilter('host')" style="white-space: nowrap;">
+                    Hosts (${hostCount})
+                </button>
+                <button class="btn ${userDirectoryFilter === 'member' ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="updateDirectoryFilter('member')" style="white-space: nowrap;">
+                    Members (${memberCount})
+                </button>
+            </div>
+        </div>
+
+        <div class="app-section" style="padding-top: 0.5rem;">
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 200px;">
                     <input type="text" class="form-input" placeholder="Search members..." value="${escapeHtml(userDirectorySearch)}" oninput="updateDirectorySearch(this.value)" style="padding: 0.625rem 1rem;">
                 </div>
-                <select class="form-input" style="width: auto;" onchange="updateDirectoryFilter(this.value)">
-                    <option value="all" ${userDirectoryFilter === 'all' ? 'selected' : ''}>All Roles</option>
-                    <option value="admin" ${userDirectoryFilter === 'admin' ? 'selected' : ''}>Admins</option>
-                    <option value="host" ${userDirectoryFilter === 'host' ? 'selected' : ''}>Hosts</option>
-                    <option value="member" ${userDirectoryFilter === 'member' ? 'selected' : ''}>Members</option>
+                ${privateGroups.length > 0 ? `
+                <select class="form-input" style="width: auto;" onchange="updateDirectoryCommunity(this.value)">
+                    <option value="all" ${userDirectoryCommunity === 'all' ? 'selected' : ''}>All Communities</option>
+                    ${privateGroups.map(g => `
+                        <option value="${g.id}" ${userDirectoryCommunity === g.id ? 'selected' : ''}>${escapeHtml(g.name)}</option>
+                    `).join('')}
                 </select>
+                ` : ''}
             </div>
+            ${users.length > 0 ? `<p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0.5rem 0 0;">Showing ${users.length} member${users.length !== 1 ? 's' : ''}</p>` : ''}
         </div>
 
         <div class="app-section">
@@ -7859,6 +8739,11 @@ function updateDirectorySearch(value) {
 
 function updateDirectoryFilter(value) {
     userDirectoryFilter = value;
+    renderPage();
+}
+
+function updateDirectoryCommunity(value) {
+    userDirectoryCommunity = value;
     renderPage();
 }
 
@@ -7978,6 +8863,9 @@ let pullToRefreshState = {
 };
 
 function setupPullToRefresh() {
+    // Only enable on mobile devices (touch-enabled and narrow screens)
+    if (window.innerWidth >= 768) return;
+
     const main = document.getElementById('app-main');
     if (!main) return;
 
