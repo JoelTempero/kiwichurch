@@ -24,49 +24,61 @@ const MockDB = {
         {
             id: 'gathering-1',
             name: 'Thin Place',
-            description: 'A space for allowing our humanity to be held gently. A space for wonder, for being at home, for lamenting, hoping, playing, and encounter.',
+            description: 'A contemplative gathering exploring Celtic spirituality and the spaces where heaven and earth feel close. We practice ancient prayers, share silence, and explore faith through poetry, art, and reflection.',
             rhythm: 'Fortnightly Wednesdays, 6:30pm',
+            location: 'Hansons Lane, Central Christchurch',
             isPublic: true,
+            featured: true,
             color: '#1a3a2f'
         },
         {
             id: 'gathering-2',
             name: 'Online Prayer',
-            description: 'Join us in the Zoom room for prayer and connection. All are welcome to these times of shared spiritual practice.',
-            rhythm: 'Tues & Thu mornings, 7:00am',
+            description: 'Start your day with prayer and reflection. A simple, accessible way to connect with community no matter where you are. We gather on Zoom for 30 minutes of guided prayer and silence.',
+            rhythm: 'Weekly - Tuesday & Thursday, 7:00am',
+            location: 'Zoom (link provided on signup)',
             isPublic: true,
+            featured: true,
             color: '#7d9a87'
         },
         {
             id: 'gathering-3',
             name: 'Prestons Community',
-            description: 'A geographical community gathering in the Prestons area. We share food, fellowship, and faith together.',
+            description: 'A family-friendly gathering in the Prestons area. Shared meals, kids running around, and real conversations about faith and life. We eat together, study together, and support each other.',
             rhythm: 'Weekly Fridays, 6:00pm',
+            location: 'Prestons, North Christchurch',
             isPublic: false,
+            featured: false,
             color: '#c17f59'
         },
         {
             id: 'gathering-4',
             name: 'Rito Shack',
-            description: 'A creative gathering space exploring faith through art, music, and making together.',
-            rhythm: 'Monthly - First Saturday',
+            description: 'A creative community exploring faith through art, music, and making. We believe creativity is a form of worship and that making things together builds connection.',
+            rhythm: 'Monthly - First Saturday, 10:00am',
+            location: 'Various locations',
             isPublic: true,
-            color: '#2d5a4a'
+            featured: false,
+            color: '#d4a574'
         },
         {
             id: 'gathering-5',
             name: 'Digging Deeper',
-            description: 'A time where we go deeper into God\'s story, exploring ways to listen to God\'s word.',
+            description: 'For those who want to go deeper into scripture and theology. We read books together, discuss challenging ideas, and wrestle with difficult questions about faith.',
             rhythm: 'Fortnightly Tuesdays, 7:30pm',
+            location: 'Rotating homes',
             isPublic: false,
-            color: '#d4a574'
+            featured: false,
+            color: '#2d5a4a'
         },
         {
             id: 'gathering-6',
             name: 'Reel Life',
-            description: 'For those who love movies, acknowledging God is in all things. We watch together and reflect.',
-            rhythm: 'Monthly - Third Friday',
+            description: 'Faith and film come together as we watch movies and discuss the spiritual themes, moral questions, and human experiences they explore. Great for those who love good stories.',
+            rhythm: 'Monthly - Third Friday, 7:00pm',
+            location: 'Rotating homes',
             isPublic: true,
+            featured: false,
             color: '#5a6b62'
         }
     ],
@@ -6305,6 +6317,13 @@ function renderSettingsPage() {
                     </svg>
                     <span style="font-size: 0.875rem; font-weight: 500;">Users</span>
                 </button>
+                <button class="btn btn-ghost" onclick="openCommunitiesManageModal()" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-gold)" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span style="font-size: 0.875rem; font-weight: 500;">Communities</span>
+                </button>
                 <button class="btn btn-ghost" onclick="openActivityLogsModal()" style="flex-direction: column; gap: 0.25rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -6578,6 +6597,254 @@ function saveSiteSettings() {
     showToast('Settings saved', 'success');
     closeModal();
     renderPage();
+}
+
+// ============================================
+// COMMUNITIES MANAGEMENT (Admin)
+// ============================================
+
+// Open Communities Management Modal
+function openCommunitiesManageModal() {
+    const gatherings = MockDB.gatherings;
+
+    document.getElementById('modal-title').textContent = 'Manage Communities';
+    document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.875rem; color: var(--color-text-light);">${gatherings.length} communities</span>
+            <button class="btn btn-primary btn-sm" onclick="openAddCommunityModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add New
+            </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
+            ${gatherings.map(g => `
+                <div style="padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-md); display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: ${g.color}; flex-shrink: 0;"></div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 500; font-size: 0.9375rem; display: flex; align-items: center; gap: 0.5rem;">
+                            ${escapeHtml(g.name)}
+                            ${g.featured ? '<span style="font-size: 0.625rem; background: var(--color-gold); color: var(--color-forest); padding: 0.125rem 0.375rem; border-radius: 999px;">Featured</span>' : ''}
+                            ${!g.isPublic ? '<span style="font-size: 0.625rem; background: var(--color-terracotta-light); color: var(--color-terracotta); padding: 0.125rem 0.375rem; border-radius: 999px;">Private</span>' : ''}
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-light);">${escapeHtml(g.rhythm || '')}</div>
+                    </div>
+                    <div style="display: flex; gap: 0.25rem;">
+                        <button class="btn btn-ghost btn-sm" onclick="openEditCommunityModal('${g.id}')" title="Edit">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-cream-dark);">
+            <p style="font-size: 0.75rem; color: var(--color-text-light); margin: 0;">
+                Public communities are visible on the website. Private communities are only visible to members in the portal.
+            </p>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="closeModal()" style="width: 100%;">Close</button>
+        </div>
+    `;
+    openModal();
+}
+
+// Open Add Community Modal
+function openAddCommunityModal() {
+    document.getElementById('modal-title').textContent = 'Add New Community';
+    document.getElementById('modal-body').innerHTML = renderCommunityForm(null);
+    // Don't call openModal() again since it's already open
+}
+
+// Open Edit Community Modal
+function openEditCommunityModal(gatheringId) {
+    const gathering = MockDB.gatherings.find(g => g.id === gatheringId);
+    if (!gathering) return;
+
+    document.getElementById('modal-title').textContent = 'Edit Community';
+    document.getElementById('modal-body').innerHTML = renderCommunityForm(gathering);
+}
+
+// Render Community Form (for both add and edit)
+function renderCommunityForm(gathering) {
+    const isEdit = !!gathering;
+    const colors = ['#1a3a2f', '#7d9a87', '#c17f59', '#d4a574', '#2d5a4a', '#5a6b62'];
+
+    return `
+        <form id="community-form" onsubmit="event.preventDefault(); saveCommunity(${isEdit ? `'${gathering.id}'` : 'null'});">
+            <div class="form-group">
+                <label class="form-label">Name *</label>
+                <input type="text" class="form-input" id="community-name" value="${isEdit ? escapeHtml(gathering.name) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description *</label>
+                <textarea class="form-input" id="community-description" rows="3" required>${isEdit ? escapeHtml(gathering.description) : ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Meeting Rhythm</label>
+                <input type="text" class="form-input" id="community-rhythm" value="${isEdit ? escapeHtml(gathering.rhythm || '') : ''}" placeholder="e.g., Weekly Fridays, 6:00pm">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-input" id="community-location" value="${isEdit ? escapeHtml(gathering.location || '') : ''}" placeholder="e.g., Central Christchurch">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Color</label>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    ${colors.map(c => `
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="community-color" value="${c}" ${(isEdit && gathering.color === c) || (!isEdit && c === colors[0]) ? 'checked' : ''} style="display: none;">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${c}; border: 3px solid transparent; transition: border-color 0.2s;"
+                                 onclick="this.parentElement.querySelector('input').checked = true; document.querySelectorAll('[name=community-color]').forEach(i => i.parentElement.querySelector('div').style.borderColor = 'transparent'); this.style.borderColor = 'var(--color-forest)';"
+                                 ${(isEdit && gathering.color === c) || (!isEdit && c === colors[0]) ? 'class="selected-color"' : ''}></div>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div style="margin: 1rem 0; display: flex; flex-direction: column; gap: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                    <input type="checkbox" id="community-public" ${!isEdit || gathering.isPublic ? 'checked' : ''}>
+                    <span style="font-size: 0.9375rem;">Public (visible on website)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                    <input type="checkbox" id="community-featured" ${isEdit && gathering.featured ? 'checked' : ''}>
+                    <span style="font-size: 0.9375rem;">Featured (highlighted on website)</span>
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: space-between; margin-top: 1.5rem;">
+                ${isEdit ? `
+                    <button type="button" class="btn btn-ghost" onclick="confirmDeleteCommunity('${gathering.id}')" style="color: #dc2626;">Delete</button>
+                ` : '<div></div>'}
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn btn-ghost" onclick="openCommunitiesManageModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">${isEdit ? 'Save Changes' : 'Add Community'}</button>
+                </div>
+            </div>
+        </form>
+    `;
+}
+
+// Save Community (add or edit)
+async function saveCommunity(gatheringId) {
+    const name = document.getElementById('community-name')?.value?.trim();
+    const description = document.getElementById('community-description')?.value?.trim();
+    const rhythm = document.getElementById('community-rhythm')?.value?.trim();
+    const location = document.getElementById('community-location')?.value?.trim();
+    const colorEl = document.querySelector('[name="community-color"]:checked');
+    const color = colorEl?.value || '#1a3a2f';
+    const isPublic = document.getElementById('community-public')?.checked ?? true;
+    const featured = document.getElementById('community-featured')?.checked ?? false;
+
+    if (!name || !description) {
+        showToast('Please fill in required fields', 'error');
+        return;
+    }
+
+    const communityData = {
+        name,
+        description,
+        rhythm,
+        location,
+        color,
+        isPublic,
+        featured
+    };
+
+    try {
+        if (gatheringId) {
+            // Update existing
+            const index = MockDB.gatherings.findIndex(g => g.id === gatheringId);
+            if (index !== -1) {
+                MockDB.gatherings[index] = { ...MockDB.gatherings[index], ...communityData };
+            }
+
+            // Update in Firebase if enabled
+            if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+                await setDoc(doc(db, 'gatherings', gatheringId), communityData, { merge: true });
+            }
+
+            logActivity('Community updated', `Updated "${name}"`, 'admin');
+            showToast('Community updated', 'success');
+        } else {
+            // Add new
+            const newId = 'gathering-' + Date.now();
+            const newGathering = { id: newId, ...communityData };
+            MockDB.gatherings.push(newGathering);
+
+            // Add to Firebase if enabled
+            if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+                await setDoc(doc(db, 'gatherings', newId), newGathering);
+            }
+
+            logActivity('Community added', `Created "${name}"`, 'admin');
+            showToast('Community added', 'success');
+        }
+
+        openCommunitiesManageModal(); // Return to list
+    } catch (error) {
+        console.error('Error saving community:', error);
+        showToast('Error saving community', 'error');
+    }
+}
+
+// Confirm Delete Community
+function confirmDeleteCommunity(gatheringId) {
+    const gathering = MockDB.gatherings.find(g => g.id === gatheringId);
+    if (!gathering) return;
+
+    document.getElementById('modal-title').textContent = 'Delete Community?';
+    document.getElementById('modal-body').innerHTML = `
+        <p style="margin-bottom: 1.5rem;">
+            Are you sure you want to delete <strong>${escapeHtml(gathering.name)}</strong>? This action cannot be undone.
+        </p>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <button class="btn btn-ghost" onclick="openCommunitiesManageModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="deleteCommunity('${gatheringId}')" style="background: #dc2626;">Delete</button>
+        </div>
+    `;
+}
+
+// Delete Community
+async function deleteCommunity(gatheringId) {
+    const gathering = MockDB.gatherings.find(g => g.id === gatheringId);
+    const name = gathering?.name || 'Community';
+
+    try {
+        // Remove from MockDB
+        const index = MockDB.gatherings.findIndex(g => g.id === gatheringId);
+        if (index !== -1) {
+            MockDB.gatherings.splice(index, 1);
+        }
+
+        // Remove from Firebase if enabled
+        if (PortalConfig.useFirebase && typeof db !== 'undefined') {
+            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+            await deleteDoc(doc(db, 'gatherings', gatheringId));
+        }
+
+        logActivity('Community deleted', `Deleted "${name}"`, 'admin');
+        showToast('Community deleted', 'default');
+        openCommunitiesManageModal();
+    } catch (error) {
+        console.error('Error deleting community:', error);
+        showToast('Error deleting community', 'error');
+    }
 }
 
 // ============================================

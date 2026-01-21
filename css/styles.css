@@ -902,6 +902,31 @@ a:hover {
     margin-bottom: 1rem;
 }
 
+/* Featured community styling */
+.gathering-card.featured {
+    border: 2px solid var(--color-forest);
+    box-shadow: var(--shadow-lg);
+}
+
+.gathering-card.featured:hover {
+    box-shadow: 0 12px 40px rgba(26, 58, 47, 0.2);
+}
+
+.featured-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+    background: var(--color-gold);
+    color: var(--color-forest);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
 /* ============================================
    Calendar
    ============================================ */
