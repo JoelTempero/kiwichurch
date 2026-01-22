@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags - will be updated by JavaScript -->
+    <title>Loading... - Kete | Kiwi Church</title>
+    <meta name="title" content="Kete - Kiwi Church">
+    <meta name="description" content="Read stories, devotions, and updates from the Kiwi Church community.">
+    <meta name="robots" content="index, follow">
+
+    <!-- Theme & App Meta -->
+    <meta name="theme-color" content="#1a3a2f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kiwi Church">
+
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Preconnect & Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Nunito+Sans:ital,opsz,wght@0,6..12,300;0,6..12,400;0,6..12,500;0,6..12,600;1,6..12,400&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header scrolled" id="header">
+        <div class="header-inner">
+            <a href="index.html" class="header-logo">
+                <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church Logo">
+            </a>
+
+            <nav class="nav-desktop" id="nav-desktop" aria-label="Main navigation">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="about.html" class="nav-link">About</a>
+                <a href="communities.html" class="nav-link">Communities</a>
+                <a href="calendar.html" class="nav-link">Calendar</a>
+                <a href="kete.html" class="nav-link active">Kete</a>
+                <a href="resources.html" class="nav-link">Resources</a>
+
+                <a href="portal.html" class="btn btn-outline">Portal</a>
+            </nav>
+
+            <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation -->
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+        <a href="index.html" class="mobile-nav-link">Home</a>
+        <a href="about.html" class="mobile-nav-link">About</a>
+        <a href="communities.html" class="mobile-nav-link">Communities</a>
+        <a href="calendar.html" class="mobile-nav-link">Calendar</a>
+        <a href="kete.html" class="mobile-nav-link">Kete</a>
+        <a href="resources.html" class="mobile-nav-link">Resources</a>
+
+        <a href="portal.html" class="mobile-nav-link">Member Portal</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main">
+        <!-- Loading State -->
+        <div id="loading-state" style="padding: 4rem 2rem; text-align: center;">
+            <div style="width: 40px; height: 40px; border: 3px solid var(--color-cream-dark); border-top-color: var(--color-forest); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+            <p style="color: var(--color-text-light);">Loading post...</p>
+        </div>
+
+        <!-- Post Content (populated by JavaScript) -->
+        <article id="post-content" style="display: none;">
+            <!-- Article content will be populated here -->
+        </article>
+
+        <!-- Not Found State -->
+        <div id="not-found" style="display: none; padding: 4rem 2rem; text-align: center;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <h2 style="color: var(--color-forest); margin-bottom: 0.5rem;">Post Not Found</h2>
+            <p style="color: var(--color-text-light); margin-bottom: 1.5rem;">The post you're looking for doesn't exist or has been removed.</p>
+            <a href="kete.html" class="btn btn-primary">Browse All Posts</a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church">
+                <p>A network of small group Christian communities in Christchurch, New Zealand.</p>
+            </div>
+            <div class="footer-nav">
+                <h4 class="footer-title">Explore</h4>
+                <ul class="footer-links">
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="communities.html">Communities</a></li>
+                    <li><a href="calendar.html">Calendar</a></li>
+                    <li><a href="kete.html">Kete</a></li>
+                </ul>
+            </div>
+            <div class="footer-nav">
+                <h4 class="footer-title">Connect</h4>
+                <ul class="footer-links">
+                    <li><a href="resources.html">Resources</a></li>
+                    <li><a href="portal.html">Member Portal</a></li>
+                </ul>
+            </div>
+            <div class="footer-contact-section">
+                <h4 class="footer-title">Contact</h4>
+                <div class="footer-contact">
+                    <p>Christchurch, New Zealand</p>
+                    <p><a href="mailto:hello@kiwichurch.org.nz">hello@kiwichurch.org.nz</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Kiwi Church. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .post-header {
+            background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+            padding: 6rem 2rem 3rem;
+            color: white;
+        }
+
+        .post-header-inner {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-category {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .post-title {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3rem);
+            color: white;
+            margin: 0 0 1rem;
+            line-height: 1.2;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            color: rgba(255,255,255,0.85);
+            font-size: 0.9375rem;
+        }
+
+        .post-body {
+            max-width: 800px;
+            margin: -2rem auto 0;
+            padding: 3rem 2rem;
+            background: white;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+
+        .post-body-content {
+            font-size: 1.125rem;
+            line-height: 1.9;
+            color: var(--color-text);
+        }
+
+        .post-body-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .post-body-content h2 {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            color: var(--color-forest);
+            margin: 2.5rem 0 1rem;
+        }
+
+        .post-body-content h3 {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--color-forest);
+            margin: 2rem 0 0.75rem;
+        }
+
+        .post-body-content strong {
+            color: var(--color-forest);
+        }
+
+        .post-body-content em {
+            color: var(--color-sage);
+        }
+
+        .post-body-content blockquote {
+            border-left: 3px solid var(--color-terracotta);
+            padding-left: 1.5rem;
+            margin: 2rem 0;
+            font-style: italic;
+            color: var(--color-text-light);
+        }
+
+        .post-body-content img {
+            max-width: 100%;
+            border-radius: var(--radius-md);
+            margin: 1.5rem 0;
+        }
+
+        .post-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 2rem;
+            margin-top: 2rem;
+            border-top: 1px solid var(--color-cream-dark);
+        }
+
+        @media (max-width: 640px) {
+            .post-header {
+                padding: 5rem 1.5rem 2rem;
+            }
+            .post-body {
+                padding: 2rem 1.5rem;
+                margin-top: -1.5rem;
+            }
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getFirestore, doc, getDoc, collection, getDocs, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAd1I0cDraUbABCKX3JMxmtW6lPxvvdFv8",
+            authDomain: "kiwi-church.firebaseapp.com",
+            projectId: "kiwi-church",
+            storageBucket: "kiwi-church.firebasestorage.app",
+            messagingSenderId: "773909055908",
+            appId: "1:773909055908:web:dca65e7e1c4fd26a0ee93f"
+        };
+
+        // Fallback posts
+        const fallbackPosts = [
+            {
+                id: 'finding-sacred',
+                slug: 'finding-sacred-in-the-ordinary',
+                title: 'Finding Sacred in the Ordinary',
+                excerpt: 'Reflections on discovering God in everyday moments and mundane routines.',
+                content: `There's a moment each morning, somewhere between the first sip of coffee and the rush of the day, where I find myself pausing. It's not a grand spiritual practice—just a breath, a noticing.
+
+I've been learning that God doesn't only show up in the mountain-top experiences or the carefully crafted worship services. Sometimes the sacred sneaks in through the back door: in the steam rising from a cup, in the sound of rain on the roof, in the mundane rhythm of washing dishes.
+
+Brother Lawrence called it "practicing the presence of God." I'm calling it "paying attention."
+
+What if our everyday moments—the commute, the grocery run, the bedtime routine—are all invitations to encounter? What if the ordinary is already holy, and we just need eyes to see?
+
+This week, I'm trying something simple: before I rush into each task, I'll take one breath and ask, "Where are you here, God?"
+
+Maybe you'd like to try it too.`,
+                publishedAt: '2024-01-10',
+                authorName: 'Darryl Tempero',
+                category: 'reflection'
+            },
+            {
+                id: 'winter-update',
+                slug: 'community-update-summer-2024',
+                title: 'Community Update: Summer 2024',
+                excerpt: 'A look back at what God has been doing in our communities over the past season.',
+                content: `As we head into the new year, we wanted to take a moment to celebrate what God has been doing in our communities over the summer.
+
+## Thin Place
+Our fortnightly gatherings have continued to be a space of deep encounter and honest conversation. We've welcomed several new faces and have been moved by the stories shared around our tables.
+
+## Prestons Community
+The Friday night dinners have become a highlight for many families. There's something beautiful about sharing a meal together, watching the kids play, and simply being present with one another.
+
+## Rito Shack
+Our creative gathering has been exploring new ways of expressing faith through art. Last month's collaborative painting project was a powerful reminder that we're all part of something bigger.
+
+## Looking Ahead
+As we move into 2024, we're excited about what's to come. We're dreaming about new ways to serve our neighborhoods and deepen our connections with one another.
+
+Thank you for being part of this community. You belong here.`,
+                publishedAt: '2024-01-03',
+                authorName: 'Kiwi Church Team',
+                category: 'update'
+            },
+            {
+                id: 'art-of-showing-up',
+                slug: 'the-art-of-showing-up',
+                title: 'The Art of Showing Up',
+                excerpt: 'Why consistent presence matters more than perfect attendance.',
+                content: `I used to think that being part of a community meant never missing a gathering. That good members showed up every single time, fully present and engaged.
+
+But life doesn't work that way, does it?
+
+There are seasons when we're overwhelmed, when the kids are sick, when work is demanding, when we simply don't have the energy. And in those moments, I've learned something important: **showing up doesn't have to be perfect to be meaningful**.
+
+Sometimes showing up means dragging yourself to the gathering even when you'd rather stay home. Other times, it means sending a text to say "I'm thinking of you" when you can't be there in person. And sometimes, it means receiving grace when you've been absent for weeks.
+
+Community isn't built on perfect attendance. It's built on consistent presence over time—the kind that weathers the ups and downs, the busy seasons and the quiet ones.
+
+So if you've been away for a while, know this: you're still part of us. And when you're ready, there's always a seat at the table with your name on it.`,
+                publishedAt: '2023-12-20',
+                authorName: 'Sarah Utting',
+                category: 'reflection'
+            }
+        ];
+
+        // Category definitions
+        const categories = {
+            'reflection': { name: 'Reflection', color: '#1a3a2f' },
+            'update': { name: 'Update', color: '#c17f59' },
+            'teaching': { name: 'Teaching', color: '#7d9a87' },
+            'devotion': { name: 'Devotion', color: '#d4a574' },
+            'story': { name: 'Story', color: '#5a6b62' }
+        };
+
+        // Calculate reading time
+        function calculateReadingTime(content) {
+            const wordsPerMinute = 200;
+            const words = content?.split(/\s+/).length || 0;
+            return Math.max(1, Math.ceil(words / wordsPerMinute));
+        }
+
+        // Convert content to HTML
+        function convertToHtml(content) {
+            return (content || '')
+                .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // Render post
+        function renderPost(post) {
+            const date = new Date(post.publishedAt || post.date);
+            const formattedDate = date.toLocaleDateString('en-NZ', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const readingTime = calculateReadingTime(post.content);
+            const cat = categories[post.category] || { name: post.category || 'Post', color: '#1a3a2f' };
+
+            // Update page title and meta
+            document.title = `${post.title} - Kete | Kiwi Church`;
+            document.querySelector('meta[name="description"]')?.setAttribute('content', post.excerpt || post.title);
+
+            const contentEl = document.getElementById('post-content');
+            contentEl.innerHTML = `
+                <header class="post-header">
+                    <div class="post-header-inner">
+                        <a href="kete.html" style="display: inline-flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.8); text-decoration: none; margin-bottom: 1rem; font-size: 0.9375rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            Back to Kete
+                        </a>
+                        <span class="post-category" style="background: ${cat.color};">${cat.name}</span>
+                        <h1 class="post-title">${post.title}</h1>
+                        <div class="post-meta">
+                            <span>${post.authorName || 'Kiwi Church'}</span>
+                            <span>&bull;</span>
+                            <span>${formattedDate}</span>
+                            <span>&bull;</span>
+                            <span>${readingTime} min read</span>
+                        </div>
+                    </div>
+                </header>
+                <div class="post-body">
+                    ${post.coverImage ? `<img src="${post.coverImage}" alt="${post.title}" style="width: 100%; border-radius: var(--radius-md); margin-bottom: 2rem;">` : ''}
+                    <div class="post-body-content">
+                        <p>${convertToHtml(post.content)}</p>
+                    </div>
+                    <div class="post-nav">
+                        <a href="kete.html" class="btn btn-ghost">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            All Posts
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('loading-state').style.display = 'none';
+            contentEl.style.display = 'block';
+        }
+
+        // Show not found
+        function showNotFound() {
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('not-found').style.display = 'block';
+        }
+
+        // Load post
+        async function loadPost() {
+            // Get post ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const postId = urlParams.get('id');
+            const postSlug = urlParams.get('slug');
+
+            if (!postId && !postSlug) {
+                showNotFound();
+                return;
+            }
+
+            // Try to find in fallback posts first (for immediate display)
+            let post = fallbackPosts.find(p => p.id === postId || p.slug === postSlug);
+
+            // Try to load from Firebase
+            try {
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+
+                if (postId) {
+                    const docRef = doc(db, 'kete', postId);
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        post = { id: docSnap.id, ...docSnap.data() };
+                    }
+                } else if (postSlug) {
+                    // Try to find by slug
+                    const q = query(
+                        collection(db, 'kete'),
+                        where('slug', '==', postSlug),
+                        limit(1)
+                    );
+                    const querySnapshot = await getDocs(q);
+                    if (!querySnapshot.empty) {
+                        const docSnap = querySnapshot.docs[0];
+                        post = { id: docSnap.id, ...docSnap.data() };
+                    }
+                }
+            } catch (error) {
+                console.log('Using fallback:', error.message);
+            }
+
+            if (post) {
+                renderPost(post);
+            } else {
+                showNotFound();
+            }
+        }
+
+        // Load on page ready
+        document.addEventListener('DOMContentLoaded', loadPost);
+    </script>
+</body>
+</html>

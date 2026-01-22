@@ -578,31 +578,66 @@ const DataService = {
 
     // Create new event
     async createEvent(eventData) {
+        const now = new Date().toISOString();
+        const currentUser = this.getCurrentUser();
+
         if (PortalConfig.useFirebase && window.DB) {
-            return await DB.createEvent(eventData);
+            const result = await DB.createEvent({
+                ...eventData,
+                createdBy: currentUser?.id,
+                rsvps: eventData.rsvps || []
+            });
+            // Also update MockDB for immediate UI refresh
+            const newEvent = {
+                id: result.id,
+                ...eventData,
+                createdAt: now,
+                createdBy: currentUser?.id,
+                rsvps: eventData.rsvps || []
+            };
+            MockDB.events.push(newEvent);
+            MockDB.events.sort((a, b) => new Date(a.date) - new Date(b.date));
+            return result;
         }
+
         const newEvent = {
             id: 'event-' + Date.now(),
             ...eventData,
-            createdAt: new Date().toISOString(),
-            createdBy: this.getCurrentUser()?.id,
+            createdAt: now,
+            createdBy: currentUser?.id,
             rsvps: []
         };
         MockDB.events.push(newEvent);
-        // Sort events by date
         MockDB.events.sort((a, b) => new Date(a.date) - new Date(b.date));
         return newEvent;
     },
 
     // Update event
     async updateEvent(eventId, updates) {
-        if (PortalConfig.useFirebase && window.DB) {
-            return await DB.updateEvent(eventId, updates);
-        }
         const event = MockDB.events.find(e => e.id === eventId);
+
+        if (PortalConfig.useFirebase && window.DB) {
+            try {
+                await DB.updateEvent(eventId, updates);
+            } catch (error) {
+                // If document doesn't exist in Firestore, create it
+                if (error.message?.includes('No document to update') || error.code === 'not-found') {
+                    console.warn('[DataService] Event not in Firebase, creating:', eventId);
+                    if (event) {
+                        // Create the event in Firebase with full data
+                        const fullEventData = { ...event, ...updates };
+                        delete fullEventData.id; // Remove id from data
+                        await db.collection('events').doc(eventId).set(fullEventData);
+                    }
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        // Always update MockDB for immediate UI refresh
         if (event) {
             Object.assign(event, updates, { updatedAt: new Date().toISOString() });
-            // Re-sort events by date
             MockDB.events.sort((a, b) => new Date(a.date) - new Date(b.date));
             return event;
         }
@@ -612,8 +647,15 @@ const DataService = {
     // Delete event
     async deleteEvent(eventId) {
         if (PortalConfig.useFirebase && window.DB) {
-            return await DB.deleteEvent(eventId);
+            try {
+                await DB.deleteEvent(eventId);
+            } catch (error) {
+                // If document doesn't exist, that's fine - we're deleting anyway
+                console.warn('[DataService] Event delete error (may not exist in Firebase):', error);
+            }
         }
+
+        // Always update MockDB
         const index = MockDB.events.findIndex(e => e.id === eventId);
         if (index !== -1) {
             MockDB.events.splice(index, 1);
@@ -878,20 +920,10 @@ const DataService = {
 
     // Add comment to a post
     async addComment(gatheringId, postId, content) {
-        if (PortalConfig.useFirebase && window.DB) {
-            return await DB.addComment(gatheringId, postId, content);
-        }
-
         const user = this.getCurrentUser();
         if (!user || !this.canAccessBoard(gatheringId)) {
             throw new Error('Cannot comment on this board');
         }
-
-        const board = this.getMessageBoard(gatheringId);
-        if (!board) throw new Error('Board not found');
-
-        const post = board.posts.find(p => p.id === postId);
-        if (!post) throw new Error('Post not found');
 
         const newComment = {
             id: 'comment-' + Date.now(),
@@ -901,16 +933,38 @@ const DataService = {
             createdAt: new Date().toISOString()
         };
 
+        if (PortalConfig.useFirebase && window.DB) {
+            // Use correct function name: addPostComment, not addComment
+            const result = await DB.addPostComment(gatheringId, postId, {
+                authorId: user.id,
+                authorName: user.displayName,
+                content
+            });
+            // Update MockDB for immediate UI refresh
+            const board = this.getMessageBoard(gatheringId);
+            if (board) {
+                const post = board.posts.find(p => p.id === postId);
+                if (post) {
+                    if (!post.comments) post.comments = [];
+                    post.comments.push({ ...newComment, id: result.id });
+                }
+            }
+            return result;
+        }
+
+        const board = this.getMessageBoard(gatheringId);
+        if (!board) throw new Error('Board not found');
+
+        const post = board.posts.find(p => p.id === postId);
+        if (!post) throw new Error('Post not found');
+
+        if (!post.comments) post.comments = [];
         post.comments.push(newComment);
         return newComment;
     },
 
     // Delete a comment
     async deleteComment(gatheringId, postId, commentId) {
-        if (PortalConfig.useFirebase && window.DB) {
-            return await DB.deleteComment(gatheringId, postId, commentId);
-        }
-
         const user = this.getCurrentUser();
         const board = this.getMessageBoard(gatheringId);
         if (!board) throw new Error('Board not found');
@@ -927,6 +981,12 @@ const DataService = {
             throw new Error('Cannot delete this comment');
         }
 
+        if (PortalConfig.useFirebase && window.DB) {
+            // Use correct function name: deletePostComment, not deleteComment
+            await DB.deletePostComment(gatheringId, postId, commentId);
+        }
+
+        // Update MockDB for immediate UI refresh
         post.comments.splice(commentIndex, 1);
         return true;
     },
@@ -1347,19 +1407,30 @@ async function login(identifier, password) {
 }
 
 async function logout() {
+    showToast('You have been signed out', 'default');
+
     if (PortalConfig.useFirebase && window.Auth) {
         try {
+            // Auth state listener will handle the UI update when sign out completes
             await Auth.signOut();
+            // Wait a moment for auth state to update, then force UI refresh
+            setTimeout(() => {
+                state.currentUser = null;
+                state.currentPage = 'home';
+                saveState();
+                showAppState();
+            }, 100);
+            return;
         } catch (error) {
             console.error('Firebase logout error:', error);
         }
     }
 
+    // Demo mode
     state.currentUser = null;
     state.currentPage = 'home';
     saveState();
     showAppState();
-    showToast('You have been signed out', 'default');
 }
 
 function demoLogin(username, password) {
@@ -1771,38 +1842,64 @@ function openEventModal(eventId) {
             ` : ''}
         </div>
 
-        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button class="btn btn-ghost btn-sm" onclick="exportEventToCalendar('${event.id}')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                Add to Calendar
-            </button>
-            ${canManage && !isCancelled ? `
-            <button class="btn btn-ghost btn-sm" onclick="openCheckInModal('${event.id}')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-                Check-in
-            </button>
+        <!-- Actions -->
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+            ${!isCancelled && !isPast ? `
+            <!-- RSVP Section - Always shown prominently -->
+            <div style="margin-bottom: 1rem;">
+                <h4 style="margin: 0 0 0.75rem; font-size: 0.9375rem;">Your RSVP</h4>
+                ${isRSVPd ? `
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--color-sage-light); border-radius: var(--radius-md); margin-bottom: 0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        <span style="font-weight: 500; color: var(--color-forest);">
+                            ${userRSVP.status === 'attending' ? "You're attending" : userRSVP.status === 'maybe' ? 'Maybe attending' : 'Not attending'}
+                            ${(userRSVP.attendees?.length || 0) + (userRSVP.guestCount || 0) > 0 ? ` (+${(userRSVP.attendees?.length || 0) + (userRSVP.guestCount || 0)} others)` : ''}
+                        </span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="openRSVPModal('${event.id}')">Update RSVP</button>
+                ` : `
+                    ${isFull ? `
+                        <p style="color: #dc2626; font-size: 0.9375rem; margin-bottom: 0.5rem;">This event is full.</p>
+                    ` : `
+                        <button class="btn btn-primary" onclick="openRSVPModal('${event.id}')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            RSVP Now
+                        </button>
+                    `}
+                `}
+            </div>
             ` : ''}
+
+            <!-- Other actions -->
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-ghost btn-sm" onclick="exportEventToCalendar('${event.id}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Add to Calendar
+                </button>
+                ${canManage && !isCancelled ? `
+                <button class="btn btn-ghost btn-sm" onclick="openCheckInModal('${event.id}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    Manage Check-in
+                </button>
+                ` : ''}
+            </div>
         </div>
     `;
 
     let footerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
-
-    if (!isCancelled && !isPast) {
-        if (isFull && !isRSVPd) {
-            footerHTML += `<button class="btn btn-secondary" disabled>Event Full</button>`;
-        } else if (isRSVPd) {
-            footerHTML += `<button class="btn btn-primary" onclick="openRSVPModal('${event.id}')">Update RSVP</button>`;
-        } else {
-            footerHTML += `<button class="btn btn-primary" onclick="openRSVPModal('${event.id}')">RSVP</button>`;
-        }
-    }
 
     openModal(event.title, bodyHTML, footerHTML);
 }
@@ -2008,6 +2105,20 @@ function openCreateEventModal(prefillGatheringId = null) {
     `;
 
     openModal('Create Event', bodyHTML, footerHTML);
+
+    // Prevent form submission from closing modal
+    const form = document.getElementById('event-form');
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveNewEvent();
+        });
+
+        // Prevent date/time input clicks from propagating
+        form.querySelectorAll('input[type="date"], input[type="time"]').forEach(input => {
+            input.addEventListener('click', (e) => e.stopPropagation());
+        });
+    }
 
     // Auto-fill gathering location when selected
     document.getElementById('event-gathering').addEventListener('change', function() {
@@ -2443,6 +2554,20 @@ function openEditEventModal(eventId) {
     `;
 
     openModal('Edit Event', bodyHTML, footerHTML);
+
+    // Prevent form submission from closing modal
+    const form = document.getElementById('edit-event-form');
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveEventEdits(event.id);
+        });
+
+        // Prevent date/time input clicks from propagating
+        form.querySelectorAll('input[type="date"], input[type="time"]').forEach(input => {
+            input.addEventListener('click', (e) => e.stopPropagation());
+        });
+    }
 }
 
 async function saveEventEdits(eventId) {
@@ -3019,94 +3144,269 @@ async function submitRSVP(eventId) {
 // ============================================
 
 function openCreateKetePostModal() {
-    // Get existing series for suggestions
+    openKeteEditor(null);
+}
+
+// Full-width Kete post editor
+function openKeteEditor(postId = null) {
+    const existingPost = postId ? MockDB.kete.find(k => k.id === postId) : null;
     const existingSeries = [...new Set(MockDB.kete.filter(k => k.series).map(k => k.series))];
+    const isEdit = !!existingPost;
 
-    const bodyHTML = `
-        <form id="kete-form">
-            <div class="form-group">
-                <label class="form-label" for="kete-title">Title *</label>
-                <input type="text" class="form-input" id="kete-title" required placeholder="Your post title">
-            </div>
+    const main = document.getElementById('app-main');
+    if (!main) return;
 
-            <div class="form-group">
-                <label class="form-label" for="kete-excerpt">Excerpt *</label>
-                <input type="text" class="form-input" id="kete-excerpt" required placeholder="A brief summary (shown in listings)" maxlength="200">
-                <small style="color: var(--color-text-light); font-size: 0.75rem;">Max 200 characters</small>
-            </div>
+    // Store current page state
+    window.keteEditorPreviousPage = state.currentPage;
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label class="form-label" for="kete-category">Category</label>
-                    <select class="form-input" id="kete-category">
-                        <option value="">Select category...</option>
-                        ${KETE_CATEGORIES.map(cat => `
-                            <option value="${cat.id}">${cat.name}</option>
-                        `).join('')}
-                    </select>
+    // Render full-page editor
+    main.innerHTML = `
+        <div class="kete-editor-wrapper" style="max-width: 100%; margin: -2rem -2rem 0 -2rem; min-height: 100vh; background: var(--color-white);">
+            <!-- Editor Header -->
+            <div style="background: var(--color-forest); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="btn btn-ghost btn-sm" onclick="closeKeteEditor()" style="color: white; border: 1px solid rgba(255,255,255,0.3);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        Back
+                    </button>
+                    <h2 style="color: white; font-size: 1.25rem; margin: 0;">${isEdit ? 'Edit Post' : 'New Post'}</h2>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="kete-series">Series (optional)</label>
-                    <input type="text" class="form-input" id="kete-series" list="series-list" placeholder="e.g., Advent 2024">
-                    <datalist id="series-list">
-                        ${existingSeries.map(s => `<option value="${escapeHtml(s)}">`).join('')}
-                    </datalist>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-ghost btn-sm" onclick="saveKetePost(false)" style="color: white; border: 1px solid rgba(255,255,255,0.3);">Save Draft</button>
+                    <button class="btn btn-primary btn-sm" onclick="saveKetePost(true)" style="background: white; color: var(--color-forest);">Publish</button>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label" for="kete-content">Content *</label>
-                <textarea class="form-input" id="kete-content" rows="12" required placeholder="Write your post here...
+            <!-- Editor Content -->
+            <div style="max-width: 900px; margin: 0 auto; padding: 2rem;">
+                <form id="kete-form">
+                    <input type="hidden" id="kete-post-id" value="${postId || ''}">
 
-You can use simple formatting:
+                    <!-- Title -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <input type="text" class="form-input" id="kete-title" required
+                            placeholder="Post title..."
+                            value="${isEdit ? escapeHtml(existingPost.title) : ''}"
+                            style="font-size: 2rem; font-family: var(--font-display); border: none; border-bottom: 2px solid var(--color-cream-dark); border-radius: 0; padding: 0.5rem 0;">
+                    </div>
+
+                    <!-- Excerpt -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label class="form-label">Excerpt (shown in listings)</label>
+                        <textarea class="form-input" id="kete-excerpt" rows="2" required
+                            placeholder="A brief summary of your post..."
+                            maxlength="200">${isEdit ? escapeHtml(existingPost.excerpt) : ''}</textarea>
+                        <small style="color: var(--color-text-light); font-size: 0.75rem;">Max 200 characters</small>
+                    </div>
+
+                    <!-- Metadata Row -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: var(--color-cream); border-radius: var(--radius-md);">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" style="font-size: 0.8125rem;">Category</label>
+                            <select class="form-input" id="kete-category">
+                                <option value="">Select...</option>
+                                ${KETE_CATEGORIES.map(cat => `
+                                    <option value="${cat.id}" ${isEdit && existingPost.category === cat.id ? 'selected' : ''}>${cat.name}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" style="font-size: 0.8125rem;">Series (optional)</label>
+                            <input type="text" class="form-input" id="kete-series" list="series-list"
+                                placeholder="e.g., Advent 2024"
+                                value="${isEdit && existingPost.series ? escapeHtml(existingPost.series) : ''}">
+                            <datalist id="series-list">
+                                ${existingSeries.map(s => `<option value="${escapeHtml(s)}">`).join('')}
+                            </datalist>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" style="font-size: 0.8125rem;">Post Date</label>
+                            <input type="date" class="form-input" id="kete-post-date"
+                                value="${isEdit && existingPost.date ? existingPost.date : new Date().toISOString().split('T')[0]}">
+                        </div>
+                    </div>
+
+                    <!-- Featured Image -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label class="form-label">Featured Image</label>
+                        <div id="kete-image-preview" style="margin-bottom: 0.5rem; ${isEdit && existingPost.coverImage ? '' : 'display: none;'}">
+                            <img src="${isEdit && existingPost.coverImage ? existingPost.coverImage : ''}" alt="Preview"
+                                style="max-width: 100%; max-height: 300px; border-radius: var(--radius-md);">
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="clearKeteImage()" style="margin-top: 0.5rem; color: #dc2626;">Remove image</button>
+                        </div>
+                        <input type="file" class="form-input" id="kete-image" accept="image/*" onchange="previewKeteImage(this)">
+                    </div>
+
+                    <!-- Rich Text Editor -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label class="form-label">Content</label>
+
+                        <!-- Formatting Toolbar -->
+                        <div id="kete-toolbar" style="display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.5rem; background: var(--color-cream); border: 1px solid var(--color-cream-dark); border-bottom: none; border-radius: var(--radius-md) var(--radius-md) 0 0;">
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('**', '**')" title="Bold">
+                                <strong>B</strong>
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('*', '*')" title="Italic">
+                                <em>I</em>
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('\\n# ', '')" title="Heading">
+                                H1
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('\\n## ', '')" title="Subheading">
+                                H2
+                            </button>
+                            <span style="width: 1px; background: var(--color-cream-dark); margin: 0 0.25rem;"></span>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('\\n- ', '')" title="Bullet List">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                                </svg>
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('\\n> ', '')" title="Quote">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"></path>
+                                    <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"></path>
+                                </svg>
+                            </button>
+                            <span style="width: 1px; background: var(--color-cream-dark); margin: 0 0.25rem;"></span>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertLink()" title="Insert Link">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                </svg>
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertInlineImage()" title="Insert Image">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertVideo()" title="Embed Video">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Content Textarea -->
+                        <textarea class="form-input" id="kete-content" rows="20" required
+                            placeholder="Write your post here...
+
+Use the toolbar above for formatting, or write in Markdown:
 # Heading
 ## Subheading
-**bold text**
-*italic text*
-- bullet points"></textarea>
-                <small style="color: var(--color-text-light); font-size: 0.75rem;">Supports basic Markdown formatting</small>
-            </div>
+**bold** *italic*
+- bullet points
+> blockquote
 
-            <div class="form-group">
-                <label class="form-label" for="kete-image">Featured Image (optional)</label>
-                <input type="file" class="form-input" id="kete-image" accept="image/*" onchange="previewKeteImage(this)">
-                <div id="kete-image-preview" style="margin-top: 0.5rem; display: none;">
-                    <img src="" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: var(--radius-sm);">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="clearKeteImage()" style="margin-top: 0.5rem;">Remove image</button>
-                </div>
-            </div>
+To embed a YouTube video, use: [video:YouTube-URL]
+To add an image: [image:URL]"
+                            style="border-radius: 0 0 var(--radius-md) var(--radius-md); font-size: 1rem; line-height: 1.7; min-height: 400px;">${isEdit ? escapeHtml(existingPost.content) : ''}</textarea>
+                    </div>
 
-            <div class="form-group">
-                <label class="form-label">Media Attachments (optional)</label>
-                <input type="file" class="form-input" id="kete-attachments" multiple accept="image/*,.pdf,.doc,.docx" onchange="previewKeteAttachments(this)">
-                <small style="color: var(--color-text-light); font-size: 0.75rem;">Add images or documents to include in your post</small>
-                <div id="kete-attachments-preview" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
-            </div>
+                    <!-- Media Attachments -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label class="form-label">Additional Media</label>
+                        <input type="file" class="form-input" id="kete-attachments" multiple accept="image/*,.pdf,.doc,.docx" onchange="previewKeteAttachments(this)">
+                        <small style="color: var(--color-text-light); font-size: 0.75rem;">Add images or documents to include in your post</small>
+                        <div id="kete-attachments-preview" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+                    </div>
 
-            <div class="form-group">
-                <label class="form-label" for="kete-post-date">Post Date (for records)</label>
-                <input type="date" class="form-input" id="kete-post-date" value="${new Date().toISOString().split('T')[0]}">
-                <small style="color: var(--color-text-light); font-size: 0.75rem;">This is for your records only, not the publish date</small>
+                    <!-- Publish Options -->
+                    <div style="padding: 1rem; background: var(--color-cream); border-radius: var(--radius-md);">
+                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                            <input type="checkbox" id="kete-published" ${isEdit && existingPost.published === false ? '' : 'checked'}>
+                            <span>Publish immediately</span>
+                        </label>
+                        <small style="color: var(--color-text-light); font-size: 0.75rem; display: block; margin-top: 0.25rem;">Uncheck to save as draft</small>
+                    </div>
+                </form>
             </div>
-
-            <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
-                    <input type="checkbox" id="kete-published" checked>
-                    <span>Publish immediately</span>
-                </label>
-                <small style="color: var(--color-text-light); font-size: 0.75rem; display: block; margin-top: 0.25rem;">Uncheck to save as draft</small>
-            </div>
-        </form>
+        </div>
     `;
 
-    const footerHTML = `
-        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-ghost" id="kete-save-draft-btn" onclick="saveKetePost(false)">Save Draft</button>
-        <button class="btn btn-primary" id="kete-publish-btn" onclick="saveKetePost(true)">Publish</button>
-    `;
+    // Update page title
+    document.getElementById('page-title').textContent = isEdit ? 'Edit Post' : 'New Post';
+}
 
-    openModal('New Kete Post', bodyHTML, footerHTML);
+// Close editor and return to previous page
+function closeKeteEditor() {
+    const previousPage = window.keteEditorPreviousPage || 'kete';
+    navigateTo(previousPage);
+}
+
+// Rich text formatting helpers
+function insertFormatting(before, after) {
+    const textarea = document.getElementById('kete-content');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    const replacement = before.replace(/\\n/g, '\n') + selectedText + after;
+
+    textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+    textarea.focus();
+
+    // Set cursor position
+    const newPos = start + before.replace(/\\n/g, '\n').length + selectedText.length + after.length;
+    textarea.setSelectionRange(newPos, newPos);
+}
+
+function insertLink() {
+    const url = prompt('Enter the URL:');
+    if (!url) return;
+
+    const text = prompt('Enter the link text:', 'Link text');
+    if (!text) return;
+
+    const textarea = document.getElementById('kete-content');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const linkMarkdown = `[${text}](${url})`;
+
+    textarea.value = textarea.value.substring(0, start) + linkMarkdown + textarea.value.substring(start);
+    textarea.focus();
+}
+
+function insertInlineImage() {
+    const url = prompt('Enter the image URL:');
+    if (!url) return;
+
+    const alt = prompt('Enter image description (alt text):', 'Image');
+    if (!alt) return;
+
+    const textarea = document.getElementById('kete-content');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const imageMarkdown = `\n![${alt}](${url})\n`;
+
+    textarea.value = textarea.value.substring(0, start) + imageMarkdown + textarea.value.substring(start);
+    textarea.focus();
+}
+
+function insertVideo() {
+    const url = prompt('Enter the YouTube or Vimeo URL:');
+    if (!url) return;
+
+    const textarea = document.getElementById('kete-content');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const videoEmbed = `\n[video:${url}]\n`;
+
+    textarea.value = textarea.value.substring(0, start) + videoEmbed + textarea.value.substring(start);
+    textarea.focus();
 }
 
 // Preview Kete attachments
@@ -3185,6 +3485,7 @@ function clearKeteImage() {
 }
 
 async function saveKetePost(publish = true) {
+    const postId = document.getElementById('kete-post-id')?.value || null;
     const title = document.getElementById('kete-title').value.trim();
     const excerpt = document.getElementById('kete-excerpt').value.trim();
     const content = document.getElementById('kete-content').value.trim();
@@ -3205,15 +3506,30 @@ async function saveKetePost(publish = true) {
 
     try {
         let featuredImage = null;
+        let coverImage = null;
         let attachments = [];
 
+        // Get existing image if not replaced
+        if (postId) {
+            const existingPost = MockDB.kete.find(k => k.id === postId);
+            if (existingPost) {
+                coverImage = existingPost.coverImage || existingPost.featuredImage;
+                attachments = existingPost.attachments || [];
+            }
+        }
+
         // Handle featured image upload
-        if (imageInput.files && imageInput.files[0]) {
+        if (imageInput && imageInput.files && imageInput.files[0]) {
             if (PortalConfig.useFirebase && window.Storage) {
-                const result = await Storage.uploadKeteImage('temp', imageInput.files[0]);
+                const result = await Storage.uploadKeteImage(postId || 'temp', imageInput.files[0]);
                 featuredImage = result.url;
+                coverImage = result.url;
             } else {
-                featuredImage = document.getElementById('kete-image-preview').querySelector('img').src;
+                const previewImg = document.getElementById('kete-image-preview')?.querySelector('img');
+                if (previewImg && previewImg.src) {
+                    featuredImage = previewImg.src;
+                    coverImage = previewImg.src;
+                }
             }
         }
 
@@ -3222,7 +3538,7 @@ async function saveKetePost(publish = true) {
             for (const file of attachmentsInput.files) {
                 const isImage = file.type.startsWith('image/');
                 if (PortalConfig.useFirebase && window.Storage) {
-                    const result = await Storage.uploadKeteImage('temp-attachment', file);
+                    const result = await Storage.uploadKeteImage((postId || 'temp') + '-attachment', file);
                     attachments.push({
                         type: isImage ? 'image' : 'file',
                         url: result.url,
@@ -3244,22 +3560,33 @@ async function saveKetePost(publish = true) {
             }
         }
 
-        await DataService.createKetePost({
+        const postData = {
             title,
             excerpt,
             content,
             category,
             series,
-            postDate, // Store the custom post date
-            featuredImage,
+            postDate,
+            date: postDate,
+            featuredImage: featuredImage || coverImage,
+            coverImage: coverImage || featuredImage,
             attachments,
             published: publish
-        });
+        };
+
+        if (postId) {
+            // Update existing post
+            await DataService.updateKetePost(postId, postData);
+        } else {
+            // Create new post
+            await DataService.createKetePost(postData);
+        }
 
         showKeteSaveLoading(false);
         showToast(publish ? 'Post published!' : 'Draft saved!', 'success');
-        closeModal();
-        renderPage();
+
+        // Return to Kete page
+        closeKeteEditor();
     } catch (error) {
         showKeteSaveLoading(false);
         showToast(error.message || 'Could not save post', 'error');
@@ -3300,6 +3627,12 @@ function showKeteSaveLoading(show) {
 }
 
 function openEditKetePostModal(postId) {
+    // Use the full-width editor for editing too
+    openKeteEditor(postId);
+}
+
+// Legacy modal edit function (keeping for reference but not used)
+function _legacyOpenEditKetePostModal(postId) {
     const post = DataService.getKetePostById(postId);
     if (!post) return;
 
@@ -4895,74 +5228,86 @@ function renderGroupPage() {
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .slice(0, 3);
 
-    const buttonBorderColor = isLightBg ? 'rgba(26,58,47,0.3)' : 'rgba(255,255,255,0.3)';
-    const buttonTextOpacity = isLightBg ? '1' : '0.8';
+    // Fixed color palette - always use dark green header with white text for consistency
+    const headerBg = 'var(--color-forest)';
+    const headerBgGradient = 'linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%)';
+    const headerTextColor = '#ffffff';
+    const accentColor = group.color || 'var(--color-terracotta)';
 
     return `
-        <div style="background: ${headerGradient}; padding: 1.5rem; color: ${textColor};">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: ${textColor}; opacity: ${buttonTextOpacity}; margin: -0.5rem 0 0.5rem -0.5rem;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                    All Groups
-                </button>
-                ${isAdmin ? `
-                <button class="btn btn-ghost btn-sm" onclick="openEditGatheringModal('${groupId}')" style="color: ${textColor}; opacity: ${buttonTextOpacity};">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                </button>
+        <div class="group-page-wrapper" style="max-width: 100%; margin: -2rem -2rem 0 -2rem;">
+            <!-- Group Header with consistent styling -->
+            <div style="background: ${headerBgGradient}; padding: 2rem; color: ${headerTextColor};">
+                <div style="max-width: 1000px; margin: 0 auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: ${headerTextColor}; opacity: 0.9; margin: -0.5rem 0 0.5rem -0.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            All Groups
+                        </button>
+                        ${isAdmin ? `
+                        <button class="btn btn-ghost btn-sm" onclick="openEditGatheringModal('${groupId}')" style="color: ${headerTextColor}; opacity: 0.9;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                        </button>
+                        ` : ''}
+                    </div>
+                    <!-- Group accent indicator -->
+                    <div style="width: 40px; height: 4px; background: ${accentColor}; border-radius: 2px; margin-bottom: 0.75rem;"></div>
+                    <h2 style="font-family: var(--font-display); font-size: 1.75rem; color: ${headerTextColor}; margin: 0;">${escapeHtml(group.name)}</h2>
+                    <p style="opacity: 0.85; margin: 0.5rem 0 0; font-size: 1rem; color: ${headerTextColor};">
+                        ${escapeHtml(group.rhythm)}
+                        ${!group.isPublic ? ` • ${members.length} member${members.length !== 1 ? 's' : ''}` : ''}
+                    </p>
+                    ${!group.isPublic ? `
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        ${isMember ? `
+                        <button class="btn btn-ghost btn-sm" onclick="leaveGroup('${groupId}')" style="color: ${headerTextColor}; border: 1px solid rgba(255,255,255,0.3);">Leave Group</button>
+                        ` : `
+                        <button class="btn btn-primary btn-sm" onclick="joinGroup('${groupId}')" style="background: white; color: var(--color-forest);">Join Group</button>
+                        `}
+                        <button class="btn btn-ghost btn-sm" onclick="openGroupMembersModal('${groupId}')" style="color: ${headerTextColor}; border: 1px solid rgba(255,255,255,0.3);">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                            </svg>
+                            Members
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div style="padding: 1.5rem; max-width: 1000px; margin: 0 auto;">
+                ${groupEvents.length > 0 ? `
+                <div class="app-section" style="margin-bottom: 1.5rem;">
+                    <div class="app-section-header">
+                        <h3 class="app-section-title">Upcoming Events</h3>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                        ${groupEvents.map(event => {
+                            const date = new Date(event.date);
+                            return `
+                                <div onclick="openEventModal('${event.id}')" style="flex-shrink: 0; background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; box-shadow: var(--shadow-sm); cursor: pointer; min-width: 160px; border-left: 3px solid ${accentColor};">
+                                    <div style="font-size: 0.75rem; color: var(--color-text-light);">${date.toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+                                    <div style="font-weight: 500; margin-top: 0.25rem; color: var(--color-forest);">${event.title}</div>
+                                    <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">${formatTime(event.time)}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
                 ` : ''}
-            </div>
-            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: ${textColor}; margin: 0;">${escapeHtml(group.name)}</h2>
-            <p style="opacity: ${buttonTextOpacity}; margin: 0.25rem 0 0; font-size: 0.9375rem; color: ${textColor};">
-                ${escapeHtml(group.rhythm)}
-                ${!group.isPublic ? ` • ${members.length} member${members.length !== 1 ? 's' : ''}` : ''}
-            </p>
-            ${!group.isPublic ? `
-            <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
-                ${isMember ? `
-                <button class="btn btn-ghost btn-sm" onclick="leaveGroup('${groupId}')" style="color: ${textColor}; border-color: ${buttonBorderColor};">Leave Group</button>
-                ` : `
-                <button class="btn btn-primary btn-sm" onclick="joinGroup('${groupId}')" style="background: ${isLightBg ? '#1a3a2f' : 'white'}; color: ${isLightBg ? 'white' : group.color};">Join Group</button>
-                `}
-                <button class="btn btn-ghost btn-sm" onclick="openGroupMembersModal('${groupId}')" style="color: ${textColor}; border-color: ${buttonBorderColor};">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                    </svg>
-                    Members
-                </button>
-            </div>
-            ` : ''}
 
-        ${groupEvents.length > 0 ? `
-        <div class="app-section" style="padding-top: 1rem;">
-            <div class="app-section-header">
-                <h3 class="app-section-title">Upcoming</h3>
-            </div>
-            <div style="display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem;">
-                ${groupEvents.map(event => {
-                    const date = new Date(event.date);
-                    return `
-                        <div onclick="openEventModal('${event.id}')" style="flex-shrink: 0; background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; box-shadow: var(--shadow-sm); cursor: pointer; min-width: 140px;">
-                            <div style="font-size: 0.75rem; color: var(--color-text-light);">${date.toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
-                            <div style="font-weight: 500; margin-top: 0.25rem;">${event.title}</div>
-                            <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">${formatTime(event.time)}</div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-        ` : ''}
-
-        <div class="app-section" style="padding-top: ${groupEvents.length > 0 ? '0.5rem' : '1rem'};">
-            <div class="app-section-header">
-                <h3 class="app-section-title">Message Board</h3>
-                <span style="font-size: 0.875rem; color: var(--color-text-light);">${sortedPosts.length} post${sortedPosts.length !== 1 ? 's' : ''}</span>
-            </div>
+                <div class="app-section">
+                    <div class="app-section-header">
+                        <h3 class="app-section-title">Message Board</h3>
+                        <span style="font-size: 0.875rem; color: var(--color-text-light);">${sortedPosts.length} post${sortedPosts.length !== 1 ? 's' : ''}</span>
+                    </div>
 
             <!-- New Post Form -->
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem;">
@@ -5153,15 +5498,16 @@ function renderGroupPage() {
                     <p style="font-size: 0.875rem; margin-top: 0.5rem;">Be the first to share something!</p>
                 </div>
             `}
-        </div>
+                </div>
 
-        <div class="app-section">
-            <div style="background: var(--color-cream); border-radius: var(--radius-lg); padding: 1rem;">
-                <h4 style="margin: 0 0 0.5rem; font-size: 1rem;">About this group</h4>
-                <p style="margin: 0; color: var(--color-text-light); font-size: 0.9375rem;">${group.description}</p>
+                <div class="app-section" style="margin-top: 1.5rem;">
+                    <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.25rem; box-shadow: var(--shadow-sm);">
+                        <h4 style="margin: 0 0 0.5rem; font-size: 1rem; color: var(--color-forest);">About this group</h4>
+                        <p style="margin: 0; color: var(--color-text-light); font-size: 0.9375rem;">${escapeHtml(group.description || 'No description available.')}</p>
+                    </div>
+                </div>
             </div>
         </div>
-        <div style="height: 20px;"></div>
     `;
 }
 
@@ -9532,12 +9878,56 @@ function initPortal() {
             if (userData) {
                 state.currentUserData = userData;
 
-                // Load users from Firebase for admin users
-                if (userData.role === 'admin' || userData.role === 'host') {
-                    try {
+                // Load all data from Firebase for authenticated users
+                try {
+                    // Load events
+                    const firebaseEvents = await DB.getEvents();
+                    if (firebaseEvents && firebaseEvents.length > 0) {
+                        MockDB.events = firebaseEvents.map(e => ({
+                            ...e,
+                            rsvps: e.rsvps || [],
+                            checkedIn: e.checkedIn || []
+                        }));
+                        console.log('[Portal] Loaded', MockDB.events.length, 'events from Firebase');
+                    }
+
+                    // Load gatherings
+                    const firebaseGatherings = await DB.getGatherings();
+                    if (firebaseGatherings && firebaseGatherings.length > 0) {
+                        MockDB.gatherings = firebaseGatherings;
+                        console.log('[Portal] Loaded', MockDB.gatherings.length, 'gatherings from Firebase');
+                    }
+
+                    // Load kete posts
+                    const firebaseKete = await DB.getKetePosts({ published: undefined }); // Get all posts
+                    if (firebaseKete && firebaseKete.length > 0) {
+                        MockDB.kete = firebaseKete;
+                        console.log('[Portal] Loaded', MockDB.kete.length, 'kete posts from Firebase');
+                    }
+
+                    // Load message board posts for accessible gatherings
+                    for (const gathering of MockDB.gatherings) {
+                        try {
+                            const posts = await DB.getBoardPosts(gathering.id);
+                            if (posts && posts.length > 0) {
+                                if (!MockDB.messageBoards[gathering.id]) {
+                                    MockDB.messageBoards[gathering.id] = { posts: [] };
+                                }
+                                MockDB.messageBoards[gathering.id].posts = posts.map(p => ({
+                                    ...p,
+                                    comments: p.comments || [],
+                                    reactions: p.reactions || {}
+                                }));
+                            }
+                        } catch (err) {
+                            console.warn('[Portal] Could not load posts for gathering', gathering.id, err);
+                        }
+                    }
+
+                    // Load users from Firebase for admin users
+                    if (userData.role === 'admin' || userData.role === 'host') {
                         const firebaseUsers = await DB.getAllUsers();
                         if (firebaseUsers && firebaseUsers.length > 0) {
-                            // Replace MockDB.users with Firebase users
                             MockDB.users = firebaseUsers.map(u => ({
                                 ...u,
                                 dependants: u.dependants || [],
@@ -9545,9 +9935,9 @@ function initPortal() {
                             }));
                             console.log('[Portal] Loaded', MockDB.users.length, 'users from Firebase');
                         }
-                    } catch (err) {
-                        console.warn('[Portal] Could not load users from Firebase:', err);
                     }
+                } catch (err) {
+                    console.warn('[Portal] Could not load data from Firebase:', err);
                 }
             }
             showAppState();
