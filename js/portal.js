@@ -5235,10 +5235,10 @@ function renderGroupPage() {
     const accentColor = group.color || 'var(--color-terracotta)';
 
     return `
-        <div class="group-page-wrapper" style="max-width: 100%; margin: -2rem -2rem 0 -2rem;">
+        <div class="group-page-wrapper" style="width: calc(100% + 4rem); margin: -2rem -2rem 0 -2rem;">
             <!-- Group Header with consistent styling -->
             <div style="background: ${headerBgGradient}; padding: 2rem; color: ${headerTextColor};">
-                <div style="max-width: 1000px; margin: 0 auto;">
+                <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: ${headerTextColor}; opacity: 0.9; margin: -0.5rem 0 0.5rem -0.5rem;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -5282,7 +5282,7 @@ function renderGroupPage() {
             </div>
 
             <!-- Main Content Area -->
-            <div style="padding: 1.5rem; max-width: 1000px; margin: 0 auto;">
+            <div style="padding: 1.5rem 2rem; max-width: 1200px; margin: 0 auto; color: var(--color-text);">
                 ${groupEvents.length > 0 ? `
                 <div class="app-section" style="margin-bottom: 1.5rem;">
                     <div class="app-section-header">
@@ -5292,9 +5292,9 @@ function renderGroupPage() {
                         ${groupEvents.map(event => {
                             const date = new Date(event.date);
                             return `
-                                <div onclick="openEventModal('${event.id}')" style="flex-shrink: 0; background: var(--color-white); border-radius: var(--radius-md); padding: 0.75rem; box-shadow: var(--shadow-sm); cursor: pointer; min-width: 160px; border-left: 3px solid ${accentColor};">
+                                <div onclick="openEventModal('${event.id}')" style="flex-shrink: 0; background: var(--color-white); border: 1px solid var(--color-cream-dark); border-radius: var(--radius-md); padding: 0.75rem; box-shadow: var(--shadow-sm); cursor: pointer; min-width: 160px; border-left: 3px solid ${accentColor};">
                                     <div style="font-size: 0.75rem; color: var(--color-text-light);">${date.toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
-                                    <div style="font-weight: 500; margin-top: 0.25rem; color: var(--color-forest);">${event.title}</div>
+                                    <div style="font-weight: 500; margin-top: 0.25rem; color: var(--color-forest);">${escapeHtml(event.title)}</div>
                                     <div style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem;">${formatTime(event.time)}</div>
                                 </div>
                             `;
@@ -5310,7 +5310,7 @@ function renderGroupPage() {
                     </div>
 
             <!-- New Post Form -->
-            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem;">
+            <div style="background: var(--color-white); border: 1px solid var(--color-cream-dark); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem;">
                 <div style="display: flex; gap: 0.75rem;">
                     <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: ${group.color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         ${currentUser.photoURL
@@ -5352,7 +5352,7 @@ function renderGroupPage() {
                 const userReaction = Object.entries(reactions).find(([emoji, users]) => users.includes(currentUser?.id))?.[0];
 
                 return `
-                    <div class="board-post" style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 0.75rem; ${post.isPinned ? 'border-left: 3px solid var(--color-terracotta);' : ''}">
+                    <div class="board-post" style="background: var(--color-white); border: 1px solid var(--color-cream-dark); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 0.75rem; color: var(--color-text); ${post.isPinned ? 'border-left: 3px solid var(--color-terracotta);' : ''}">
                         ${post.isPinned ? `
                         <div style="display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem; font-size: 0.75rem; color: var(--color-terracotta);">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
@@ -5371,7 +5371,7 @@ function renderGroupPage() {
                             <div style="flex: 1; min-width: 0;">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <div>
-                                        <span style="font-weight: 500;">${escapeHtml(post.authorName || 'Unknown')}</span>
+                                        <span style="font-weight: 500; color: var(--color-forest);">${escapeHtml(post.authorName || 'Unknown')}</span>
                                         <span style="color: var(--color-text-light); font-size: 0.75rem; margin-left: 0.5rem;">${formatRelativeTime(post.createdAt)}</span>
                                     </div>
                                     ${canManage ? `
@@ -5383,9 +5383,9 @@ function renderGroupPage() {
                                                 <circle cx="5" cy="12" r="1"></circle>
                                             </svg>
                                         </button>
-                                        <div id="post-menu-${post.id}" style="display: none; position: absolute; right: 0; top: 100%; background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); min-width: 140px; z-index: 10;">
+                                        <div id="post-menu-${post.id}" style="display: none; position: absolute; right: 0; top: 100%; background: var(--color-white); border: 1px solid var(--color-cream-dark); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); min-width: 140px; z-index: 10;">
                                             ${isAdmin ? `
-                                            <button onclick="togglePinPost('${groupId}', '${post.id}')" style="display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.625rem 0.75rem; border: none; background: none; cursor: pointer; font-size: 0.875rem; text-align: left;">
+                                            <button onclick="togglePinPost('${groupId}', '${post.id}')" style="display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.625rem 0.75rem; border: none; background: none; cursor: pointer; font-size: 0.875rem; text-align: left; color: var(--color-text);">
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                     <path d="M12 2L12 22M12 2L19 9M12 2L5 9"></path>
                                                 </svg>
@@ -5403,7 +5403,7 @@ function renderGroupPage() {
                                     </div>
                                     ` : ''}
                                 </div>
-                                <p style="margin: 0.5rem 0 0; white-space: pre-wrap; word-wrap: break-word;">${formatPostContent(post.content)}</p>
+                                <p style="margin: 0.5rem 0 0; white-space: pre-wrap; word-wrap: break-word; color: var(--color-text);">${formatPostContent(post.content)}</p>
 
                                 ${post.attachment ? `
                                 <div style="margin-top: 0.75rem;">
@@ -5455,7 +5455,7 @@ function renderGroupPage() {
                                                     <div style="flex: 1; min-width: 0;">
                                                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                                             <div>
-                                                                <span style="font-weight: 500; font-size: 0.875rem;">${escapeHtml(comment.authorName || 'Unknown')}</span>
+                                                                <span style="font-weight: 500; font-size: 0.875rem; color: var(--color-forest);">${escapeHtml(comment.authorName || 'Unknown')}</span>
                                                                 <span style="color: var(--color-text-light); font-size: 0.625rem; margin-left: 0.5rem;">${formatRelativeTime(comment.createdAt)}</span>
                                                             </div>
                                                             ${canDeleteComment ? `
@@ -5467,7 +5467,7 @@ function renderGroupPage() {
                                                                 </button>
                                                             ` : ''}
                                                         </div>
-                                                        <p style="margin: 0.25rem 0 0; font-size: 0.875rem; white-space: pre-wrap; word-wrap: break-word;">${formatPostContent(comment.content)}</p>
+                                                        <p style="margin: 0.25rem 0 0; font-size: 0.875rem; white-space: pre-wrap; word-wrap: break-word; color: var(--color-text);">${formatPostContent(comment.content)}</p>
                                                     </div>
                                                 </div>
                                             `;
@@ -5501,9 +5501,9 @@ function renderGroupPage() {
                 </div>
 
                 <div class="app-section" style="margin-top: 1.5rem;">
-                    <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.25rem; box-shadow: var(--shadow-sm);">
+                    <div style="background: var(--color-white); border: 1px solid var(--color-cream-dark); border-radius: var(--radius-lg); padding: 1.25rem; box-shadow: var(--shadow-sm);">
                         <h4 style="margin: 0 0 0.5rem; font-size: 1rem; color: var(--color-forest);">About this group</h4>
-                        <p style="margin: 0; color: var(--color-text-light); font-size: 0.9375rem;">${escapeHtml(group.description || 'No description available.')}</p>
+                        <p style="margin: 0; color: var(--color-text); font-size: 0.9375rem;">${escapeHtml(group.description || 'No description available.')}</p>
                     </div>
                 </div>
             </div>
