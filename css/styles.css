@@ -1256,13 +1256,26 @@ a:hover {
    Login Page
    ============================================ */
 
+/* Auth view container - prevent overflow and scrolling issues */
+#auth-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 100;
+    background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+}
+
 .login-container {
-    min-height: 100vh;
+    min-height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+    background: transparent;
 }
 
 .login-card {

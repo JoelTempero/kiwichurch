@@ -404,7 +404,7 @@ So if you've been away for a while, know this: you're still part of us. And when
                 const cat = categories[post.category] || { name: post.category || 'Post', color: '#666' };
 
                 return `
-                    <article class="blog-card" id="${post.id}">
+                    <article class="blog-card" id="${post.id}" onclick="window.location.href='post.html?id=${post.id}'" style="cursor: pointer;">
                         <div class="blog-card-image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, ${cat.color} 0%, ${cat.color}cc 100%);">
                             <span style="color: var(--color-white); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9;">${cat.name}</span>
                         </div>
@@ -414,7 +414,7 @@ So if you've been away for a while, know this: you're still part of us. And when
                             <p class="blog-card-excerpt">${post.excerpt}</p>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
                                 <span style="font-size: 0.875rem; color: var(--color-sage);">${readingTime} min read</span>
-                                <button class="btn btn-ghost btn-sm" onclick="window.viewPost('${post.id}')">Read More</button>
+                                <span class="btn btn-ghost btn-sm">Read More</span>
                             </div>
                         </div>
                     </article>
