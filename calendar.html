@@ -196,6 +196,11 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
+    <!-- Firebase SDK for loading events -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
     <!-- Scripts -->
     <script src="js/main.js"></script>
     <script>
@@ -203,21 +208,20 @@
         let currentDate = new Date();
         let selectedDate = null;
 
-        // Sample events data - only PUBLIC events shown on website
-        const events = generateSampleEvents();
+        // Events data - loaded from Firebase
+        let events = [];
+        let isLoadingEvents = true;
 
-        function generateSampleEvents() {
+        // Fallback sample events (shown while loading or if Firebase fails)
+        function generateFallbackEvents() {
             const eventsData = [];
             const today = new Date();
-            // Only include PUBLIC gatherings for the website calendar
             const gatherings = [
-                { name: 'Thin Place', time: '18:30', location: 'Hansons Lane', description: 'A space for allowing our humanity to be held gently. A space for wonder, for being at home, for lamenting, hoping, playing, and encounter.', weekday: 3, frequency: 2 },
-                { name: 'Online Prayer', time: '07:00', location: 'Zoom', description: 'Join us in the Zoom room for prayer and connection. All are welcome to these times of shared spiritual practice.', weekday: 2, frequency: 1 },
-                { name: 'Online Prayer', time: '07:00', location: 'Zoom', description: 'Join us in the Zoom room for prayer and connection. All are welcome to these times of shared spiritual practice.', weekday: 4, frequency: 1 },
-                { name: 'Rito Shack', time: '10:00', location: 'Rito Shack', description: 'A creative gathering space exploring faith through art, music, and making together.', weekday: 6, frequency: 4 }
+                { name: 'Thin Place', time: '18:30', location: 'Hansons Lane', description: 'A space for allowing our humanity to be held gently.', weekday: 3, frequency: 2 },
+                { name: 'Online Prayer', time: '07:00', location: 'Zoom', description: 'Join us in the Zoom room for prayer and connection.', weekday: 2, frequency: 1 },
+                { name: 'Online Prayer', time: '07:00', location: 'Zoom', description: 'Join us in the Zoom room for prayer and connection.', weekday: 4, frequency: 1 }
             ];
 
-            // Generate events for the next 60 days
             for (let i = 0; i < 60; i++) {
                 const date = new Date(today);
                 date.setDate(today.getDate() + i);
@@ -225,11 +229,10 @@
 
                 gatherings.forEach(g => {
                     if (weekday === g.weekday) {
-                        // Check frequency (1 = weekly, 2 = fortnightly, 4 = monthly)
                         const weekNumber = Math.floor(i / 7);
-                        if (g.frequency === 1 || (g.frequency === 2 && weekNumber % 2 === 0) || (g.frequency === 4 && date.getDate() <= 7)) {
+                        if (g.frequency === 1 || (g.frequency === 2 && weekNumber % 2 === 0)) {
                             eventsData.push({
-                                id: `event-${eventsData.length}`,
+                                id: `fallback-${eventsData.length}`,
                                 title: g.name,
                                 date: date.toISOString().split('T')[0],
                                 time: g.time,
@@ -240,8 +243,41 @@
                     }
                 });
             }
-
             return eventsData;
+        }
+
+        // Load PUBLIC events from Firebase
+        async function loadEventsFromFirebase() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const snapshot = await db.collection('events')
+                    .where('isPublic', '==', true)
+                    .where('date', '>=', today)
+                    .orderBy('date', 'asc')
+                    .limit(100)
+                    .get();
+
+                const firebaseEvents = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })).filter(e => e.status !== 'cancelled'); // Exclude cancelled events
+
+                if (firebaseEvents.length > 0) {
+                    events = firebaseEvents;
+                    console.log('[Calendar] Loaded', events.length, 'public events from Firebase');
+                } else {
+                    // Use fallback if no events in Firebase
+                    console.log('[Calendar] No events in Firebase, using fallback');
+                    events = generateFallbackEvents();
+                }
+            } catch (error) {
+                console.warn('[Calendar] Could not load from Firebase, using fallback:', error);
+                events = generateFallbackEvents();
+            }
+
+            isLoadingEvents = false;
+            renderCalendar();
+            renderUpcomingEvents();
         }
 
         function renderCalendar() {
@@ -458,8 +494,15 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Start with fallback events for immediate display
+            events = generateFallbackEvents();
             renderCalendar();
             renderUpcomingEvents();
+
+            // Then load real events from Firebase
+            if (typeof db !== 'undefined') {
+                loadEventsFromFirebase();
+            }
         });
     </script>
 </body>
