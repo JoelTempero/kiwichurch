@@ -1266,7 +1266,9 @@ a:hover {
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 100;
-    background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+    /* Solid color that matches gradient to prevent white flash on overscroll */
+    background: var(--color-forest);
+    overscroll-behavior: contain;
 }
 
 .login-container {
@@ -1275,7 +1277,11 @@ a:hover {
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    background: transparent;
+    /* Gradient applied here so it covers entire scrollable area */
+    background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%);
+    /* Ensure no white gaps on iOS bounce */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
 }
 
 .login-card {
@@ -2251,8 +2257,32 @@ body.app-mode .toast-container {
     }
 
     .login-card {
-        padding: 2rem;
+        padding: 1.5rem;
+        max-width: 100%;
+        border-radius: var(--radius-lg);
     }
+
+    .login-container {
+        padding: 1rem;
+    }
+
+    .login-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .login-title {
+        font-size: 1.5rem;
+    }
+
+    .login-logo {
+        width: 60px;
+    }
+}
+
+/* Full-width page utility for group pages etc. */
+.full-width-page {
+    margin: -2rem -2rem 0 -2rem;
+    width: calc(100% + 4rem);
 }
 
 /* ============================================

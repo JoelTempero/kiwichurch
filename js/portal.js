@@ -412,6 +412,7 @@ let state = {
     currentPage: 'home',
     selectedDate: null,
     selectedGroupId: null, // For group detail page
+    selectedKetePostId: null, // For kete post detail page
     calendarYear: new Date().getFullYear(),
     calendarMonth: new Date().getMonth(),
     eventsViewMode: 'list', // 'list' or 'calendar'
@@ -624,10 +625,17 @@ const DataService = {
                 if (error.message?.includes('No document to update') || error.code === 'not-found') {
                     console.warn('[DataService] Event not in Firebase, creating:', eventId);
                     if (event) {
-                        // Create the event in Firebase with full data
+                        // Create the event in Firebase with full data using proper method
                         const fullEventData = { ...event, ...updates };
                         delete fullEventData.id; // Remove id from data
-                        await db.collection('events').doc(eventId).set(fullEventData);
+                        const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                        await db.collection('events').doc(eventId).set({
+                            ...fullEventData,
+                            createdAt: timestamp,
+                            updatedAt: timestamp
+                        });
+                    } else {
+                        throw new Error('Event not found in MockDB to sync to Firebase');
                     }
                 } else {
                     throw error;
@@ -635,7 +643,7 @@ const DataService = {
             }
         }
 
-        // Always update MockDB for immediate UI refresh
+        // Only update MockDB after Firebase operation succeeds
         if (event) {
             Object.assign(event, updates, { updatedAt: new Date().toISOString() });
             MockDB.events.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -765,10 +773,23 @@ const DataService = {
         }
 
         if (PortalConfig.useFirebase && window.DB) {
-            await DB.updateKetePost(postId, updates);
+            try {
+                await DB.updateKetePost(postId, updates);
+            } catch (error) {
+                // If document doesn't exist in Firebase, create it
+                if (error.message?.includes('No document to update') || error.code === 'not-found') {
+                    console.warn('[DataService] Kete post not in Firebase, creating:', postId);
+                    // Create the post in Firebase with full data
+                    const fullPostData = { ...post, ...updates };
+                    delete fullPostData.id; // Remove id from data
+                    await db.collection('kete').doc(postId).set(fullPostData);
+                } else {
+                    throw error;
+                }
+            }
         }
 
-        // Always update MockDB so the UI reflects the change immediately
+        // Only update MockDB after Firebase succeeds
         const wasPublished = post.published;
         Object.assign(post, updates, { updatedAt: new Date().toISOString() });
         // Set publishedAt when first published
@@ -799,6 +820,105 @@ const DataService = {
         // Hosts can edit their own posts
         if (user.role === 'host' && post.authorId === user.id) return true;
         return false;
+    },
+
+    // ============================================
+    // KETE COMMENTS
+    // ============================================
+
+    // Get comments for a kete post
+    async getKeteComments(postId) {
+        if (PortalConfig.useFirebase && window.DB) {
+            return await DB.getKeteComments(postId);
+        }
+        // For MockDB, comments are stored in the post itself
+        const post = MockDB.kete.find(k => k.id === postId);
+        return post?.comments || [];
+    },
+
+    // Add a comment to a kete post
+    async addKeteComment(postId, content) {
+        const user = this.getCurrentUser();
+        if (!user) {
+            throw new Error('Must be logged in to comment');
+        }
+
+        const commentData = {
+            content,
+            authorId: user.id,
+            authorName: user.displayName
+        };
+
+        if (PortalConfig.useFirebase && window.DB) {
+            const result = await DB.addKeteComment(postId, commentData);
+            // Also update MockDB for immediate UI refresh
+            const post = MockDB.kete.find(k => k.id === postId);
+            if (post) {
+                if (!post.comments) {
+                    post.comments = [];
+                }
+                post.comments.push({
+                    id: result.id,
+                    ...commentData,
+                    createdAt: new Date().toISOString()
+                });
+            }
+            return result;
+        }
+
+        // For MockDB only (demo mode)
+        const post = MockDB.kete.find(k => k.id === postId);
+        if (!post) {
+            throw new Error('Post not found');
+        }
+        if (!post.comments) {
+            post.comments = [];
+        }
+        const newComment = {
+            id: 'comment-' + Date.now(),
+            ...commentData,
+            createdAt: new Date().toISOString()
+        };
+        post.comments.push(newComment);
+        return newComment;
+    },
+
+    // Delete a comment from a kete post
+    async deleteKeteComment(postId, commentId) {
+        const user = this.getCurrentUser();
+        if (!user) {
+            throw new Error('Must be logged in to delete comment');
+        }
+
+        if (PortalConfig.useFirebase && window.DB) {
+            await DB.deleteKeteComment(postId, commentId);
+            // Also update MockDB for immediate UI refresh
+            const post = MockDB.kete.find(k => k.id === postId);
+            if (post && post.comments) {
+                const commentIndex = post.comments.findIndex(c => c.id === commentId);
+                if (commentIndex !== -1) {
+                    post.comments.splice(commentIndex, 1);
+                }
+            }
+            return true;
+        }
+
+        // For MockDB only (demo mode)
+        const post = MockDB.kete.find(k => k.id === postId);
+        if (!post || !post.comments) {
+            throw new Error('Post or comments not found');
+        }
+        const commentIndex = post.comments.findIndex(c => c.id === commentId);
+        if (commentIndex === -1) {
+            throw new Error('Comment not found');
+        }
+        // Only allow author or admin to delete
+        const comment = post.comments[commentIndex];
+        if (comment.authorId !== user.id && user.role !== 'admin') {
+            throw new Error('Not authorized to delete this comment');
+        }
+        post.comments.splice(commentIndex, 1);
+        return true;
     },
 
     // ============================================
@@ -1382,10 +1502,10 @@ async function login(identifier, password) {
         try {
             showLoading(true);
             await Auth.signIn(identifier, password);
-            return true;
+            return { success: true };
         } catch (error) {
             console.error('Firebase login error:', error);
-            return false;
+            return { success: false, error: error.message || 'Invalid username/email or password' };
         } finally {
             showLoading(false);
         }
@@ -1393,43 +1513,38 @@ async function login(identifier, password) {
 
     // Demo mode login
     const user = MockDB.users.find(u =>
-        (u.username.toLowerCase() === identifier.toLowerCase() ||
-         u.email.toLowerCase() === identifier.toLowerCase()) &&
+        (u.username?.toLowerCase() === identifier.toLowerCase() ||
+         u.email?.toLowerCase() === identifier.toLowerCase()) &&
         u.password === password
     );
 
     if (user) {
         state.currentUser = user;
         saveState();
-        return true;
+        return { success: true };
     }
-    return false;
+    return { success: false, error: 'Invalid username/email or password' };
 }
 
 async function logout() {
-    showToast('You have been signed out', 'default');
+    // Clear state synchronously BEFORE calling signOut to avoid race conditions
+    state.currentUser = null;
+    state.currentUserData = null;
+    state.currentPage = 'home';
+    saveState();
 
     if (PortalConfig.useFirebase && window.Auth) {
         try {
-            // Auth state listener will handle the UI update when sign out completes
             await Auth.signOut();
-            // Wait a moment for auth state to update, then force UI refresh
-            setTimeout(() => {
-                state.currentUser = null;
-                state.currentPage = 'home';
-                saveState();
-                showAppState();
-            }, 100);
-            return;
         } catch (error) {
             console.error('Firebase logout error:', error);
         }
     }
 
-    // Demo mode
-    state.currentUser = null;
-    state.currentPage = 'home';
-    saveState();
+    // Show toast after state is cleared
+    showToast('You have been signed out', 'default');
+
+    // Immediately show login state
     showAppState();
 }
 
@@ -1451,14 +1566,27 @@ function navigateTo(page) {
         state.selectedGroupId = null;
     }
 
-    // Update bottom nav
+    // Clear kete post selection when leaving kete-post page
+    if (page !== 'kete-post') {
+        state.selectedKetePostId = null;
+    }
+
+    // Update bottom nav (kete-post should highlight kete)
     document.querySelectorAll('.bottom-nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.page === page || (page === 'group' && item.dataset.page === 'groups'));
+        item.classList.toggle('active',
+            item.dataset.page === page ||
+            (page === 'group' && item.dataset.page === 'groups') ||
+            (page === 'kete-post' && item.dataset.page === 'kete')
+        );
     });
 
     // Update desktop sidebar nav
     document.querySelectorAll('.desktop-nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.page === page || (page === 'group' && item.dataset.page === 'groups'));
+        item.classList.toggle('active',
+            item.dataset.page === page ||
+            (page === 'group' && item.dataset.page === 'groups') ||
+            (page === 'kete-post' && item.dataset.page === 'kete')
+        );
     });
 
     // Update page title
@@ -1477,6 +1605,9 @@ function navigateTo(page) {
     if (page === 'group' && state.selectedGroupId) {
         const group = DataService.getGatheringById(state.selectedGroupId);
         document.getElementById('page-title').textContent = group?.name || 'Group';
+    } else if (page === 'kete-post' && state.selectedKetePostId) {
+        // For kete post page, show 'Kete' as title
+        document.getElementById('page-title').textContent = 'Kete';
     } else {
         document.getElementById('page-title').textContent = titles[page] || 'Portal';
     }
@@ -3062,7 +3193,7 @@ function openRSVPModal(eventId) {
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer;">
                         <input type="checkbox" value="self" checked disabled>
-                        <span>${currentUser.displayName.split(' ')[0]} (you)</span>
+                        <span>${(currentUser?.displayName || 'You').split(' ')[0]} (you)</span>
                     </label>
                     ${currentUser.dependants && currentUser.dependants.length > 0 ? currentUser.dependants.map(d => `
                         <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer;">
@@ -3848,7 +3979,178 @@ async function deleteKetePost(postId) {
 }
 
 // View a full Kete post
+// Navigate to a kete post page (full page view instead of modal)
+function navigateToKetePost(postId) {
+    state.selectedKetePostId = postId;
+    state.currentPage = 'kete-post';
+
+    // Update nav to show kete as active
+    document.querySelectorAll('.bottom-nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.page === 'kete');
+    });
+    document.querySelectorAll('.desktop-nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.page === 'kete');
+    });
+
+    renderPage();
+    window.scrollTo(0, 0);
+}
+
+// Render a full page view for a single Kete post
+function renderKetePostPage() {
+    const postId = state.selectedKetePostId;
+    if (!postId) {
+        navigateTo('kete');
+        return '';
+    }
+
+    const post = DataService.getKetePostById(postId);
+    if (!post) {
+        navigateTo('kete');
+        return '';
+    }
+
+    const canManage = DataService.canManageKetePost(post);
+    const readingTime = calculateReadingTime(post.content);
+    const category = KETE_CATEGORIES.find(c => c.id === post.category);
+    const contentHtml = renderMarkdown(post.content);
+
+    // Get related posts
+    let relatedPosts = [];
+    if (post.series) {
+        relatedPosts = MockDB.kete.filter(k =>
+            k.published && k.id !== post.id && k.series === post.series
+        ).slice(0, 3);
+    }
+    if (relatedPosts.length < 3 && post.category) {
+        const categoryPosts = MockDB.kete.filter(k =>
+            k.published && k.id !== post.id && k.category === post.category &&
+            !relatedPosts.find(r => r.id === k.id)
+        ).slice(0, 3 - relatedPosts.length);
+        relatedPosts = [...relatedPosts, ...categoryPosts];
+    }
+
+    return `
+        <div style="max-width: 700px; margin: 0 auto;">
+            <!-- Back navigation -->
+            <button class="btn btn-ghost btn-sm" onclick="navigateTo('kete')" style="margin-bottom: 1rem; color: var(--color-text-light);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Back to Kete
+            </button>
+
+            <!-- Article card -->
+            <article style="background: var(--color-white); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md);">
+                ${post.featuredImage ? `
+                    <img src="${post.featuredImage}" alt="${escapeHtml(post.title)}" style="width: 100%; height: 250px; object-fit: cover;">
+                ` : ''}
+
+                <div style="padding: 2rem;">
+                    <!-- Meta info -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; align-items: center; margin-bottom: 0.5rem;">
+                                ${category ? `
+                                    <span style="background: ${category.color}20; color: ${category.color}; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500;">${category.name}</span>
+                                ` : ''}
+                                ${post.series ? `
+                                    <button onclick="openKeteSeriesModal('${escapeHtml(post.series)}')" style="display: inline-flex; align-items: center; gap: 0.25rem; background: var(--color-cream); color: var(--color-text-light); padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem; border: none; cursor: pointer;">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                        </svg>
+                                        ${escapeHtml(post.series)}
+                                    </button>
+                                ` : ''}
+                                ${!post.published ? '<span style="background: var(--color-terracotta-light); color: var(--color-terracotta); padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem;">Draft</span>' : ''}
+                            </div>
+                            <p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0;">
+                                ${formatDate(post.publishedAt || post.createdAt)} • ${readingTime} min read
+                            </p>
+                        </div>
+                        ${canManage ? `
+                            <button class="btn btn-ghost btn-sm" onclick="openEditKetePostModal('${post.id}')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                Edit
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <!-- Title -->
+                    <h1 style="font-family: var(--font-display); font-size: 2rem; color: var(--color-forest); margin: 0 0 0.5rem; line-height: 1.2;">${escapeHtml(post.title)}</h1>
+
+                    <!-- Author -->
+                    <p style="font-size: 0.9375rem; color: var(--color-text-light); margin: 0 0 2rem;">
+                        by ${escapeHtml(post.authorName || 'Unknown')}
+                    </p>
+
+                    <!-- Content -->
+                    <div class="kete-content" style="line-height: 1.8; color: var(--color-text); font-size: 1.0625rem;">
+                        ${contentHtml}
+                    </div>
+
+                    ${post.attachments && post.attachments.length > 0 ? `
+                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+                        <h4 style="margin: 0 0 0.75rem; font-size: 0.9375rem; color: var(--color-text-light);">Attachments</h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                            ${post.attachments.map(att => att.type === 'image'
+                                ? `<img src="${att.url}" alt="${escapeHtml(att.name)}" style="max-width: 200px; max-height: 150px; object-fit: cover; border-radius: var(--radius-sm); cursor: pointer;" onclick="openImageModal('${att.url}')">`
+                                : `<a href="${att.url}" target="_blank" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); text-decoration: none; color: var(--color-text);">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                    </svg>
+                                    ${escapeHtml(att.name)}
+                                </a>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            </article>
+
+            ${relatedPosts.length > 0 ? `
+            <div style="margin-top: 2rem;">
+                <h3 style="font-family: var(--font-display); font-size: 1.25rem; color: var(--color-forest); margin: 0 0 1rem;">Related Posts</h3>
+                <div style="display: grid; gap: 1rem;">
+                    ${relatedPosts.map(rp => {
+                        const rpCat = KETE_CATEGORIES.find(c => c.id === rp.category);
+                        const rpReadTime = calculateReadingTime(rp.content);
+                        return `
+                            <div onclick="navigateToKetePost('${rp.id}')" style="display: flex; gap: 1rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); cursor: pointer; transition: all var(--transition-fast);" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+                                ${rp.featuredImage ? `<img src="${rp.featuredImage}" alt="" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-sm); flex-shrink: 0;">` : ''}
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="display: flex; gap: 0.25rem; margin-bottom: 0.25rem;">
+                                        ${rpCat ? `<span style="font-size: 0.6875rem; color: ${rpCat.color}; font-weight: 500;">${rpCat.name}</span>` : ''}
+                                        <span style="font-size: 0.6875rem; color: var(--color-text-light);">• ${rpReadTime} min</span>
+                                    </div>
+                                    <h4 style="margin: 0 0 0.25rem; font-size: 1rem; color: var(--color-forest);">${escapeHtml(rp.title)}</h4>
+                                    <p style="margin: 0; font-size: 0.8125rem; color: var(--color-text-light); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(rp.excerpt)}</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            ` : ''}
+
+            <div style="height: 2rem;"></div>
+        </div>
+    `;
+}
+
+// Legacy modal function - now redirects to page view
 function openKetePostModal(postId) {
+    // Navigate to full page view instead of opening modal
+    navigateToKetePost(postId);
+}
+
+// Original modal implementation (kept for reference, but no longer used)
+function _openKetePostModalOld(postId) {
     const post = DataService.getKetePostById(postId);
     if (!post) return;
 
@@ -4048,6 +4350,11 @@ function escapeHtml(text) {
 
 // Get contrasting text color (white or dark) for a given background color
 function getContrastColor(hexColor) {
+    // Handle CSS variables or non-hex values - return white as safe default
+    if (!hexColor || !hexColor.startsWith('#') || hexColor.length < 7) {
+        return '#ffffff';
+    }
+
     // Remove # if present
     const hex = hexColor.replace('#', '');
 
@@ -4055,6 +4362,11 @@ function getContrastColor(hexColor) {
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
+
+    // Check for NaN (invalid hex)
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+        return '#ffffff';
+    }
 
     // Calculate relative luminance
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
@@ -4065,11 +4377,25 @@ function getContrastColor(hexColor) {
 
 // Get a slightly darkened version of a color for better blending
 function getDarkenedColor(hexColor, amount = 0.15) {
+    // Handle CSS variables or non-hex values - return original as fallback
+    if (!hexColor || !hexColor.startsWith('#') || hexColor.length < 7) {
+        return hexColor || 'var(--color-forest-light)';
+    }
+
     const hex = hexColor.replace('#', '');
-    const r = Math.max(0, parseInt(hex.substr(0, 2), 16) * (1 - amount));
-    const g = Math.max(0, parseInt(hex.substr(2, 2), 16) * (1 - amount));
-    const b = Math.max(0, parseInt(hex.substr(4, 2), 16) * (1 - amount));
-    return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // Check for NaN (invalid hex)
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+        return hexColor;
+    }
+
+    const dr = Math.max(0, r * (1 - amount));
+    const dg = Math.max(0, g * (1 - amount));
+    const db = Math.max(0, b * (1 - amount));
+    return `rgb(${Math.round(dr)}, ${Math.round(dg)}, ${Math.round(db)})`;
 }
 
 // ============================================
@@ -4703,6 +5029,9 @@ function renderPage() {
         case 'kete':
             content = renderKetePage();
             break;
+        case 'kete-post':
+            content = renderKetePostPage();
+            break;
         case 'profile':
             content = renderProfilePage();
             break;
@@ -4735,10 +5064,13 @@ function renderHomePage() {
     const currentUser = DataService.getCurrentUser();
     const ketePosts = MockDB.kete.slice(0, 2);
 
+    // Null-safe access to displayName
+    const firstName = currentUser?.displayName?.split(' ')[0] || 'there';
+
     return `
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 2rem 1.5rem; color: white;">
             <p style="opacity: 0.8; margin-bottom: 0.25rem; font-size: 0.9375rem;">${greeting}</p>
-            <h2 style="font-family: var(--font-display); font-size: 1.75rem; color: white; margin: 0;">${currentUser.displayName.split(' ')[0]}</h2>
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; color: white; margin: 0;">${firstName}</h2>
         </div>
 
         <div class="app-dashboard">
@@ -5228,26 +5560,28 @@ function renderGroupPage() {
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .slice(0, 3);
 
-    // Fixed color palette - always use dark green header with white text for consistency
-    const headerBg = 'var(--color-forest)';
-    const headerBgGradient = 'linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%)';
-    const headerTextColor = '#ffffff';
-    const accentColor = group.color || 'var(--color-terracotta)';
+    // Use group's configured color with proper contrast handling
+    // Fallback to a default hex color if group.color is not set or invalid
+    const defaultColor = '#1a3a2f'; // Forest green
+    const groupColor = (group.color && group.color.startsWith('#')) ? group.color : defaultColor;
+    const groupGradient = `linear-gradient(135deg, ${groupColor} 0%, ${getDarkenedColor(groupColor, 0.2)} 100%)`;
+    const groupTextColor = getContrastColor(groupColor);
+    const accentColor = groupColor;
 
     return `
-        <div class="group-page-wrapper" style="max-width: 100%; margin: -2rem -2rem 0 -2rem;">
-            <!-- Group Header with consistent styling -->
-            <div style="background: ${headerBgGradient}; padding: 2rem; color: ${headerTextColor};">
+        <div class="group-page-wrapper full-width-page" style="max-width: 100%;">
+            <!-- Group Header using group's configured color -->
+            <div style="background: ${groupGradient}; padding: 2rem; color: ${groupTextColor};">
                 <div style="max-width: 1000px; margin: 0 auto;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: ${headerTextColor}; opacity: 0.9; margin: -0.5rem 0 0.5rem -0.5rem;">
+                        <button class="btn btn-ghost btn-sm" onclick="navigateTo('groups')" style="color: ${groupTextColor}; opacity: 0.9; margin: -0.5rem 0 0.5rem -0.5rem;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                             All Groups
                         </button>
                         ${isAdmin ? `
-                        <button class="btn btn-ghost btn-sm" onclick="openEditGatheringModal('${groupId}')" style="color: ${headerTextColor}; opacity: 0.9;">
+                        <button class="btn btn-ghost btn-sm" onclick="openEditGatheringModal('${groupId}')" style="color: ${groupTextColor}; opacity: 0.9;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="3"></circle>
                                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -5255,21 +5589,21 @@ function renderGroupPage() {
                         </button>
                         ` : ''}
                     </div>
-                    <!-- Group accent indicator -->
-                    <div style="width: 40px; height: 4px; background: ${accentColor}; border-radius: 2px; margin-bottom: 0.75rem;"></div>
-                    <h2 style="font-family: var(--font-display); font-size: 1.75rem; color: ${headerTextColor}; margin: 0;">${escapeHtml(group.name)}</h2>
-                    <p style="opacity: 0.85; margin: 0.5rem 0 0; font-size: 1rem; color: ${headerTextColor};">
+                    <!-- Group accent indicator - uses darkened version of group color -->
+                    <div style="width: 40px; height: 4px; background: ${getDarkenedColor(groupColor, 0.3)}; border-radius: 2px; margin-bottom: 0.75rem; opacity: 0.7;"></div>
+                    <h2 style="font-family: var(--font-display); font-size: 1.75rem; color: ${groupTextColor}; margin: 0;">${escapeHtml(group.name)}</h2>
+                    <p style="opacity: 0.85; margin: 0.5rem 0 0; font-size: 1rem; color: ${groupTextColor};">
                         ${escapeHtml(group.rhythm)}
                         ${!group.isPublic ? ` • ${members.length} member${members.length !== 1 ? 's' : ''}` : ''}
                     </p>
                     ${!group.isPublic ? `
                     <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         ${isMember ? `
-                        <button class="btn btn-ghost btn-sm" onclick="leaveGroup('${groupId}')" style="color: ${headerTextColor}; border: 1px solid rgba(255,255,255,0.3);">Leave Group</button>
+                        <button class="btn btn-ghost btn-sm" onclick="leaveGroup('${groupId}')" style="color: ${groupTextColor}; border: 1px solid ${groupTextColor === '#ffffff' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'};">Leave Group</button>
                         ` : `
-                        <button class="btn btn-primary btn-sm" onclick="joinGroup('${groupId}')" style="background: white; color: var(--color-forest);">Join Group</button>
+                        <button class="btn btn-primary btn-sm" onclick="joinGroup('${groupId}')" style="background: ${groupTextColor}; color: ${groupColor};">Join Group</button>
                         `}
-                        <button class="btn btn-ghost btn-sm" onclick="openGroupMembersModal('${groupId}')" style="color: ${headerTextColor}; border: 1px solid rgba(255,255,255,0.3);">
+                        <button class="btn btn-ghost btn-sm" onclick="openGroupMembersModal('${groupId}')" style="color: ${groupTextColor}; border: 1px solid ${groupTextColor === '#ffffff' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'};">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="9" cy="7" r="4"></circle>
@@ -5312,10 +5646,10 @@ function renderGroupPage() {
             <!-- New Post Form -->
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem;">
                 <div style="display: flex; gap: 0.75rem;">
-                    <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: ${group.color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        ${currentUser.photoURL
+                    <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: ${groupColor}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        ${currentUser?.photoURL
                             ? `<img src="${currentUser.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
-                            : `<span style="color: white; font-family: var(--font-display);">${currentUser.displayName.charAt(0)}</span>`
+                            : `<span style="color: white; font-family: var(--font-display);">${(currentUser?.displayName || '?').charAt(0)}</span>`
                         }
                     </div>
                     <div style="flex: 1;">
@@ -6574,9 +6908,9 @@ function renderProfilePage() {
         <div style="background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%); padding: 2rem 1.5rem; color: white; text-align: center;">
             <div style="position: relative; width: 80px; height: 80px; margin: 0 auto 1rem;">
                 <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; background: var(--color-terracotta); display: flex; align-items: center; justify-content: center;">
-                    ${currentUser.photoURL
+                    ${currentUser?.photoURL
                         ? `<img src="${currentUser.photoURL}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">`
-                        : `<span style="font-family: var(--font-display); font-size: 2rem; color: white;">${currentUser.displayName.charAt(0)}</span>`
+                        : `<span style="font-family: var(--font-display); font-size: 2rem; color: white;">${(currentUser?.displayName || '?').charAt(0)}</span>`
                     }
                 </div>
                 <button onclick="openProfilePictureModal()" style="position: absolute; bottom: -4px; right: -4px; width: 28px; height: 28px; border-radius: 50%; background: white; border: 2px solid var(--color-forest); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
@@ -8932,7 +9266,7 @@ function openProfilePictureModal() {
             <div id="profile-preview" style="width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 1.5rem; overflow: hidden; background: var(--color-cream); display: flex; align-items: center; justify-content: center;">
                 ${currentPhoto
                     ? `<img src="${currentPhoto}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">`
-                    : `<span style="font-family: var(--font-display); font-size: 3rem; color: var(--color-terracotta);">${currentUser.displayName.charAt(0)}</span>`
+                    : `<span style="font-family: var(--font-display); font-size: 3rem; color: var(--color-terracotta);">${(currentUser?.displayName || '?').charAt(0)}</span>`
                 }
             </div>
             <input type="file" id="profile-image-input" accept="image/*" style="display: none;" onchange="previewProfileImage(this)">
@@ -9954,14 +10288,16 @@ function initPortal() {
         document.getElementById('login-error').style.display = 'none';
 
         try {
-            const success = await login(identifier, password);
+            const result = await login(identifier, password);
 
-            if (success) {
+            if (result.success) {
                 const currentUser = DataService.getCurrentUser();
-                showToast(`Welcome back, ${currentUser.displayName.split(' ')[0]}!`, 'success');
+                // Null-safe access to displayName
+                const firstName = currentUser?.displayName?.split(' ')[0] || 'there';
+                showToast(`Welcome back, ${firstName}!`, 'success');
                 showAppState();
             } else {
-                showMessage('login-error', 'Invalid username/email or password');
+                showMessage('login-error', result.error || 'Invalid username/email or password');
             }
         } catch (error) {
             showMessage('login-error', error.message || 'Invalid username/email or password');

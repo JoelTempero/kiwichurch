@@ -123,6 +123,11 @@ const Auth = {
     // ============================================
 
     async signOut() {
+        // Clear local state synchronously BEFORE calling Firebase signOut
+        // This prevents race conditions where UI checks auth state during signOut
+        this.currentUser = null;
+        this.currentUserData = null;
+
         try {
             await auth.signOut();
         } catch (error) {

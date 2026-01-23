@@ -293,6 +293,15 @@ const DB = {
         return { id: docRef.id, ...commentData };
     },
 
+    async deleteKeteComment(postId, commentId) {
+        await db.collection('kete')
+            .doc(postId)
+            .collection('comments')
+            .doc(commentId)
+            .delete();
+        return true;
+    },
+
     // ============================================
     // MESSAGE BOARDS
     // ============================================
@@ -467,6 +476,51 @@ const DB = {
                 const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 callback(notifications);
             });
+    },
+
+    // ============================================
+    // MIGRATIONS
+    // ============================================
+
+    // Ensure all events have isPublic field set based on their gathering
+    async migrateEventsIsPublic() {
+        try {
+            // Get all events
+            const eventsSnapshot = await db.collection('events').get();
+            const gatheringsSnapshot = await db.collection('gatherings').get();
+
+            // Create a map of gathering IDs to their isPublic setting
+            const gatheringPublicMap = {};
+            gatheringsSnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                gatheringPublicMap[doc.id] = data.isPublic !== false; // Default to true if not set
+            });
+
+            const batch = db.batch();
+            let updateCount = 0;
+
+            eventsSnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                // Only update if isPublic is undefined
+                if (data.isPublic === undefined) {
+                    const isPublic = gatheringPublicMap[data.gatheringId] !== false;
+                    batch.update(doc.ref, { isPublic: isPublic });
+                    updateCount++;
+                }
+            });
+
+            if (updateCount > 0) {
+                await batch.commit();
+                console.log(`[DB Migration] Set isPublic field on ${updateCount} events`);
+            } else {
+                console.log('[DB Migration] All events already have isPublic field');
+            }
+
+            return updateCount;
+        } catch (error) {
+            console.error('[DB Migration] Error migrating events isPublic:', error);
+            throw error;
+        }
     }
 };
 
