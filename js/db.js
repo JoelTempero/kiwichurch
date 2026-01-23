@@ -200,7 +200,7 @@ const DB = {
         return doc.exists ? { id: doc.id, ...doc.data() } : null;
     },
 
-    async setRSVP(eventId, userId, status, note = '') {
+    async setRSVP(eventId, userId, status, notes = '', attendees = [], guestCount = 0, selfAttending = true) {
         const timestamp = firebase.firestore.FieldValue.serverTimestamp();
         await db.collection('events')
             .doc(eventId)
@@ -208,7 +208,10 @@ const DB = {
             .doc(userId)
             .set({
                 status,
-                note,
+                notes,
+                attendees,
+                guestCount,
+                selfAttending,
                 updatedAt: timestamp
             });
     },

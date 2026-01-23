@@ -495,21 +495,28 @@ const DataService = {
     // RSVP to event
     async rsvpToEvent(eventId, userId, status = 'attending') {
         if (PortalConfig.useFirebase && window.DB) {
-            return await DB.setRSVP(eventId, userId, status);
+            await DB.setRSVP(eventId, userId, status);
         }
+        // Always update MockDB for immediate UI refresh
         const event = MockDB.events.find(e => e.id === eventId);
-        if (event && !event.rsvps.includes(userId)) {
-            event.rsvps.push(userId);
+        if (event) {
+            if (!event.rsvps) {
+                event.rsvps = [];
+            }
+            if (!event.rsvps.some(r => typeof r === 'string' ? r === userId : r.userId === userId)) {
+                event.rsvps.push(userId);
+            }
         }
     },
 
     // Cancel RSVP
     async cancelRSVP(eventId, userId) {
         if (PortalConfig.useFirebase && window.DB) {
-            return await DB.removeRSVP(eventId, userId);
+            await DB.removeRSVP(eventId, userId);
         }
+        // Always update MockDB for immediate UI refresh
         const event = MockDB.events.find(e => e.id === eventId);
-        if (event) {
+        if (event && event.rsvps) {
             event.rsvps = event.rsvps.filter(r =>
                 typeof r === 'string' ? r !== userId : r.userId !== userId
             );
@@ -517,12 +524,16 @@ const DataService = {
     },
 
     // RSVP with status and notes
-    async rsvpWithDetails(eventId, userId, status, notes = '', attendees = [], guestCount = 0) {
+    async rsvpWithDetails(eventId, userId, status, notes = '', attendees = [], guestCount = 0, selfAttending = true) {
         if (PortalConfig.useFirebase && window.DB) {
-            return await DB.setRSVP(eventId, userId, status, notes, attendees, guestCount);
+            await DB.setRSVP(eventId, userId, status, notes, attendees, guestCount, selfAttending);
         }
+        // Always update MockDB for immediate UI refresh
         const event = MockDB.events.find(e => e.id === eventId);
         if (event) {
+            if (!event.rsvps) {
+                event.rsvps = [];
+            }
             // Remove existing RSVP
             event.rsvps = event.rsvps.filter(r =>
                 typeof r === 'string' ? r !== userId : r.userId !== userId
@@ -532,8 +543,9 @@ const DataService = {
                 userId,
                 status, // 'attending', 'maybe', 'not-attending'
                 notes,
-                attendees, // dependants attending
+                attendees, // family members attending
                 guestCount, // friends/guests not in system
+                selfAttending, // whether the user themselves is attending
                 updatedAt: new Date().toISOString()
             });
         }
@@ -773,23 +785,38 @@ const DataService = {
         }
 
         if (PortalConfig.useFirebase && window.DB) {
+            // First, check if the document exists in Firebase
             try {
-                await DB.updateKetePost(postId, updates);
-            } catch (error) {
-                // If document doesn't exist in Firebase, create it
-                if (error.message?.includes('No document to update') || error.code === 'not-found') {
-                    console.warn('[DataService] Kete post not in Firebase, creating:', postId);
-                    // Create the post in Firebase with full data
-                    const fullPostData = { ...post, ...updates };
-                    delete fullPostData.id; // Remove id from data
-                    await db.collection('kete').doc(postId).set(fullPostData);
+                const existingDoc = await db.collection('kete').doc(postId).get();
+
+                if (existingDoc.exists) {
+                    // Document exists, update it
+                    await DB.updateKetePost(postId, updates);
+                    console.log('[DataService] Kete post updated in Firebase:', postId);
                 } else {
-                    throw error;
+                    // Document doesn't exist, create it with full data
+                    console.warn('[DataService] Kete post not in Firebase, creating:', postId);
+                    const user = this.getCurrentUser();
+                    const fullPostData = {
+                        ...post,
+                        ...updates,
+                        authorId: post.authorId || user?.id,
+                        authorName: post.authorName || user?.displayName,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        publishedAt: updates.published ? firebase.firestore.FieldValue.serverTimestamp() : null
+                    };
+                    delete fullPostData.id; // Remove id from data (it's the doc ID)
+                    await db.collection('kete').doc(postId).set(fullPostData);
+                    console.log('[DataService] Kete post created in Firebase:', postId);
                 }
+            } catch (error) {
+                console.error('[DataService] Error saving Kete post:', error);
+                throw error;
             }
         }
 
-        // Only update MockDB after Firebase succeeds
+        // Update MockDB after Firebase succeeds
         const wasPublished = post.published;
         Object.assign(post, updates, { updatedAt: new Date().toISOString() });
         // Set publishedAt when first published
@@ -3191,17 +3218,21 @@ function openRSVPModal(eventId) {
             <div class="form-group">
                 <label class="form-label">Who's coming?</label>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer;">
-                        <input type="checkbox" value="self" checked disabled>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; background: var(--color-cream); border-radius: var(--radius-sm);">
+                        <input type="checkbox" id="rsvp-self" value="self" ${!existingRSVP || existingRSVP.selfAttending !== false ? 'checked' : ''}>
                         <span>${(currentUser?.displayName || 'You').split(' ')[0]} (you)</span>
                     </label>
-                    ${currentUser.dependants && currentUser.dependants.length > 0 ? currentUser.dependants.map(d => `
+                    ${currentUser?.dependants && currentUser.dependants.length > 0 ? currentUser.dependants.map(d => `
                         <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer;">
-                            <input type="checkbox" name="rsvp-attendees" value="${d}" ${existingRSVP?.attendees?.includes(d) ? 'checked' : ''}>
-                            <span>${d}</span>
+                            <input type="checkbox" name="rsvp-attendees" value="${escapeHtml(d)}" ${existingRSVP?.attendees?.includes(d) ? 'checked' : ''}>
+                            <span>${escapeHtml(d)}</span>
                         </label>
                     `).join('') : ''}
                 </div>
+                <small style="color: var(--color-text-light); font-size: 0.75rem; margin-top: 0.5rem; display: block;">
+                    Uncheck yourself to RSVP only for family members.
+                    ${!currentUser?.dependants || currentUser.dependants.length === 0 ? `<a href="#" onclick="closeModal(); navigateTo('profile'); return false;" style="color: var(--color-forest);">Add family members</a> in your profile.` : ''}
+                </small>
             </div>
 
             <div class="form-group">
@@ -3247,18 +3278,27 @@ async function submitRSVP(eventId) {
     const status = document.querySelector('input[name="rsvp-status"]:checked')?.value || 'attending';
     const notes = document.getElementById('rsvp-notes').value.trim();
 
-    // Get selected attendees (dependants)
+    // Check if self is attending
+    const selfAttending = document.getElementById('rsvp-self')?.checked !== false;
+
+    // Get selected attendees (dependants/family members)
     const attendeeCheckboxes = document.querySelectorAll('input[name="rsvp-attendees"]:checked');
     const attendees = Array.from(attendeeCheckboxes).map(cb => cb.value);
 
     // Get guest count (friends not in system)
     const guestCount = parseInt(document.getElementById('rsvp-guests')?.value) || 0;
 
+    // Validate - at least someone should be attending if status is attending
+    if (status === 'attending' && !selfAttending && attendees.length === 0 && guestCount === 0) {
+        showToast('Please select at least one person attending', 'error');
+        return;
+    }
+
     try {
-        await DataService.rsvpWithDetails(eventId, currentUser.id, status, notes, attendees, guestCount);
+        await DataService.rsvpWithDetails(eventId, currentUser.id, status, notes, attendees, guestCount, selfAttending);
 
         const statusMessages = {
-            'attending': 'See you there!',
+            'attending': selfAttending ? 'See you there!' : 'RSVP saved for your family!',
             'maybe': 'We hope you can make it!',
             'not-attending': 'Sorry you can\'t make it'
         };
@@ -5050,6 +5090,9 @@ function renderPage() {
         case 'group':
             content = renderGroupPage();
             break;
+        case 'giving':
+            content = renderGivingPage();
+            break;
         default:
             content = renderHomePage();
     }
@@ -5106,7 +5149,7 @@ function renderHomePage() {
                     </div>
                     <span class="app-quick-action-label">Resources</span>
                 </a>
-                <a href="giving.html" class="app-quick-action">
+                <a href="#" class="app-quick-action" onclick="navigateTo('giving'); return false;">
                     <div class="app-quick-action-icon" style="background: #fde68a;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -5616,7 +5659,7 @@ function renderGroupPage() {
             </div>
 
             <!-- Main Content Area -->
-            <div style="padding: 1.5rem; max-width: 1000px; margin: 0 auto;">
+            <div style="padding: 1.5rem; max-width: 1000px; margin: 0 auto; background: var(--color-cream); min-height: calc(100vh - 200px);">
                 ${groupEvents.length > 0 ? `
                 <div class="app-section" style="margin-bottom: 1.5rem;">
                     <div class="app-section-header">
@@ -5644,7 +5687,7 @@ function renderGroupPage() {
                     </div>
 
             <!-- New Post Form -->
-            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem;">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 1rem; color: var(--color-text);">
                 <div style="display: flex; gap: 0.75rem;">
                     <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: ${groupColor}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         ${currentUser?.photoURL
@@ -5686,7 +5729,7 @@ function renderGroupPage() {
                 const userReaction = Object.entries(reactions).find(([emoji, users]) => users.includes(currentUser?.id))?.[0];
 
                 return `
-                    <div class="board-post" style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 0.75rem; ${post.isPinned ? 'border-left: 3px solid var(--color-terracotta);' : ''}">
+                    <div class="board-post" style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); margin-bottom: 0.75rem; color: var(--color-text); ${post.isPinned ? 'border-left: 3px solid var(--color-terracotta);' : ''}">
                         ${post.isPinned ? `
                         <div style="display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem; font-size: 0.75rem; color: var(--color-terracotta);">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
@@ -6920,9 +6963,9 @@ function renderProfilePage() {
                     </svg>
                 </button>
             </div>
-            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${currentUser.displayName}</h2>
-            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem; text-transform: capitalize;">${currentUser.role}</p>
-            ${currentUser.username ? `<p style="opacity: 0.7; margin: 0.25rem 0 0; font-size: 0.875rem;">@${currentUser.username}</p>` : ''}
+            <h2 style="font-family: var(--font-display); font-size: 1.5rem; color: white; margin: 0;">${currentUser?.displayName || 'User'}</h2>
+            <p style="opacity: 0.8; margin: 0.25rem 0 0; font-size: 0.9375rem; text-transform: capitalize;">${currentUser?.role || 'member'}</p>
+            ${currentUser?.username ? `<p style="opacity: 0.7; margin: 0.25rem 0 0; font-size: 0.875rem;">@${currentUser.username}</p>` : ''}
         </div>
 
         <!-- Activity Stats -->
@@ -7049,20 +7092,46 @@ function renderProfilePage() {
             </div>
         </div>
 
-        ${currentUser.dependants && currentUser.dependants.length > 0 ? `
         <div class="app-section">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
-                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Family Members</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-size: 1.125rem;">Family Members</h3>
+                    <button class="btn btn-ghost btn-sm" onclick="openFamilyMembersModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit
+                    </button>
+                </div>
+                ${currentUser?.dependants && currentUser.dependants.length > 0 ? `
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     ${currentUser.dependants.map(d => `
-                        <div style="padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm);">
-                            ${d}
+                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm);">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-sage); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <span style="color: white; font-size: 0.875rem;">${d.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <span>${escapeHtml(d)}</span>
                         </div>
                     `).join('')}
                 </div>
+                <p style="font-size: 0.75rem; color: var(--color-text-light); margin: 0.75rem 0 0;">Family members can be included when you RSVP to events.</p>
+                ` : `
+                <p style="color: var(--color-text-light); font-size: 0.9375rem; margin: 0;">
+                    Add family members to include them when RSVPing to events.
+                </p>
+                <button class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;" onclick="openFamilyMembersModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Add Family Members
+                </button>
+                `}
             </div>
         </div>
-        ` : ''}
 
         <div class="app-section">
             <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
@@ -7096,6 +7165,117 @@ function renderProfilePage() {
             </a>
         </div>
     `;
+}
+
+function renderGivingPage() {
+    return `
+        <div style="background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%); padding: 2rem 1.5rem; color: var(--color-forest);">
+            <h2 style="font-family: var(--font-display); font-size: 1.75rem; margin: 0;">Giving</h2>
+            <p style="opacity: 0.8; margin: 0.5rem 0 0; font-size: 0.9375rem;">Support our church community</p>
+        </div>
+
+        <div class="app-section" style="padding-top: 1.5rem;">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-terracotta)" stroke-width="1.5" style="margin: 0 auto 1rem;">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <h3 style="font-family: var(--font-display); font-size: 1.25rem; color: var(--color-forest); margin: 0 0 0.5rem;">Thank You for Giving</h3>
+                    <p style="color: var(--color-text-light); font-size: 0.9375rem; margin: 0;">Your generosity helps us serve our community and spread God's love.</p>
+                </div>
+
+                <div style="background: var(--color-cream); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <h4 style="font-size: 1rem; color: var(--color-forest); margin: 0 0 1rem;">Bank Transfer Details</h4>
+                    <div style="display: grid; gap: 0.75rem;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Account Name</div>
+                            <div style="font-weight: 500;">Kiwi Church</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Bank</div>
+                            <div style="font-weight: 500;">ANZ Bank New Zealand</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Account Number</div>
+                            <div style="font-weight: 500; font-family: monospace; font-size: 1.125rem;">06-0000-0000000-00</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Reference</div>
+                            <div style="font-weight: 500;">Your name or "Tithe"</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" style="width: 100%;" onclick="copyBankDetails()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    Copy Bank Details
+                </button>
+            </div>
+        </div>
+
+        <div class="app-section">
+            <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);">
+                <h3 style="font-family: var(--font-display); font-size: 1.125rem; color: var(--color-forest); margin: 0 0 1rem;">Other Ways to Give</h3>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                        <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--color-sage-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 500; margin-bottom: 0.25rem;">Automatic Payment</div>
+                            <div style="font-size: 0.875rem; color: var(--color-text-light);">Set up a recurring payment through your bank</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                        <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--color-terracotta-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-terracotta)" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 500; margin-bottom: 0.25rem;">In-Person</div>
+                            <div style="font-size: 0.875rem; color: var(--color-text-light);">Give during our Sunday gatherings</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-section">
+            <div style="background: var(--color-forest); border-radius: var(--radius-lg); padding: 1.5rem; color: white;">
+                <p style="font-size: 0.9375rem; line-height: 1.6; margin: 0; font-style: italic;">
+                    "Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver."
+                </p>
+                <p style="font-size: 0.875rem; opacity: 0.8; margin: 0.75rem 0 0;">— 2 Corinthians 9:7</p>
+            </div>
+        </div>
+
+        <div class="app-section" style="padding-bottom: 2rem;">
+            <p style="text-align: center; font-size: 0.875rem; color: var(--color-text-light);">
+                Questions about giving? <a href="mailto:finance@kiwichurch.org.nz" style="color: var(--color-forest);">Contact us</a>
+            </p>
+        </div>
+    `;
+}
+
+// Copy bank details to clipboard
+function copyBankDetails() {
+    const details = `Kiwi Church
+ANZ Bank New Zealand
+Account: 06-0000-0000000-00
+Reference: Your name or "Tithe"`;
+
+    navigator.clipboard.writeText(details).then(() => {
+        showToast('Bank details copied!', 'success');
+    }).catch(() => {
+        showToast('Could not copy to clipboard', 'error');
+    });
 }
 
 function renderHostingPage() {
@@ -7197,13 +7377,24 @@ function renderHostingPage() {
 
         <!-- Quick Actions -->
         <div class="app-section" style="padding-top: 0;">
-            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="openCreateEventModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Create Event
-            </button>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="openCreateEventModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Create Event
+                </button>
+                <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="openCreateUserModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Add New Member
+                </button>
+            </div>
         </div>
 
         <div style="height: 20px;"></div>
@@ -8671,12 +8862,74 @@ function renderUsersPage() {
             </div>
         </div>
 
+        ${renderUsersList(filteredUsers, userRoleFilter)}
+
+        ${/* Show archive section when viewing all users and there are deactivated users */ ''}
+        ${userRoleFilter === 'all' && deactivatedUsers.length > 0 ? `
+        <div class="app-section" style="padding-top: 1rem; margin-top: 1rem; border-top: 2px solid var(--color-cream-dark);">
+            <div class="app-section-header" style="cursor: pointer;" onclick="toggleArchiveSection()">
+                <h3 class="app-section-title" style="display: flex; align-items: center; gap: 0.5rem; color: var(--color-text-light);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 8v13H3V8"></path>
+                        <path d="M1 3h22v5H1z"></path>
+                        <path d="M10 12h4"></path>
+                    </svg>
+                    Archived Users
+                </h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light); display: flex; align-items: center; gap: 0.5rem;">
+                    ${deactivatedUsers.length} user${deactivatedUsers.length !== 1 ? 's' : ''}
+                    <svg id="archive-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s;">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </span>
+            </div>
+            <div id="archive-users-list" style="display: none;">
+                ${deactivatedUsers.map(user => `
+                    <div class="app-event-card" style="cursor: pointer; opacity: 0.6; background: var(--color-cream);" onclick="openUserModal('${user.id}')">
+                        <div style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; background: #9ca3af; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            ${user.photoURL
+                                ? `<img src="${user.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover; filter: grayscale(50%);">`
+                                : `<span style="font-family: var(--font-display); font-size: 1.25rem; color: white;">${user.displayName.charAt(0)}</span>`
+                            }
+                        </div>
+                        <div class="app-event-info">
+                            <div class="app-event-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                ${escapeHtml(user.displayName)}
+                                <span style="font-size: 0.625rem; background: #fee2e2; color: #dc2626; padding: 0.125rem 0.375rem; border-radius: 4px;">Archived</span>
+                            </div>
+                            <div class="app-event-meta">${escapeHtml(user.email)} &middot; <span style="text-transform: capitalize;">${user.role}</span></div>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" stroke-width="2" style="flex-shrink: 0;">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
+        <div style="height: 20px;"></div>
+    `;
+}
+
+// Helper function to render a list of users
+function renderUsersList(users, filterType) {
+    // For 'all' filter, only show active users in main list (archive shows inactive)
+    const displayUsers = filterType === 'all' ? users.filter(u => u.status !== 'deactivated') : users;
+    const titleMap = {
+        'all': 'Active Users',
+        'inactive': 'Archived Users',
+        'admin': 'Admins',
+        'host': 'Hosts',
+        'member': 'Members'
+    };
+
+    return `
         <div class="app-section" style="padding-top: 0;">
             <div class="app-section-header">
-                <h3 class="app-section-title">${userRoleFilter === 'all' ? 'All Users' : userRoleFilter === 'inactive' ? 'Inactive Users' : userRoleFilter.charAt(0).toUpperCase() + userRoleFilter.slice(1) + 's'}</h3>
-                <span style="font-size: 0.875rem; color: var(--color-text-light);">${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''}</span>
+                <h3 class="app-section-title">${titleMap[filterType] || 'Users'}</h3>
+                <span style="font-size: 0.875rem; color: var(--color-text-light);">${displayUsers.length} user${displayUsers.length !== 1 ? 's' : ''}</span>
             </div>
-            ${filteredUsers.length > 0 ? filteredUsers.map(user => `
+            ${displayUsers.length > 0 ? displayUsers.map(user => `
                 <div class="app-event-card" style="cursor: pointer; ${user.status === 'deactivated' ? 'opacity: 0.5;' : ''}" onclick="openUserModal('${user.id}')">
                     <div style="width: 45px; height: 45px; border-radius: 50%; overflow: hidden; background: ${user.role === 'admin' ? 'var(--color-forest)' : user.role === 'host' ? 'var(--color-terracotta)' : 'var(--color-sage)'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         ${user.photoURL
@@ -8687,7 +8940,7 @@ function renderUsersPage() {
                     <div class="app-event-info">
                         <div class="app-event-title" style="display: flex; align-items: center; gap: 0.5rem;">
                             ${escapeHtml(user.displayName)}
-                            ${user.status === 'deactivated' ? '<span style="font-size: 0.625rem; background: #fee2e2; color: #dc2626; padding: 0.125rem 0.375rem; border-radius: 4px;">Inactive</span>' : ''}
+                            ${user.status === 'deactivated' ? '<span style="font-size: 0.625rem; background: #fee2e2; color: #dc2626; padding: 0.125rem 0.375rem; border-radius: 4px;">Archived</span>' : ''}
                         </div>
                         <div class="app-event-meta">${escapeHtml(user.email)} &middot; <span style="text-transform: capitalize;">${user.role}</span></div>
                     </div>
@@ -8705,8 +8958,18 @@ function renderUsersPage() {
                 </div>
             `}
         </div>
-        <div style="height: 20px;"></div>
     `;
+}
+
+// Toggle archive section visibility
+function toggleArchiveSection() {
+    const list = document.getElementById('archive-users-list');
+    const chevron = document.getElementById('archive-chevron');
+    if (list && chevron) {
+        const isHidden = list.style.display === 'none';
+        list.style.display = isHidden ? 'block' : 'none';
+        chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
 }
 
 // Filter users by search query and role
@@ -8921,13 +9184,22 @@ async function saveUserRole(userId) {
 // ============================================
 
 function openCreateUserModal() {
-    if (!DataService.isAdmin()) {
-        showToast('Only admins can create users', 'error');
+    const currentUser = DataService.getCurrentUser();
+    const isAdmin = DataService.isAdmin();
+    const isHost = currentUser?.role === 'host';
+
+    if (!isAdmin && !isHost) {
+        showToast('Only admins and hosts can create users', 'error');
         return;
     }
 
     // Get private (members-only) groups
-    const privateGroups = MockDB.gatherings.filter(g => !g.isPublic);
+    // Hosts can only see their assigned gatherings
+    let privateGroups = MockDB.gatherings.filter(g => !g.isPublic);
+    if (isHost && !isAdmin) {
+        const assignedGatherings = currentUser.assignedGatherings || [];
+        privateGroups = privateGroups.filter(g => assignedGatherings.includes(g.id));
+    }
 
     const bodyHTML = `
         <form id="create-user-form">
@@ -8961,9 +9233,12 @@ function openCreateUserModal() {
                 <label class="form-label" for="new-user-role">Role *</label>
                 <select class="form-input" id="new-user-role">
                     <option value="member">Member</option>
+                    ${isAdmin ? `
                     <option value="host">Host</option>
                     <option value="admin">Admin</option>
+                    ` : ''}
                 </select>
+                ${!isAdmin ? '<small style="color: var(--color-text-light); font-size: 0.75rem;">Hosts can only create member accounts</small>' : ''}
             </div>
             <div class="form-group">
                 <label class="form-label" for="new-user-phone">Phone (optional)</label>
@@ -9021,6 +9296,14 @@ async function createNewUser() {
         return;
     }
 
+    // Validate permissions - hosts can only create members
+    const currentUser = DataService.getCurrentUser();
+    const isAdmin = DataService.isAdmin();
+    if (!isAdmin && role !== 'member') {
+        showToast('Hosts can only create member accounts', 'error');
+        return;
+    }
+
     // Show loading state
     const submitBtn = document.querySelector('#create-user-form + div button.btn-primary, .modal-footer button.btn-primary');
     if (submitBtn) {
@@ -9040,7 +9323,9 @@ async function createNewUser() {
                 }
             }
 
-            // Store the requested role (new user can only create with 'member', admin updates later)
+            // Store current user's credentials before creating new user (Firebase will sign out current user)
+            const creatorUser = DataService.getCurrentUser();
+            const creatorEmail = creatorUser?.email;
             const requestedRole = role;
 
             // Create user via Auth (this will sign out admin and sign in new user)
@@ -9050,18 +9335,17 @@ async function createNewUser() {
             // Update display name in Firebase Auth
             await result.user.updateProfile({ displayName: name });
 
-            // Create user document as the new user (they can only set role='member')
+            // Create user document with the requested role (admin can set roles)
             const timestamp = firebase.firestore.FieldValue.serverTimestamp();
             const userData = {
                 email: email,
                 displayName: name,
                 username: username || null,
-                role: 'member',  // Start as member, admin will update after re-signing in
+                role: requestedRole,  // Set the requested role directly
                 phone: phone || null,
                 bio: bio || null,
                 photoURL: null,
                 status: 'active',
-                pendingRole: requestedRole !== 'member' ? requestedRole : null,  // Store requested role
                 createdAt: timestamp,
                 updatedAt: timestamp
             };
@@ -9083,25 +9367,8 @@ async function createNewUser() {
                 createdAt: timestamp
             });
 
-            // Add user to selected private groups
-            if (selectedGroups.length > 0) {
-                for (const groupId of selectedGroups) {
-                    try {
-                        await db.collection('gatherings').doc(groupId).update({
-                            members: firebase.firestore.FieldValue.arrayUnion(newUserId)
-                        });
-                        // Also update local MockDB
-                        if (!MockDB.gatheringMembers[groupId]) {
-                            MockDB.gatheringMembers[groupId] = [];
-                        }
-                        if (!MockDB.gatheringMembers[groupId].includes(newUserId)) {
-                            MockDB.gatheringMembers[groupId].push(newUserId);
-                        }
-                    } catch (err) {
-                        console.warn('Could not add user to group:', groupId, err);
-                    }
-                }
-            }
+            // Add user to selected private groups (do this before signing out)
+            const groupsToAdd = [...selectedGroups];
 
             // Add the new user to MockDB.users so they appear in the list immediately
             MockDB.users.push({
@@ -9109,7 +9376,7 @@ async function createNewUser() {
                 email: email,
                 displayName: name,
                 username: username || null,
-                role: 'member',
+                role: requestedRole,
                 phone: phone || null,
                 bio: bio || null,
                 photoURL: null,
@@ -9121,13 +9388,11 @@ async function createNewUser() {
             // Sign out the newly created user
             await auth.signOut();
 
-            // Show success message
-            if (requestedRole !== 'member') {
-                showToast(`User "${name}" created as member. Sign in to update their role to ${requestedRole}.`, 'success');
-            } else {
-                showToast(`User "${name}" created successfully! Please sign in again.`, 'success');
-            }
+            // Close the create user modal
             closeModal();
+
+            // Show re-authentication modal for admin
+            showAdminReauthModal(creatorEmail, name, newUserId, groupsToAdd, requestedRole);
 
         } else {
             // Demo mode
@@ -9164,6 +9429,117 @@ async function createNewUser() {
     } catch (error) {
         console.error('Create user error:', error);
         showToast(error.message || 'Could not create user', 'error');
+    }
+}
+
+// ============================================
+// ADMIN RE-AUTHENTICATION MODAL
+// ============================================
+
+// Show modal for admin to re-authenticate after creating a user
+function showAdminReauthModal(adminEmail, newUserName, newUserId, groupsToAdd, newUserRole) {
+    const bodyHTML = `
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2" style="margin: 0 auto 1rem;">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <p style="color: var(--color-text); margin: 0; font-size: 1rem;">
+                <strong>"${escapeHtml(newUserName)}"</strong> created successfully!
+            </p>
+            <p style="color: var(--color-text-light); margin: 0.5rem 0 0; font-size: 0.875rem;">
+                Please sign back in to continue managing users.
+            </p>
+        </div>
+        <form id="reauth-form">
+            <div class="form-group">
+                <label class="form-label" for="reauth-email">Your Email</label>
+                <input type="email" class="form-input" id="reauth-email" value="${escapeHtml(adminEmail || '')}" required ${adminEmail ? 'readonly style="background: var(--color-cream);"' : ''}>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="reauth-password">Your Password</label>
+                <input type="password" class="form-input" id="reauth-password" placeholder="Enter your password" required autofocus>
+            </div>
+            <p id="reauth-error" class="login-error" style="display: none;"></p>
+        </form>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal(); showAppState();">Skip (Sign in later)</button>
+        <button class="btn btn-primary" onclick="handleAdminReauth('${newUserId}', ${JSON.stringify(groupsToAdd)}, '${newUserRole}')">Sign In</button>
+    `;
+
+    openModal('Sign Back In', bodyHTML, footerHTML);
+
+    // Focus password field
+    setTimeout(() => {
+        document.getElementById('reauth-password')?.focus();
+    }, 100);
+}
+
+// Handle admin re-authentication
+async function handleAdminReauth(newUserId, groupsToAdd, newUserRole) {
+    const email = document.getElementById('reauth-email').value.trim();
+    const password = document.getElementById('reauth-password').value;
+
+    if (!email || !password) {
+        document.getElementById('reauth-error').textContent = 'Please enter your password';
+        document.getElementById('reauth-error').style.display = 'block';
+        return;
+    }
+
+    try {
+        // Sign in as admin
+        await auth.signInWithEmailAndPassword(email, password);
+
+        // Now add the new user to groups (admin has permission)
+        // NOTE: Members are stored in a subcollection, not an array field
+        if (groupsToAdd && groupsToAdd.length > 0) {
+            for (const groupId of groupsToAdd) {
+                try {
+                    // Use the subcollection approach (correct data model)
+                    await db.collection('gatherings')
+                        .doc(groupId)
+                        .collection('members')
+                        .doc(newUserId)
+                        .set({ joinedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    // Update MockDB
+                    if (!MockDB.gatheringMembers[groupId]) {
+                        MockDB.gatheringMembers[groupId] = [];
+                    }
+                    if (!MockDB.gatheringMembers[groupId].includes(newUserId)) {
+                        MockDB.gatheringMembers[groupId].push(newUserId);
+                    }
+                } catch (err) {
+                    console.warn('Could not add user to group:', groupId, err);
+                }
+            }
+        }
+
+        // Update user role if needed (admin sets the role properly now)
+        if (newUserRole && newUserRole !== 'member') {
+            try {
+                await db.collection('users').doc(newUserId).update({
+                    role: newUserRole,
+                    pendingRole: null
+                });
+                // Update MockDB
+                const user = MockDB.users.find(u => u.id === newUserId);
+                if (user) {
+                    user.role = newUserRole;
+                }
+            } catch (err) {
+                console.warn('Could not update user role:', err);
+            }
+        }
+
+        closeModal();
+        showToast('Welcome back! User setup complete.', 'success');
+        // Auth state listener will handle the rest
+    } catch (error) {
+        console.error('Re-auth error:', error);
+        document.getElementById('reauth-error').textContent = 'Invalid password. Please try again.';
+        document.getElementById('reauth-error').style.display = 'block';
     }
 }
 
@@ -9300,6 +9676,111 @@ function openProfilePictureModal() {
     `;
 
     openModal('Profile Picture', bodyHTML, footerHTML);
+}
+
+// ============================================
+// FAMILY MEMBERS MODAL
+// ============================================
+
+function openFamilyMembersModal() {
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    const dependants = currentUser.dependants || [];
+
+    const bodyHTML = `
+        <p style="color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 1.5rem;">
+            Add family members who attend with you. They'll appear as options when you RSVP to events.
+        </p>
+
+        <div id="family-members-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+            ${dependants.map((d, i) => `
+                <div class="family-member-row" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" class="form-input family-member-input" value="${escapeHtml(d)}" placeholder="Family member name" style="flex: 1;">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="removeFamilyMemberRow(this)" style="color: #ef4444; padding: 0.5rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addFamilyMemberRow()" style="width: 100%;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Family Member
+        </button>
+    `;
+
+    const footerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveFamilyMembers()">Save</button>
+    `;
+
+    openModal('Family Members', bodyHTML, footerHTML);
+}
+
+function addFamilyMemberRow() {
+    const list = document.getElementById('family-members-list');
+    const row = document.createElement('div');
+    row.className = 'family-member-row';
+    row.style.cssText = 'display: flex; gap: 0.5rem; align-items: center;';
+    row.innerHTML = `
+        <input type="text" class="form-input family-member-input" placeholder="Family member name" style="flex: 1;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="removeFamilyMemberRow(this)" style="color: #ef4444; padding: 0.5rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    `;
+    list.appendChild(row);
+    row.querySelector('input').focus();
+}
+
+function removeFamilyMemberRow(btn) {
+    btn.closest('.family-member-row').remove();
+}
+
+async function saveFamilyMembers() {
+    const inputs = document.querySelectorAll('.family-member-input');
+    const dependants = Array.from(inputs)
+        .map(input => input.value.trim())
+        .filter(name => name.length > 0);
+
+    const currentUser = DataService.getCurrentUser();
+    if (!currentUser) return;
+
+    try {
+        if (PortalConfig.useFirebase && window.DB) {
+            await db.collection('users').doc(currentUser.id).update({
+                dependants: dependants,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // Update MockDB
+        const user = MockDB.users.find(u => u.id === currentUser.id);
+        if (user) {
+            user.dependants = dependants;
+        }
+
+        // Update state
+        if (state.currentUserData) {
+            state.currentUserData.dependants = dependants;
+        }
+
+        closeModal();
+        showToast('Family members updated!', 'success');
+        renderPage();
+    } catch (error) {
+        console.error('Error saving family members:', error);
+        showToast('Could not save family members', 'error');
+    }
 }
 
 let pendingProfileImage = null;
@@ -10273,7 +10754,12 @@ function initPortal() {
                 } catch (err) {
                     console.warn('[Portal] Could not load data from Firebase:', err);
                 }
+
+                // Show welcome toast after data loads
+                const firstName = userData?.displayName?.split(' ')[0] || 'there';
+                showToast(`Welcome back, ${firstName}!`, 'success');
             }
+            showLoading(false);
             showAppState();
         });
     }
@@ -10291,11 +10777,10 @@ function initPortal() {
             const result = await login(identifier, password);
 
             if (result.success) {
-                const currentUser = DataService.getCurrentUser();
-                // Null-safe access to displayName
-                const firstName = currentUser?.displayName?.split(' ')[0] || 'there';
-                showToast(`Welcome back, ${firstName}!`, 'success');
-                showAppState();
+                // Don't call showAppState() here - the Auth.onAuthChange callback
+                // will handle it after loading data from Firebase
+                // Just show a loading state
+                showLoading(true);
             } else {
                 showMessage('login-error', result.error || 'Invalid username/email or password');
             }
