@@ -1168,6 +1168,15 @@ const DataService = {
         return this.isAdmin() || this.isHost();
     },
 
+    // Check if user can manage a specific group (admin or host assigned to that group)
+    canManageGroup(groupId) {
+        const user = this.getCurrentUser();
+        if (!user) return false;
+        if (user.role === 'admin') return true;
+        if (user.role === 'host' && user.assignedGatherings?.includes(groupId)) return true;
+        return false;
+    },
+
     // ============================================
     // NOTIFICATIONS
     // ============================================
@@ -3410,77 +3419,13 @@ function openKeteEditor(postId = null) {
                         <input type="file" class="form-input" id="kete-image" accept="image/*" onchange="previewKeteImage(this)">
                     </div>
 
-                    <!-- Rich Text Editor -->
+                    <!-- Rich Text Editor (Quill WYSIWYG) -->
                     <div class="form-group" style="margin-bottom: 1.5rem;">
                         <label class="form-label">Content</label>
-
-                        <!-- Formatting Toolbar -->
-                        <div id="kete-toolbar" style="display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.5rem; background: var(--color-cream); border: 1px solid var(--color-cream-dark); border-bottom: none; border-radius: var(--radius-md) var(--radius-md) 0 0;">
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('**', '**')" title="Bold">
-                                <strong>B</strong>
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('*', '*')" title="Italic">
-                                <em>I</em>
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('\\n# ', '')" title="Heading">
-                                H1
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('\\n## ', '')" title="Subheading">
-                                H2
-                            </button>
-                            <span style="width: 1px; background: var(--color-cream-dark); margin: 0 0.25rem;"></span>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('\\n- ', '')" title="Bullet List">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="8" y1="6" x2="21" y2="6"></line>
-                                    <line x1="8" y1="12" x2="21" y2="12"></line>
-                                    <line x1="8" y1="18" x2="21" y2="18"></line>
-                                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                                </svg>
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertFormatting('\\n> ', '')" title="Quote">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"></path>
-                                    <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"></path>
-                                </svg>
-                            </button>
-                            <span style="width: 1px; background: var(--color-cream-dark); margin: 0 0.25rem;"></span>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertLink()" title="Insert Link">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                                </svg>
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertInlineImage()" title="Insert Image">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                    <polyline points="21 15 16 10 5 21"></polyline>
-                                </svg>
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="insertVideo()" title="Embed Video">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                                </svg>
-                            </button>
+                        <div id="kete-editor-container">
+                            <div id="kete-content-editor"></div>
                         </div>
-
-                        <!-- Content Textarea -->
-                        <textarea class="form-input" id="kete-content" rows="20" required
-                            placeholder="Write your post here...
-
-Use the toolbar above for formatting, or write in Markdown:
-# Heading
-## Subheading
-**bold** *italic*
-- bullet points
-> blockquote
-
-To embed a YouTube video, use: [video:YouTube-URL]
-To add an image: [image:URL]"
-                            style="border-radius: 0 0 var(--radius-md) var(--radius-md); font-size: 1rem; line-height: 1.7; min-height: 400px;">${isEdit ? escapeHtml(existingPost.content) : ''}</textarea>
+                        <input type="hidden" id="kete-content-html" value="">
                     </div>
 
                     <!-- Media Attachments -->
@@ -3506,6 +3451,101 @@ To add an image: [image:URL]"
 
     // Update page title
     document.getElementById('page-title').textContent = isEdit ? 'Edit Post' : 'New Post';
+
+    // Initialize Quill WYSIWYG editor
+    initKeteQuillEditor(isEdit ? existingPost.content : '');
+}
+
+// Initialize Quill editor for Kete posts
+function initKeteQuillEditor(initialContent = '') {
+    // Wait for DOM to be ready
+    setTimeout(() => {
+        const editorContainer = document.getElementById('kete-content-editor');
+        if (!editorContainer || !window.Quill) {
+            console.warn('[Kete] Quill not available, editor may not work');
+            return;
+        }
+
+        // Quill toolbar configuration
+        const toolbarOptions = [
+            [{ 'header': [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'color': [] }, { 'background': [] }],
+            ['blockquote', 'code-block'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            [{ 'align': [] }],
+            ['link', 'image', 'video'],
+            ['clean']
+        ];
+
+        // Initialize Quill
+        window.keteQuillEditor = new Quill('#kete-content-editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: toolbarOptions
+            },
+            placeholder: 'Write your post here...'
+        });
+
+        // Load existing content if editing
+        if (initialContent) {
+            // Check if content is properly formatted HTML (from Quill)
+            // Look for actual HTML tags like <p>, <h1>, <h2>, <strong>, etc.
+            const isRealHtml = /<(p|h[1-6]|div|strong|em|ul|ol|li|blockquote|br)\b[^>]*>/i.test(initialContent);
+
+            if (isRealHtml) {
+                // Content is already HTML from Quill - use as-is
+                window.keteQuillEditor.root.innerHTML = initialContent;
+            } else {
+                // Content is plain text or markdown - convert to HTML for visual editing
+                const htmlContent = convertMarkdownToHtml(initialContent);
+                window.keteQuillEditor.root.innerHTML = htmlContent;
+            }
+        }
+
+        // Add image handler for drag & drop and paste
+        window.keteQuillEditor.getModule('toolbar').addHandler('image', () => {
+            const url = prompt('Enter the image URL:');
+            if (url) {
+                const range = window.keteQuillEditor.getSelection(true);
+                window.keteQuillEditor.insertEmbed(range.index, 'image', url);
+            }
+        });
+
+        console.log('[Kete] Quill editor initialized');
+    }, 100);
+}
+
+// Convert basic markdown to HTML for legacy content
+function convertMarkdownToHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+        .replace(/^(.+)$/gm, (match) => {
+            if (match.startsWith('<')) return match;
+            return match;
+        });
+}
+
+// Get content from Quill editor
+function getKeteEditorContent() {
+    if (window.keteQuillEditor) {
+        return window.keteQuillEditor.root.innerHTML;
+    }
+    // Fallback to textarea if Quill not initialized
+    const textarea = document.getElementById('kete-content');
+    return textarea ? textarea.value : '';
 }
 
 // Close editor and return to previous page
@@ -3659,15 +3699,17 @@ async function saveKetePost(publish = true) {
     const postId = document.getElementById('kete-post-id')?.value || null;
     const title = document.getElementById('kete-title').value.trim();
     const excerpt = document.getElementById('kete-excerpt').value.trim();
-    const content = document.getElementById('kete-content').value.trim();
+    // Get content from Quill editor (HTML) or fallback to textarea
+    const content = getKeteEditorContent();
     const category = document.getElementById('kete-category')?.value || null;
     const series = document.getElementById('kete-series')?.value.trim() || null;
     const postDate = document.getElementById('kete-post-date')?.value || null;
     const imageInput = document.getElementById('kete-image');
     const attachmentsInput = document.getElementById('kete-attachments');
 
-    // Validation
-    if (!title || !excerpt || !content) {
+    // Validation - check for empty content (Quill returns <p><br></p> for empty)
+    const contentText = content.replace(/<[^>]*>/g, '').trim();
+    if (!title || !excerpt || !contentText) {
         showToast('Please fill in all required fields', 'error');
         return;
     }
@@ -4034,6 +4076,103 @@ function navigateToKetePost(postId) {
 
     renderPage();
     window.scrollTo(0, 0);
+
+    // Load comments after page renders
+    loadKeteComments(postId);
+}
+
+// Load and display comments for a Kete post
+async function loadKeteComments(postId) {
+    const commentsList = document.getElementById(`kete-comments-list-${postId}`);
+    if (!commentsList) return;
+
+    try {
+        const comments = await DataService.getKeteComments(postId);
+
+        if (!comments || comments.length === 0) {
+            commentsList.innerHTML = `
+                <div style="text-align: center; padding: 1.5rem; color: var(--color-text-light);">
+                    <p style="margin: 0; font-size: 0.9375rem;">No comments yet. Be the first to share your thoughts!</p>
+                </div>
+            `;
+            return;
+        }
+
+        const currentUser = DataService.getCurrentUser();
+
+        commentsList.innerHTML = comments.map(comment => `
+            <div style="display: flex; gap: 0.75rem; padding: 1rem; background: var(--color-cream); border-radius: var(--radius-md);">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--color-sage); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; flex-shrink: 0;">
+                    ${(comment.authorName || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+                        <div>
+                            <span style="font-weight: 600; color: var(--color-forest);">${escapeHtml(comment.authorName || 'Unknown')}</span>
+                            <span style="font-size: 0.75rem; color: var(--color-text-light); margin-left: 0.5rem;">${formatRelativeTime(comment.createdAt)}</span>
+                        </div>
+                        ${currentUser && (currentUser.id === comment.authorId || currentUser.role === 'admin') ? `
+                            <button onclick="deleteKeteComment('${postId}', '${comment.id}')" style="background: none; border: none; cursor: pointer; padding: 0.25rem; color: var(--color-text-light);" title="Delete comment">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                    <p style="margin: 0.25rem 0 0; font-size: 0.9375rem; color: var(--color-text); line-height: 1.5;">${escapeHtml(comment.content)}</p>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading comments:', error);
+        commentsList.innerHTML = `
+            <div style="text-align: center; padding: 1rem; color: var(--color-text-light);">
+                <p style="margin: 0;">Could not load comments.</p>
+            </div>
+        `;
+    }
+}
+
+// Submit a comment on a Kete post
+async function submitKeteComment(postId) {
+    const input = document.getElementById(`kete-comment-input-${postId}`);
+    const content = input?.value.trim();
+
+    if (!content) {
+        showToast('Please enter a comment', 'warning');
+        return;
+    }
+
+    if (!state.currentUser) {
+        showToast('Please login to comment', 'warning');
+        return;
+    }
+
+    try {
+        await DataService.addKeteComment(postId, content);
+        input.value = '';
+        showToast('Comment posted!', 'success');
+        // Reload comments to show the new one
+        loadKeteComments(postId);
+    } catch (error) {
+        console.error('Error posting comment:', error);
+        showToast(error.message || 'Could not post comment', 'error');
+    }
+}
+
+// Delete a comment from a Kete post
+async function deleteKeteComment(postId, commentId) {
+    if (!confirm('Delete this comment?')) return;
+
+    try {
+        await DataService.deleteKeteComment(postId, commentId);
+        showToast('Comment deleted', 'default');
+        loadKeteComments(postId);
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        showToast(error.message || 'Could not delete comment', 'error');
+    }
 }
 
 // Render a full page view for a single Kete post
@@ -4082,8 +4221,8 @@ function renderKetePostPage() {
 
             <!-- Article card -->
             <article style="background: var(--color-white); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md);">
-                ${post.featuredImage ? `
-                    <img src="${post.featuredImage}" alt="${escapeHtml(post.title)}" style="width: 100%; height: 250px; object-fit: cover;">
+                ${(post.coverImage || post.featuredImage) ? `
+                    <img src="${post.coverImage || post.featuredImage}" alt="${escapeHtml(post.title)}" style="width: 100%; height: 250px; object-fit: cover;">
                 ` : ''}
 
                 <div style="padding: 2rem;">
@@ -4150,6 +4289,39 @@ function renderKetePostPage() {
                         </div>
                     </div>
                     ` : ''}
+
+                    <!-- Comments Section -->
+                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--color-cream-dark);">
+                        <h4 style="margin: 0 0 1rem; font-size: 1rem; color: var(--color-forest); display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            Comments
+                        </h4>
+
+                        <!-- Comment Form -->
+                        <div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem;">
+                            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--color-forest); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; flex-shrink: 0;">
+                                ${state.currentUser ? (state.currentUser.displayName || 'U').charAt(0).toUpperCase() : 'G'}
+                            </div>
+                            <div style="flex: 1;">
+                                <textarea id="kete-comment-input-${post.id}" class="form-input" rows="2" placeholder="${state.currentUser ? 'Write a comment...' : 'Login to comment'}" style="resize: none; width: 100%;" ${!state.currentUser ? 'disabled' : ''}></textarea>
+                                <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+                                    <button class="btn btn-primary btn-sm" onclick="submitKeteComment('${post.id}')" ${!state.currentUser ? 'disabled' : ''}>
+                                        Post Comment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comments List -->
+                        <div id="kete-comments-list-${post.id}" style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="text-align: center; padding: 1rem; color: var(--color-text-light);">
+                                <span class="skeleton" style="width: 20px; height: 20px; border-radius: 50%; display: inline-block;"></span>
+                                Loading comments...
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </article>
 
@@ -4162,7 +4334,7 @@ function renderKetePostPage() {
                         const rpReadTime = calculateReadingTime(rp.content);
                         return `
                             <div onclick="navigateToKetePost('${rp.id}')" style="display: flex; gap: 1rem; padding: 1rem; background: var(--color-white); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); cursor: pointer; transition: all var(--transition-fast);" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='var(--shadow-sm)'">
-                                ${rp.featuredImage ? `<img src="${rp.featuredImage}" alt="" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-sm); flex-shrink: 0;">` : ''}
+                                ${(rp.coverImage || rp.featuredImage) ? `<img src="${rp.coverImage || rp.featuredImage}" alt="" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-sm); flex-shrink: 0;">` : ''}
                                 <div style="flex: 1; min-width: 0;">
                                     <div style="display: flex; gap: 0.25rem; margin-bottom: 0.25rem;">
                                         ${rpCat ? `<span style="font-size: 0.6875rem; color: ${rpCat.color}; font-weight: 500;">${rpCat.name}</span>` : ''}
@@ -4288,7 +4460,7 @@ function _openKetePostModalOld(postId) {
                     const rpCat = KETE_CATEGORIES.find(c => c.id === rp.category);
                     return `
                         <div onclick="openKetePostModal('${rp.id}')" style="display: flex; gap: 0.75rem; padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-sm); cursor: pointer;">
-                            ${rp.featuredImage ? `<img src="${rp.featuredImage}" alt="" style="width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); flex-shrink: 0;">` : ''}
+                            ${(rp.coverImage || rp.featuredImage) ? `<img src="${rp.coverImage || rp.featuredImage}" alt="" style="width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); flex-shrink: 0;">` : ''}
                             <div style="flex: 1; min-width: 0;">
                                 ${rpCat ? `<span style="font-size: 0.625rem; color: ${rpCat.color}; font-weight: 500;">${rpCat.name}</span>` : ''}
                                 <h5 style="margin: 0; font-size: 0.875rem; color: var(--color-forest);">${escapeHtml(rp.title)}</h5>
@@ -4358,6 +4530,27 @@ function openKeteSeriesModal(series) {
 function renderMarkdown(text) {
     if (!text) return '';
 
+    // Check if content is already HTML (from Quill editor)
+    // HTML content typically starts with < and contains closing tags
+    const isHtml = text.trim().startsWith('<') && (
+        text.includes('</p>') ||
+        text.includes('</h1>') ||
+        text.includes('</h2>') ||
+        text.includes('</div>') ||
+        text.includes('</span>')
+    );
+
+    if (isHtml) {
+        // Content is already HTML from Quill - return as-is
+        // Add some basic styling for consistency
+        return text
+            .replace(/<h1>/g, '<h1 style="margin: 1.5rem 0 0.75rem; font-family: var(--font-display); color: var(--color-forest);">')
+            .replace(/<h2>/g, '<h2 style="margin: 1.5rem 0 0.75rem; font-family: var(--font-display); color: var(--color-forest);">')
+            .replace(/<h3>/g, '<h3 style="margin: 1.25rem 0 0.5rem; font-family: var(--font-display); color: var(--color-forest);">')
+            .replace(/<blockquote>/g, '<blockquote style="border-left: 3px solid var(--color-terracotta); padding-left: 1rem; margin: 1rem 0; color: var(--color-text-light); font-style: italic;">');
+    }
+
+    // Legacy: Convert markdown to HTML for older posts
     return text
         // Escape HTML
         .replace(/&/g, '&amp;')
@@ -6704,10 +6897,25 @@ function openGroupMembersModal(groupId) {
     // Combine and deduplicate
     const allMembers = [...new Map([...hosts, ...members].map(m => [m.id, m])).values()];
 
+    // Check if current user can manage this group
+    const canManage = DataService.canManageGroup(groupId);
+    const currentUser = DataService.getCurrentUser();
+
     document.getElementById('modal-title').textContent = `${escapeHtml(group.name)} - Members`;
     document.getElementById('modal-body').innerHTML = `
-        <div style="margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <span style="color: var(--color-text-light);">${allMembers.length} member${allMembers.length !== 1 ? 's' : ''}</span>
+            ${canManage ? `
+                <button class="btn btn-primary btn-sm" onclick="openAddGroupMemberModal('${groupId}')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Add Member
+                </button>
+            ` : ''}
         </div>
 
         ${allMembers.length > 0 ? `
@@ -6715,6 +6923,7 @@ function openGroupMembersModal(groupId) {
                 ${allMembers.map(member => {
                     const isHost = member.role === 'host' && member.assignedGatherings?.includes(groupId);
                     const isAdmin = member.role === 'admin';
+                    const canRemove = canManage && !isAdmin && !isHost && member.id !== currentUser?.id;
                     return `
                         <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; background: var(--color-cream); border-radius: var(--radius-md);">
                             <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: ${group.color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -6729,6 +6938,14 @@ function openGroupMembersModal(groupId) {
                             </div>
                             ${isAdmin ? `<span class="event-badge" style="background: var(--color-forest); color: white;">Admin</span>` : ''}
                             ${isHost ? `<span class="event-badge" style="background: var(--color-terracotta); color: white;">Host</span>` : ''}
+                            ${canRemove ? `
+                                <button onclick="removeGroupMember('${groupId}', '${member.id}')" class="btn btn-ghost btn-sm" style="padding: 0.25rem; color: var(--color-text-light);" title="Remove from group">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            ` : ''}
                         </div>
                     `;
                 }).join('')}
@@ -6745,6 +6962,147 @@ function openGroupMembersModal(groupId) {
     `;
 
     openModal();
+}
+
+// Open modal to add a member to a group
+function openAddGroupMemberModal(groupId) {
+    const group = DataService.getGatheringById(groupId);
+    if (!group) return;
+
+    // Get users who are not already members
+    const memberIds = MockDB.gatheringMembers[groupId] || [];
+    const nonMembers = MockDB.users.filter(u =>
+        u.isActive !== false &&
+        !memberIds.includes(u.id) &&
+        !(u.role === 'host' && u.assignedGatherings?.includes(groupId)) &&
+        u.role !== 'admin'
+    );
+
+    document.getElementById('modal-title').textContent = `Add Member to ${escapeHtml(group.name)}`;
+    document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom: 1rem;">
+            <input type="text" class="form-input" id="member-search" placeholder="Search by name..." oninput="filterAddMemberList('${groupId}')">
+        </div>
+
+        <div id="add-member-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 350px; overflow-y: auto;">
+            ${nonMembers.length > 0 ? nonMembers.map(user => `
+                <div class="add-member-item" data-name="${escapeHtml(user.displayName.toLowerCase())}" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--color-cream); border-radius: var(--radius-md); cursor: pointer; transition: background 0.15s;" onclick="addMemberToGroup('${groupId}', '${user.id}')" onmouseover="this.style.background='var(--color-cream-dark)'" onmouseout="this.style.background='var(--color-cream)'">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: var(--color-sage); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        ${user.photoURL
+                            ? `<img src="${user.photoURL}" alt="" style="width: 100%; height: 100%; object-fit: cover;">`
+                            : `<span style="color: white; font-family: var(--font-display);">${user.displayName.charAt(0)}</span>`
+                        }
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 500;">${escapeHtml(user.displayName)}</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-light);">${user.role || 'member'}</div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </div>
+            `).join('') : `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-light);">
+                    <p>All active users are already members of this group.</p>
+                </div>
+            `}
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <button class="btn btn-ghost" onclick="openGroupMembersModal('${groupId}')" style="width: 100%;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Back to Members
+            </button>
+        </div>
+    `;
+
+    openModal();
+}
+
+// Filter add member list by search
+function filterAddMemberList(groupId) {
+    const search = document.getElementById('member-search')?.value.toLowerCase() || '';
+    const items = document.querySelectorAll('.add-member-item');
+
+    items.forEach(item => {
+        const name = item.dataset.name || '';
+        item.style.display = name.includes(search) ? 'flex' : 'none';
+    });
+}
+
+// Add a member to a group
+async function addMemberToGroup(groupId, userId) {
+    try {
+        // Check if current user can manage this group
+        if (!DataService.canManageGroup(groupId)) {
+            showToast('You don\'t have permission to add members to this group', 'error');
+            return;
+        }
+
+        // Initialize members array if needed
+        if (!MockDB.gatheringMembers[groupId]) {
+            MockDB.gatheringMembers[groupId] = [];
+        }
+
+        // Add user if not already a member
+        if (!MockDB.gatheringMembers[groupId].includes(userId)) {
+            MockDB.gatheringMembers[groupId].push(userId);
+
+            // Save to Firebase if enabled
+            if (PortalConfig.useFirebase && window.DB) {
+                await DB.joinGathering(groupId, userId);
+            }
+        }
+
+        const user = MockDB.users.find(u => u.id === userId);
+        const group = DataService.getGatheringById(groupId);
+        showToast(`${user?.displayName || 'User'} added to ${group?.name || 'group'}`, 'success');
+
+        // Refresh the members modal
+        openGroupMembersModal(groupId);
+    } catch (error) {
+        console.error('Error adding member:', error);
+        showToast('Could not add member to group', 'error');
+    }
+}
+
+// Remove a member from a group
+async function removeGroupMember(groupId, userId) {
+    const user = MockDB.users.find(u => u.id === userId);
+    if (!confirm(`Remove ${user?.displayName || 'this user'} from the group?`)) return;
+
+    try {
+        // Check if current user can manage this group
+        if (!DataService.canManageGroup(groupId)) {
+            showToast('You don\'t have permission to remove members from this group', 'error');
+            return;
+        }
+
+        // Remove from MockDB
+        if (MockDB.gatheringMembers[groupId]) {
+            const index = MockDB.gatheringMembers[groupId].indexOf(userId);
+            if (index > -1) {
+                MockDB.gatheringMembers[groupId].splice(index, 1);
+            }
+        }
+
+        // Remove from Firebase if enabled
+        if (PortalConfig.useFirebase && window.DB) {
+            await DB.leaveGathering(groupId, userId);
+        }
+
+        const group = DataService.getGatheringById(groupId);
+        showToast(`${user?.displayName || 'User'} removed from ${group?.name || 'group'}`, 'success');
+
+        // Refresh the members modal
+        openGroupMembersModal(groupId);
+    } catch (error) {
+        console.error('Error removing member:', error);
+        showToast('Could not remove member from group', 'error');
+    }
 }
 
 // Kete categories
@@ -6877,48 +7235,43 @@ function renderKetePage() {
                 <h3 class="app-section-title">${selectedCategory ? KETE_CATEGORIES.find(c => c.id === selectedCategory)?.name || 'Posts' : 'Published'}</h3>
                 <span style="font-size: 0.875rem; color: var(--color-text-light);">${publishedPosts.length} post${publishedPosts.length !== 1 ? 's' : ''}</span>
             </div>
-            ${publishedPosts.length > 0 ? publishedPosts.map(post => {
-                const canManage = DataService.canManageKetePost(post);
-                const readingTime = calculateReadingTime(post.content);
-                const category = KETE_CATEGORIES.find(c => c.id === post.category);
-                return `
-                    <div class="app-event-card" onclick="openKetePostModal('${post.id}')" style="cursor: pointer; display: block; padding: 1.25rem;">
-                        ${post.featuredImage ? `
-                            <img src="${post.featuredImage}" alt="" style="width: 100%; height: 140px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 0.75rem;">
-                        ` : ''}
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; align-items: center;">
+            ${publishedPosts.length > 0 ? `
+            <div class="kete-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;">
+                ${publishedPosts.map(post => {
+                    const canManage = DataService.canManageKetePost(post);
+                    const readingTime = calculateReadingTime(post.content);
+                    const category = KETE_CATEGORIES.find(c => c.id === post.category);
+                    const coverImg = post.coverImage || post.featuredImage;
+                    return `
+                        <article class="kete-card" onclick="openKetePostModal('${post.id}')" style="cursor: pointer; background: var(--color-white); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                            <div style="height: 160px; position: relative; ${coverImg ? `background-image: url('${coverImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, ${category?.color || 'var(--color-forest)'} 0%, ${category?.color || 'var(--color-forest)'}cc 100%); display: flex; align-items: center; justify-content: center;`}">
                                 ${category ? `
-                                    <span style="background: ${category.color}20; color: ${category.color}; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.6875rem; font-weight: 500;">${category.name}</span>
+                                    <span style="position: absolute; top: 0.75rem; left: 0.75rem; background: ${category.color}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.05em;">${category.name}</span>
                                 ` : ''}
-                                ${post.series ? `
-                                    <span style="background: var(--color-cream); color: var(--color-text-light); padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.6875rem;">
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 0.125rem;">
-                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                ${canManage ? `
+                                    <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openEditKetePostModal('${post.id}')" style="position: absolute; top: 0.5rem; right: 0.5rem; padding: 0.375rem; background: rgba(255,255,255,0.9); border-radius: var(--radius-sm);">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-forest)" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                         </svg>
-                                        ${escapeHtml(post.series)}
-                                    </span>
+                                    </button>
                                 ` : ''}
+                                ${!coverImg && !category ? `<span style="color: white; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9;">Post</span>` : ''}
                             </div>
-                            ${canManage ? `
-                                <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openEditKetePostModal('${post.id}')" style="margin: -0.5rem -0.5rem 0 0; padding: 0.25rem;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                    </svg>
-                                </button>
-                            ` : ''}
-                        </div>
-                        <h4 style="margin: 0.5rem 0; color: var(--color-forest);">${escapeHtml(post.title)}</h4>
-                        <p style="font-size: 0.9375rem; color: var(--color-text-light); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(post.excerpt)}</p>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
-                            <span style="font-size: 0.75rem; color: var(--color-text-light);">${formatDateShort(post.publishedAt)} • ${post.authorName}</span>
-                            <span style="font-size: 0.75rem; color: var(--color-sage);">${readingTime} min read</span>
-                        </div>
-                    </div>
-                `;
-            }).join('') : `
+                            <div style="padding: 1rem; display: flex; flex-direction: column; flex: 1;">
+                                <span style="font-size: 0.75rem; color: var(--color-text-light); margin-bottom: 0.5rem;">${formatDateShort(post.publishedAt)} &bull; ${post.authorName || 'Kiwi Church'}</span>
+                                <h4 style="margin: 0 0 0.5rem; color: var(--color-forest); font-size: 1rem; line-height: 1.3;">${escapeHtml(post.title)}</h4>
+                                <p style="font-size: 0.875rem; color: var(--color-text-light); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1;">${escapeHtml(post.excerpt)}</p>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-cream-dark);">
+                                    <span style="font-size: 0.75rem; color: var(--color-sage);">${readingTime} min read</span>
+                                    <span style="font-size: 0.75rem; color: var(--color-forest); font-weight: 500;">Read More</span>
+                                </div>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+            ` : `
                 <p style="color: var(--color-text-light); text-align: center; padding: 2rem;">
                     ${selectedCategory ? 'No posts in this category yet.' : 'No posts yet. Check back soon!'}
                 </p>
@@ -9142,13 +9495,14 @@ async function saveUserDetails(userId) {
                 role: newRole,
                 assignedGatherings: newRole === 'host' ? assignedGatherings : []
             });
-        } else {
-            user.role = newRole;
-            user.assignedGatherings = newRole === 'host' ? assignedGatherings : [];
         }
 
+        // Always update MockDB so the UI reflects the change immediately
+        user.role = newRole;
+        user.assignedGatherings = newRole === 'host' ? assignedGatherings : [];
+
         // Update group memberships
-        MockDB.gatherings.filter(g => !g.isPublic).forEach(g => {
+        for (const g of MockDB.gatherings.filter(g => !g.isPublic)) {
             if (!MockDB.gatheringMembers[g.id]) {
                 MockDB.gatheringMembers[g.id] = [];
             }
@@ -9160,11 +9514,27 @@ async function saveUserDetails(userId) {
             if (shouldBeMember && !isMember) {
                 // Add to group
                 currentMembers.push(userId);
+                // Save to Firebase
+                if (PortalConfig.useFirebase && window.DB) {
+                    try {
+                        await DB.joinGathering(g.id, userId);
+                    } catch (err) {
+                        console.warn('[Portal] Could not add user to gathering in Firebase:', err);
+                    }
+                }
             } else if (!shouldBeMember && isMember) {
                 // Remove from group
                 MockDB.gatheringMembers[g.id] = currentMembers.filter(id => id !== userId);
+                // Remove from Firebase
+                if (PortalConfig.useFirebase && window.DB) {
+                    try {
+                        await DB.leaveGathering(g.id, userId);
+                    } catch (err) {
+                        console.warn('[Portal] Could not remove user from gathering in Firebase:', err);
+                    }
+                }
             }
-        });
+        }
 
         showToast(`${user.displayName}'s details updated`, 'success');
         closeModal();
@@ -10362,6 +10732,12 @@ function openUserProfileModal(userId) {
 // ============================================
 
 function showAppState() {
+    // Hide login loading overlay
+    const loginOverlay = document.getElementById('login-loading-overlay');
+    if (loginOverlay) {
+        loginOverlay.style.display = 'none';
+    }
+
     const authView = document.getElementById('auth-view');
     const appView = document.getElementById('app-view');
     const currentUser = DataService.getCurrentUser();
@@ -10711,6 +11087,17 @@ function initPortal() {
                     if (firebaseGatherings && firebaseGatherings.length > 0) {
                         MockDB.gatherings = firebaseGatherings;
                         console.log('[Portal] Loaded', MockDB.gatherings.length, 'gatherings from Firebase');
+
+                        // Load members for each gathering
+                        for (const gathering of firebaseGatherings) {
+                            try {
+                                const members = await DB.getGatheringMembers(gathering.id);
+                                MockDB.gatheringMembers[gathering.id] = members.map(m => m.id);
+                            } catch (err) {
+                                console.warn('[Portal] Could not load members for gathering', gathering.id);
+                            }
+                        }
+                        console.log('[Portal] Loaded gathering members from Firebase');
                     }
 
                     // Load kete posts
@@ -10739,7 +11126,7 @@ function initPortal() {
                         }
                     }
 
-                    // Load users from Firebase for admin users
+                    // Load users from Firebase for admin/host users
                     if (userData.role === 'admin' || userData.role === 'host') {
                         const firebaseUsers = await DB.getAllUsers();
                         if (firebaseUsers && firebaseUsers.length > 0) {
@@ -10750,7 +11137,20 @@ function initPortal() {
                             }));
                             console.log('[Portal] Loaded', MockDB.users.length, 'users from Firebase');
                         }
+                    } else {
+                        // For regular members, at least add the current user to MockDB
+                        const existingUser = MockDB.users.find(u => u.id === userData.id);
+                        if (!existingUser) {
+                            MockDB.users.push({
+                                ...userData,
+                                dependants: userData.dependants || [],
+                                rsvps: userData.rsvps || []
+                            });
+                        }
                     }
+
+                    // Log current user's role for debugging
+                    console.log('[Portal] Current user role:', userData.role);
                 } catch (err) {
                     console.warn('[Portal] Could not load data from Firebase:', err);
                 }
@@ -10777,9 +11177,12 @@ function initPortal() {
             const result = await login(identifier, password);
 
             if (result.success) {
-                // Don't call showAppState() here - the Auth.onAuthChange callback
-                // will handle it after loading data from Firebase
-                // Just show a loading state
+                // Show full-screen login loading overlay
+                const overlay = document.getElementById('login-loading-overlay');
+                if (overlay) {
+                    overlay.style.display = 'flex';
+                }
+                // The Auth.onAuthChange callback will handle the rest
                 showLoading(true);
             } else {
                 showMessage('login-error', result.error || 'Invalid username/email or password');

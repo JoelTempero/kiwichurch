@@ -210,14 +210,14 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
         import { getFirestore, collection, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
 
-        // Firebase config
+        // Firebase config - must match portal's firebase-config.js
         const firebaseConfig = {
-            apiKey: "AIzaSyAd1I0cDraUbABCKX3JMxmtW6lPxvvdFv8",
-            authDomain: "kiwi-church.firebaseapp.com",
-            projectId: "kiwi-church",
-            storageBucket: "kiwi-church.firebasestorage.app",
-            messagingSenderId: "773909055908",
-            appId: "1:773909055908:web:dca65e7e1c4fd26a0ee93f"
+            apiKey: "AIzaSyDbGRbr1D2difpQWfxoZqPy58FmNrQ2HbA",
+            authDomain: "kiwichurch-1ef0f.firebaseapp.com",
+            projectId: "kiwichurch-1ef0f",
+            storageBucket: "kiwichurch-1ef0f.firebasestorage.app",
+            messagingSenderId: "295588695621",
+            appId: "1:295588695621:web:7320e07a05229564a45d2c"
         };
 
         // Fallback posts (used if Firebase unavailable)
@@ -310,22 +310,54 @@ So if you've been away for a while, know this: you're still part of us. And when
             try {
                 const app = initializeApp(firebaseConfig);
                 const db = getFirestore(app);
-                const q = query(
-                    collection(db, 'kete'),
-                    where('published', '==', true),
-                    orderBy('publishedAt', 'desc')
-                );
-                const querySnapshot = await getDocs(q);
+
+                // Try the ordered query first
+                let querySnapshot;
+                try {
+                    const q = query(
+                        collection(db, 'kete'),
+                        where('published', '==', true),
+                        orderBy('publishedAt', 'desc')
+                    );
+                    querySnapshot = await getDocs(q);
+                } catch (indexError) {
+                    // If index doesn't exist, try without ordering (then sort client-side)
+                    console.log('Index not available, fetching without order:', indexError.message);
+                    const q = query(
+                        collection(db, 'kete'),
+                        where('published', '==', true)
+                    );
+                    querySnapshot = await getDocs(q);
+                }
 
                 if (!querySnapshot.empty) {
                     const firebasePosts = [];
                     querySnapshot.forEach((doc) => {
-                        firebasePosts.push({ id: doc.id, ...doc.data() });
+                        const data = doc.data();
+                        // Handle Firestore timestamps
+                        let publishedAt = data.publishedAt;
+                        if (publishedAt && typeof publishedAt.toDate === 'function') {
+                            publishedAt = publishedAt.toDate().toISOString();
+                        }
+                        firebasePosts.push({
+                            id: doc.id,
+                            ...data,
+                            publishedAt: publishedAt || data.createdAt || data.date
+                        });
+                    });
+                    // Sort by publishedAt client-side to ensure proper ordering
+                    firebasePosts.sort((a, b) => {
+                        const dateA = new Date(a.publishedAt || 0);
+                        const dateB = new Date(b.publishedAt || 0);
+                        return dateB - dateA;
                     });
                     posts = firebasePosts;
+                    console.log('Loaded', firebasePosts.length, 'posts from Firebase');
+                } else {
+                    console.log('No published posts found in Firebase');
                 }
             } catch (error) {
-                console.log('Using fallback data:', error.message);
+                console.error('Firebase error, using fallback data:', error);
             }
             renderCategoryFilters();
             renderPosts();
@@ -402,11 +434,13 @@ So if you've been away for a while, know this: you're still part of us. And when
                 });
                 const readingTime = calculateReadingTime(post.content);
                 const cat = categories[post.category] || { name: post.category || 'Post', color: '#666' };
+                // Check for cover image (portal uses both coverImage and featuredImage)
+                const coverImg = post.coverImage || post.featuredImage;
 
                 return `
                     <article class="blog-card" id="${post.id}" onclick="window.location.href='post.html?id=${post.id}'" style="cursor: pointer;">
-                        <div class="blog-card-image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, ${cat.color} 0%, ${cat.color}cc 100%);">
-                            <span style="color: var(--color-white); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9;">${cat.name}</span>
+                        <div class="blog-card-image" style="${coverImg ? `background-image: url('${coverImg}'); background-size: cover; background-position: center;` : `display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, ${cat.color} 0%, ${cat.color}cc 100%);`}">
+                            ${coverImg ? `<span style="position: absolute; top: 0.75rem; left: 0.75rem; background: ${cat.color}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.05em;">${cat.name}</span>` : `<span style="color: var(--color-white); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9;">${cat.name}</span>`}
                         </div>
                         <div class="blog-card-content">
                             <span class="blog-card-date">${formattedDate} &bull; ${post.authorName || 'Kiwi Church'}</span>
@@ -440,15 +474,28 @@ So if you've been away for a while, know this: you're still part of us. And when
             const readingTime = calculateReadingTime(post.content);
             const cat = categories[post.category] || { name: post.category || 'Post', color: '#666' };
 
-            // Convert markdown-like formatting to HTML
-            let htmlContent = (post.content || '')
-                .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-                .replace(/^# (.+)$/gm, '<h2>$1</h2>')
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/\n/g, '<br>');
-            htmlContent = '<p>' + htmlContent + '</p>';
+            // Convert content to HTML (handles both Quill HTML and legacy markdown)
+            let htmlContent = post.content || '';
+
+            // Check if content is already HTML (from Quill editor)
+            const isHtml = htmlContent.trim().startsWith('<') && (
+                htmlContent.includes('</p>') ||
+                htmlContent.includes('</h1>') ||
+                htmlContent.includes('</h2>') ||
+                htmlContent.includes('</div>')
+            );
+
+            if (!isHtml) {
+                // Legacy: Convert markdown to HTML for older posts
+                htmlContent = htmlContent
+                    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+                    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>');
+                htmlContent = '<p>' + htmlContent + '</p>';
+            }
 
             content.innerHTML = `
                 <article style="padding: 1rem;">

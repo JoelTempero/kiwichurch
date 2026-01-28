@@ -1157,6 +1157,7 @@ a:hover {
     height: 220px;
     background: linear-gradient(135deg, var(--color-sage) 0%, var(--color-forest) 100%);
     overflow: hidden;
+    position: relative;
 }
 
 .blog-card-image img {
