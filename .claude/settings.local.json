@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(node -c:*)",
-      "Bash(firebase deploy:*)"
+      "Bash(firebase deploy:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install)",
+      "Bash(npm run typecheck:*)",
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
