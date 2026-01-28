@@ -7,16 +7,11 @@
     "rules": "storage.rules"
   },
   "hosting": {
-    "public": ".",
+    "public": "dist",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      "firestore.rules",
-      "firestore.indexes.json",
-      "storage.rules",
-      "*.md",
-      "index-old.html"
+      "**/node_modules/**"
     ],
     "rewrites": [
       {
