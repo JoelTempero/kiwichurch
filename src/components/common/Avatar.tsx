@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 interface AvatarProps {
   src?: string | null
   name?: string
@@ -13,6 +15,7 @@ const sizeMap = {
 }
 
 export function Avatar({ src, name = '?', size = 'md', className = '' }: AvatarProps) {
+  const [imgError, setImgError] = useState(false)
   const pixels = sizeMap[size]
   const initials = name
     .split(' ')
@@ -20,6 +23,8 @@ export function Avatar({ src, name = '?', size = 'md', className = '' }: AvatarP
     .slice(0, 2)
     .join('')
     .toUpperCase()
+
+  const showImage = src && !imgError
 
   return (
     <div
@@ -33,16 +38,18 @@ export function Avatar({ src, name = '?', size = 'md', className = '' }: AvatarP
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: src ? 'transparent' : 'var(--color-sage-light)',
+        backgroundColor: showImage ? 'transparent' : 'var(--color-sage-light)',
         color: 'var(--color-forest)',
         fontWeight: 600,
         fontSize: pixels * 0.4
       }}
     >
-      {src ? (
+      {showImage ? (
         <img
           src={src}
           alt={name}
+          loading="lazy"
+          onError={() => setImgError(true)}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       ) : (

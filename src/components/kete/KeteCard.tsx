@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Avatar, Badge } from '@/components/common'
 import type { KetePost } from '@/types'
@@ -17,11 +18,18 @@ function formatDate(date: Date | { toDate: () => Date } | null): string {
 }
 
 export function KeteCard({ post }: KeteCardProps) {
+  const [imgError, setImgError] = useState(false)
+
   return (
     <Link to={`/kete/${post.id}`} className="kete-card">
-      {post.featuredImage && (
+      {post.featuredImage && !imgError && (
         <div className="kete-card-image">
-          <img src={post.featuredImage} alt={post.title} />
+          <img
+            src={post.featuredImage}
+            alt={post.title}
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
         </div>
       )}
       <div className="kete-card-content">

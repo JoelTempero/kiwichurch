@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import './styles/index.css'
 
+// Add app-mode class to body for styling
+document.body.classList.add('app-mode')
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

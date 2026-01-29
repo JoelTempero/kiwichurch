@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useUIStore } from '@/store'
 import { useEvents } from '@/hooks/useEvents'
 import { EventCard, EventModal, CalendarView } from '@/components/events'
-import { EmptyState, EventCardSkeleton } from '@/components/common'
+import { EmptyState, EventCardSkeleton, PullToRefresh, Button } from '@/components/common'
 import type { Event } from '@/types'
 
 export function EventsPage() {
@@ -15,10 +15,14 @@ export function EventsPage() {
   const endDate = new Date()
   endDate.setMonth(endDate.getMonth() + 3)
 
-  const { data: events = [], isLoading } = useEvents({
+  const { data: events = [], isLoading, refetch } = useEvents({
     startDate: today.toISOString().split('T')[0],
     endDate: endDate.toISOString().split('T')[0]
   })
+
+  const handleRefresh = async () => {
+    await refetch()
+  }
 
   // Group events by date for list view
   const groupedEvents = useMemo(() => {
@@ -67,8 +71,9 @@ export function EventsPage() {
   }
 
   return (
-    <div className="events-page">
-      {/* View Toggle */}
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="events-page">
+        {/* View Toggle */}
       <div className="events-view-toggle">
         <button
           className={`view-toggle-btn ${eventsViewMode === 'list' ? 'active' : ''}`}
@@ -117,7 +122,16 @@ export function EventsPage() {
             <EmptyState
               icon="calendar"
               title="No upcoming events"
-              message="Check back later for new events"
+              message="Switch to calendar view to browse past and future months"
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEventsViewMode('calendar')}
+                >
+                  View Calendar
+                </Button>
+              }
             />
           ) : (
             sortedDates.map(date => (
@@ -138,12 +152,13 @@ export function EventsPage() {
         </div>
       )}
 
-      {/* Event Modal */}
-      <EventModal
-        event={selectedEvent}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-      />
-    </div>
+        {/* Event Modal */}
+        <EventModal
+          event={selectedEvent}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
+      </div>
+    </PullToRefresh>
   )
 }

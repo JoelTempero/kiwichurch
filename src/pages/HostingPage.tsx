@@ -1,48 +1,34 @@
 import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { useUpcomingEvents, useCreateEvent, useDeleteEvent } from '@/hooks/useEvents'
+import { useUpcomingEvents } from '@/hooks/useEvents'
+import { useKetePosts } from '@/hooks/useKete'
 import { useGatherings } from '@/hooks/useGatherings'
-import { usePublishedKetePosts, useCreateKetePost } from '@/hooks/useKete'
-import { Button, Modal, EmptyState, Skeleton } from '@/components/common'
-import { useToast } from '@/components/common/Toast'
-import type { Event, KetePost } from '@/types'
+import { Button, EmptyState, Skeleton } from '@/components/common'
+import { EventForm } from '@/components/events'
+import { KeteForm } from '@/components/kete'
+import { GroupForm } from '@/components/groups'
+import type { Event, KetePost, Gathering } from '@/types'
 
 export function HostingPage() {
-  const { user, isAdminOrHost } = useAuth()
-  const { showToast } = useToast()
+  const { isAdminOrHost, isAdmin } = useAuth()
 
-  const [activeTab, setActiveTab] = useState<'events' | 'kete'>('events')
-  const [showEventModal, setShowEventModal] = useState(false)
-  const [showKeteModal, setShowKeteModal] = useState(false)
-
-  const { data: events = [], isLoading: loadingEvents } = useUpcomingEvents()
-  const { data: gatherings = [] } = useGatherings()
-  const { data: ketePosts = [], isLoading: loadingKete } = usePublishedKetePosts()
-
-  const createEvent = useCreateEvent()
-  const deleteEvent = useDeleteEvent()
-  const createKetePost = useCreateKetePost()
+  const [activeTab, setActiveTab] = useState<'events' | 'kete' | 'groups'>('events')
 
   // Event form state
-  const [eventForm, setEventForm] = useState({
-    title: '',
-    date: '',
-    time: '',
-    endTime: '',
-    location: '',
-    description: '',
-    gatheringId: ''
-  })
+  const [showEventForm, setShowEventForm] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null)
 
-  // Kete post form state
-  const [keteForm, setKeteForm] = useState({
-    title: '',
-    content: '',
-    excerpt: '',
-    featuredImage: ''
-  })
+  // Kete form state
+  const [showKeteForm, setShowKeteForm] = useState(false)
+  const [editingPost, setEditingPost] = useState<KetePost | null>(null)
 
-  const [isSaving, setIsSaving] = useState(false)
+  // Group form state
+  const [showGroupForm, setShowGroupForm] = useState(false)
+  const [editingGroup, setEditingGroup] = useState<Gathering | null>(null)
+
+  const { data: events = [], isLoading: loadingEvents, refetch: refetchEvents } = useUpcomingEvents()
+  const { data: ketePosts = [], isLoading: loadingKete, refetch: refetchKete } = useKetePosts()
+  const { data: groups = [], isLoading: loadingGroups, refetch: refetchGroups } = useGatherings()
 
   if (!isAdminOrHost) {
     return (
@@ -56,75 +42,61 @@ export function HostingPage() {
     )
   }
 
-  const handleCreateEvent = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
-
-    setIsSaving(true)
-    try {
-      const gathering = gatherings.find(g => g.id === eventForm.gatheringId)
-      await createEvent.mutateAsync({
-        ...eventForm,
-        createdBy: user.id,
-        gatheringName: gathering?.name,
-        isPublic: true
-      })
-      showToast('Event created', 'success')
-      setShowEventModal(false)
-      setEventForm({
-        title: '',
-        date: '',
-        time: '',
-        endTime: '',
-        location: '',
-        description: '',
-        gatheringId: ''
-      })
-    } catch (error) {
-      showToast('Failed to create event', 'error')
-    } finally {
-      setIsSaving(false)
-    }
+  const handleCreateEvent = () => {
+    setEditingEvent(null)
+    setShowEventForm(true)
   }
 
-  const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm('Are you sure you want to delete this event?')) return
-
-    try {
-      await deleteEvent.mutateAsync(eventId)
-      showToast('Event deleted', 'success')
-    } catch (error) {
-      showToast('Failed to delete event', 'error')
-    }
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event)
+    setShowEventForm(true)
   }
 
-  const handleCreateKetePost = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
+  const handleEventFormClose = () => {
+    setShowEventForm(false)
+    setEditingEvent(null)
+  }
 
-    setIsSaving(true)
-    try {
-      await createKetePost.mutateAsync({
-        ...keteForm,
-        authorId: user.id,
-        authorName: user.displayName,
-        authorPhotoURL: user.photoURL,
-        published: true,
-        publishedAt: new Date()
-      })
-      showToast('Post created', 'success')
-      setShowKeteModal(false)
-      setKeteForm({
-        title: '',
-        content: '',
-        excerpt: '',
-        featuredImage: ''
-      })
-    } catch (error) {
-      showToast('Failed to create post', 'error')
-    } finally {
-      setIsSaving(false)
-    }
+  const handleEventSuccess = () => {
+    refetchEvents()
+  }
+
+  const handleCreatePost = () => {
+    setEditingPost(null)
+    setShowKeteForm(true)
+  }
+
+  const handleEditPost = (post: KetePost) => {
+    setEditingPost(post)
+    setShowKeteForm(true)
+  }
+
+  const handleKeteFormClose = () => {
+    setShowKeteForm(false)
+    setEditingPost(null)
+  }
+
+  const handleKeteSuccess = () => {
+    refetchKete()
+  }
+
+  const handleCreateGroup = () => {
+    setEditingGroup(null)
+    setShowGroupForm(true)
+  }
+
+  const handleEditGroup = (group: Gathering) => {
+    setEditingGroup(group)
+    setShowGroupForm(true)
+  }
+
+  const handleGroupFormClose = () => {
+    setShowGroupForm(false)
+    setEditingGroup(null)
+  }
+
+  const handleGroupSuccess = () => {
+    refetchGroups()
   }
 
   const formatDate = (dateStr: string) => {
@@ -135,36 +107,60 @@ export function HostingPage() {
     })
   }
 
+  const formatPostDate = (date: Date | { toDate: () => Date } | null) => {
+    if (!date) return ''
+    const d = date instanceof Date ? date : date.toDate()
+    return d.toLocaleDateString('en-NZ', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+  }
+
   return (
     <div className="hosting-page">
       <div className="hosting-header">
         <h1 className="hosting-title">Hosting</h1>
-        <p className="hosting-subtitle">Manage events and content</p>
+        <p className="hosting-subtitle">Manage events, content, and groups</p>
       </div>
 
       {/* Tabs */}
-      <div className="hosting-tabs">
+      <div className="hosting-tabs" role="tablist">
         <button
+          role="tab"
+          aria-selected={activeTab === 'events'}
           className={`hosting-tab ${activeTab === 'events' ? 'active' : ''}`}
           onClick={() => setActiveTab('events')}
         >
           Events
         </button>
         <button
+          role="tab"
+          aria-selected={activeTab === 'kete'}
           className={`hosting-tab ${activeTab === 'kete' ? 'active' : ''}`}
           onClick={() => setActiveTab('kete')}
         >
           Kete Posts
         </button>
+        {isAdmin && (
+          <button
+            role="tab"
+            aria-selected={activeTab === 'groups'}
+            className={`hosting-tab ${activeTab === 'groups' ? 'active' : ''}`}
+            onClick={() => setActiveTab('groups')}
+          >
+            Groups
+          </button>
+        )}
       </div>
 
       {/* Content */}
-      {activeTab === 'events' ? (
-        <div className="hosting-section">
+      {activeTab === 'events' && (
+        <div className="hosting-section" role="tabpanel">
           <div className="hosting-section-header">
             <h2 className="hosting-section-title">Upcoming Events</h2>
-            <Button variant="primary" size="sm" onClick={() => setShowEventModal(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+            <Button variant="primary" size="sm" onClick={handleCreateEvent}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
@@ -174,14 +170,19 @@ export function HostingPage() {
 
           {loadingEvents ? (
             <div className="hosting-list">
-              <Skeleton variant="rectangular" height={60} />
-              <Skeleton variant="rectangular" height={60} />
+              <Skeleton variant="rectangular" height={70} />
+              <Skeleton variant="rectangular" height={70} />
             </div>
           ) : events.length === 0 ? (
             <EmptyState
               icon="calendar"
               title="No upcoming events"
               message="Create an event to get started"
+              action={
+                <Button variant="primary" onClick={handleCreateEvent}>
+                  Create Event
+                </Button>
+              }
             />
           ) : (
             <div className="hosting-list">
@@ -192,18 +193,21 @@ export function HostingPage() {
                     <p className="hosting-item-meta">
                       {formatDate(event.date)} at {event.time}
                       {event.location && ` • ${event.location}`}
+                      {event.gatheringName && ` • ${event.gatheringName}`}
                     </p>
                   </div>
                   <div className="hosting-item-actions">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteEvent(event.id)}
+                      onClick={() => handleEditEvent(event)}
+                      aria-label={`Edit ${event.title}`}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
+                      Edit
                     </Button>
                   </div>
                 </div>
@@ -211,12 +215,14 @@ export function HostingPage() {
             </div>
           )}
         </div>
-      ) : (
-        <div className="hosting-section">
+      )}
+
+      {activeTab === 'kete' && (
+        <div className="hosting-section" role="tabpanel">
           <div className="hosting-section-header">
             <h2 className="hosting-section-title">Kete Posts</h2>
-            <Button variant="primary" size="sm" onClick={() => setShowKeteModal(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+            <Button variant="primary" size="sm" onClick={handleCreatePost}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
@@ -226,25 +232,49 @@ export function HostingPage() {
 
           {loadingKete ? (
             <div className="hosting-list">
-              <Skeleton variant="rectangular" height={60} />
-              <Skeleton variant="rectangular" height={60} />
+              <Skeleton variant="rectangular" height={70} />
+              <Skeleton variant="rectangular" height={70} />
             </div>
           ) : ketePosts.length === 0 ? (
             <EmptyState
               icon="book"
               title="No posts yet"
               message="Create a post to share with the community"
+              action={
+                <Button variant="primary" onClick={handleCreatePost}>
+                  Create Post
+                </Button>
+              }
             />
           ) : (
             <div className="hosting-list">
               {ketePosts.map((post: KetePost) => (
                 <div key={post.id} className="hosting-item">
                   <div className="hosting-item-info">
-                    <h3 className="hosting-item-title">{post.title}</h3>
+                    <div className="hosting-item-title-row">
+                      <h3 className="hosting-item-title">{post.title}</h3>
+                      {!post.published && (
+                        <span className="hosting-item-badge hosting-item-badge-draft">Draft</span>
+                      )}
+                    </div>
                     <p className="hosting-item-meta">
                       By {post.authorName}
-                      {post.publishedAt && ` • ${formatDate(post.publishedAt instanceof Date ? post.publishedAt.toISOString() : '')}`}
+                      {post.publishedAt && ` • ${formatPostDate(post.publishedAt as Date)}`}
                     </p>
+                  </div>
+                  <div className="hosting-item-actions">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditPost(post)}
+                      aria-label={`Edit ${post.title}`}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      Edit
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -253,166 +283,102 @@ export function HostingPage() {
         </div>
       )}
 
-      {/* Create Event Modal */}
-      <Modal
-        isOpen={showEventModal}
-        onClose={() => setShowEventModal(false)}
-        title="Create Event"
-      >
-        <form onSubmit={handleCreateEvent}>
-          <div className="form-group">
-            <label className="form-label">Title</label>
-            <input
-              type="text"
-              className="form-input"
-              value={eventForm.title}
-              onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-              required
-            />
+      {activeTab === 'groups' && isAdmin && (
+        <div className="hosting-section" role="tabpanel">
+          <div className="hosting-section-header">
+            <h2 className="hosting-section-title">Groups</h2>
+            <Button variant="primary" size="sm" onClick={handleCreateGroup}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              New Group
+            </Button>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Date</label>
-              <input
-                type="date"
-                className="form-input"
-                value={eventForm.date}
-                onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
-                required
-              />
+          {loadingGroups ? (
+            <div className="hosting-list">
+              <Skeleton variant="rectangular" height={70} />
+              <Skeleton variant="rectangular" height={70} />
             </div>
-            <div className="form-group">
-              <label className="form-label">Time</label>
-              <input
-                type="time"
-                className="form-input"
-                value={eventForm.time}
-                onChange={(e) => setEventForm({ ...eventForm, time: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">End Time (optional)</label>
-            <input
-              type="time"
-              className="form-input"
-              value={eventForm.endTime}
-              onChange={(e) => setEventForm({ ...eventForm, endTime: e.target.value })}
+          ) : groups.length === 0 ? (
+            <EmptyState
+              icon="users"
+              title="No groups yet"
+              message="Create a group for members to connect"
+              action={
+                <Button variant="primary" onClick={handleCreateGroup}>
+                  Create Group
+                </Button>
+              }
             />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Location</label>
-            <input
-              type="text"
-              className="form-input"
-              value={eventForm.location}
-              onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
-              placeholder="Optional"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Group (optional)</label>
-            <select
-              className="form-select"
-              value={eventForm.gatheringId}
-              onChange={(e) => setEventForm({ ...eventForm, gatheringId: e.target.value })}
-            >
-              <option value="">No group</option>
-              {gatherings.map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
+          ) : (
+            <div className="hosting-list">
+              {groups.map((group: Gathering) => (
+                <div key={group.id} className="hosting-item">
+                  <div className="hosting-item-info">
+                    <div className="hosting-item-title-row">
+                      <div
+                        className="hosting-item-color"
+                        style={{ backgroundColor: group.color || '#2d5a4a' }}
+                      />
+                      <h3 className="hosting-item-title">{group.name}</h3>
+                      {group.featured && (
+                        <span className="hosting-item-badge hosting-item-badge-featured">Featured</span>
+                      )}
+                      {!group.isPublic && (
+                        <span className="hosting-item-badge hosting-item-badge-private">Private</span>
+                      )}
+                    </div>
+                    <p className="hosting-item-meta">
+                      {group.rhythm || 'No schedule set'}
+                      {group.location && ` • ${group.location}`}
+                    </p>
+                  </div>
+                  <div className="hosting-item-actions">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditGroup(group)}
+                      aria-label={`Edit ${group.name}`}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      Edit
+                    </Button>
+                  </div>
+                </div>
               ))}
-            </select>
-          </div>
+            </div>
+          )}
+        </div>
+      )}
 
-          <div className="form-group">
-            <label className="form-label">Description</label>
-            <textarea
-              className="form-textarea"
-              value={eventForm.description}
-              onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
-              rows={4}
-            />
-          </div>
+      {/* Event Form Modal */}
+      <EventForm
+        event={editingEvent}
+        isOpen={showEventForm}
+        onClose={handleEventFormClose}
+        onSuccess={handleEventSuccess}
+      />
 
-          <div className="modal-actions">
-            <Button type="submit" variant="primary" loading={isSaving}>
-              Create Event
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => setShowEventModal(false)}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {/* Kete Form Modal */}
+      <KeteForm
+        post={editingPost}
+        isOpen={showKeteForm}
+        onClose={handleKeteFormClose}
+        onSuccess={handleKeteSuccess}
+      />
 
-      {/* Create Kete Post Modal */}
-      <Modal
-        isOpen={showKeteModal}
-        onClose={() => setShowKeteModal(false)}
-        title="Create Post"
-        size="lg"
-      >
-        <form onSubmit={handleCreateKetePost}>
-          <div className="form-group">
-            <label className="form-label">Title</label>
-            <input
-              type="text"
-              className="form-input"
-              value={keteForm.title}
-              onChange={(e) => setKeteForm({ ...keteForm, title: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Excerpt</label>
-            <textarea
-              className="form-textarea"
-              value={keteForm.excerpt}
-              onChange={(e) => setKeteForm({ ...keteForm, excerpt: e.target.value })}
-              placeholder="Brief summary for the card"
-              rows={2}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Featured Image URL</label>
-            <input
-              type="url"
-              className="form-input"
-              value={keteForm.featuredImage}
-              onChange={(e) => setKeteForm({ ...keteForm, featuredImage: e.target.value })}
-              placeholder="Optional"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Content</label>
-            <textarea
-              className="form-textarea"
-              value={keteForm.content}
-              onChange={(e) => setKeteForm({ ...keteForm, content: e.target.value })}
-              rows={10}
-              required
-            />
-            <span className="form-hint">HTML is supported</span>
-          </div>
-
-          <div className="modal-actions">
-            <Button type="submit" variant="primary" loading={isSaving}>
-              Publish
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => setShowKeteModal(false)}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {/* Group Form Modal */}
+      <GroupForm
+        group={editingGroup}
+        isOpen={showGroupForm}
+        onClose={handleGroupFormClose}
+        onSuccess={handleGroupSuccess}
+      />
     </div>
   )
 }

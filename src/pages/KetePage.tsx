@@ -1,12 +1,17 @@
 import { usePublishedKetePosts } from '@/hooks/useKete'
 import { KeteCard } from '@/components/kete'
-import { EmptyState, Skeleton } from '@/components/common'
+import { EmptyState, Skeleton, PullToRefresh } from '@/components/common'
 
 export function KetePage() {
-  const { data: posts = [], isLoading } = usePublishedKetePosts()
+  const { data: posts = [], isLoading, refetch } = usePublishedKetePosts()
+
+  const handleRefresh = async () => {
+    await refetch()
+  }
 
   return (
-    <div className="kete-page">
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="kete-page">
       <div className="kete-page-header">
         <h1 className="kete-page-title">Kete</h1>
         <p className="kete-page-subtitle">
@@ -37,7 +42,7 @@ export function KetePage() {
         <EmptyState
           icon="book"
           title="No posts yet"
-          message="Check back later for stories and reflections"
+          message="Stories, reflections, and resources from our community will appear here. Check back soon!"
         />
       ) : (
         <div className="kete-grid">
@@ -46,6 +51,7 @@ export function KetePage() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </PullToRefresh>
   )
 }

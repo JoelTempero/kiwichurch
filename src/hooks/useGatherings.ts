@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { dbService } from '@/services/firebase'
-import type { BoardPost, BoardComment } from '@/types'
+import type { Gathering, BoardPost, BoardComment } from '@/types'
 
 // Query keys
 export const gatheringKeys = {
@@ -116,6 +116,50 @@ export function useLeaveGathering() {
   })
 }
 
+// Create gathering mutation
+export function useCreateGathering() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (gatheringData: Omit<Gathering, 'id' | 'createdAt' | 'updatedAt'>) =>
+      dbService.createGathering(gatheringData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.list() })
+    }
+  })
+}
+
+// Update gathering mutation
+export function useUpdateGathering() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      gatheringId,
+      updates
+    }: {
+      gatheringId: string
+      updates: Partial<Gathering>
+    }) => dbService.updateGathering(gatheringId, updates),
+    onSuccess: (_, { gatheringId }) => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.list() })
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.detail(gatheringId) })
+    }
+  })
+}
+
+// Delete gathering mutation
+export function useDeleteGathering() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (gatheringId: string) => dbService.deleteGathering(gatheringId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.list() })
+    }
+  })
+}
+
 // Create board post mutation
 export function useCreateBoardPost() {
   const queryClient = useQueryClient()
@@ -128,6 +172,26 @@ export function useCreateBoardPost() {
       gatheringId: string
       postData: Omit<BoardPost, 'id' | 'createdAt' | 'updatedAt'>
     }) => dbService.createBoardPost(gatheringId, postData),
+    onSuccess: (_, { gatheringId }) => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.posts(gatheringId) })
+    }
+  })
+}
+
+// Update board post mutation
+export function useUpdateBoardPost() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      gatheringId,
+      postId,
+      updates
+    }: {
+      gatheringId: string
+      postId: string
+      updates: Partial<BoardPost>
+    }) => dbService.updateBoardPost(gatheringId, postId, updates),
     onSuccess: (_, { gatheringId }) => {
       queryClient.invalidateQueries({ queryKey: gatheringKeys.posts(gatheringId) })
     }

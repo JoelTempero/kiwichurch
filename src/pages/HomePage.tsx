@@ -1,5 +1,10 @@
 import { useAuth } from '@/hooks/useAuth'
+import { useUpcomingEvents } from '@/hooks/useEvents'
+import { usePublishedKetePosts } from '@/hooks/useKete'
 import { Link } from 'react-router-dom'
+import { EventCard } from '@/components/events'
+import { KeteCard } from '@/components/kete'
+import { Skeleton, PullToRefresh, EmptyState, Button } from '@/components/common'
 
 function getTimeBasedGreeting(): string {
   const hour = new Date().getHours()
@@ -13,8 +18,18 @@ export function HomePage() {
   const greeting = getTimeBasedGreeting()
   const firstName = user?.displayName?.split(' ')[0] || 'there'
 
+  // Fetch upcoming events (limit 3)
+  const { data: events = [], isLoading: loadingEvents, refetch: refetchEvents } = useUpcomingEvents(3)
+
+  // Fetch recent kete posts (limit 2)
+  const { data: ketePosts = [], isLoading: loadingKete, refetch: refetchKete } = usePublishedKetePosts(2)
+
+  const handleRefresh = async () => {
+    await Promise.all([refetchEvents(), refetchKete()])
+  }
+
   return (
-    <>
+    <PullToRefresh onRefresh={handleRefresh}>
       {/* Hero greeting */}
       <div className="home-greeting" style={{
         background: 'linear-gradient(135deg, var(--color-forest) 0%, var(--color-forest-light) 100%)',
@@ -61,15 +76,15 @@ export function HomePage() {
             <span className="app-quick-action-label">Groups</span>
           </Link>
 
-          <a href="/resources.html" className="app-quick-action">
+          <Link to="/kete" className="app-quick-action">
             <div className="app-quick-action-icon" style={{ background: 'var(--color-cream-dark)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               </svg>
             </div>
-            <span className="app-quick-action-label">Resources</span>
-          </a>
+            <span className="app-quick-action-label">Kete</span>
+          </Link>
 
           <Link to="/giving" className="app-quick-action">
             <div className="app-quick-action-icon" style={{ background: '#fde68a' }}>
@@ -88,15 +103,29 @@ export function HomePage() {
             <Link to="/events" className="app-section-link">See all</Link>
           </div>
           <div className="app-section-content">
-            <div className="empty-state">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 48, height: 48, opacity: 0.5 }}>
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <p>No upcoming events</p>
-            </div>
+            {loadingEvents ? (
+              <div className="home-events-loading">
+                <Skeleton variant="rectangular" height={120} />
+                <Skeleton variant="rectangular" height={120} />
+              </div>
+            ) : events.length === 0 ? (
+              <EmptyState
+                icon="calendar"
+                title="No upcoming events"
+                message="Check the calendar for future events"
+                action={
+                  <Link to="/events">
+                    <Button variant="outline" size="sm">View Calendar</Button>
+                  </Link>
+                }
+              />
+            ) : (
+              <div className="home-events-list">
+                {events.map(event => (
+                  <EventCard key={event.id} event={event} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -107,13 +136,28 @@ export function HomePage() {
             <Link to="/kete" className="app-section-link">Read more</Link>
           </div>
           <div className="app-section-content">
-            <div className="empty-state">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 48, height: 48, opacity: 0.5 }}>
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-              </svg>
-              <p>No posts yet</p>
-            </div>
+            {loadingKete ? (
+              <div className="home-kete-loading">
+                <Skeleton variant="rectangular" height={200} />
+              </div>
+            ) : ketePosts.length === 0 ? (
+              <EmptyState
+                icon="book"
+                title="No posts yet"
+                message="Stories and reflections will appear here"
+                action={
+                  <Link to="/kete">
+                    <Button variant="outline" size="sm">Browse Kete</Button>
+                  </Link>
+                }
+              />
+            ) : (
+              <div className="home-kete-list">
+                {ketePosts.map(post => (
+                  <KeteCard key={post.id} post={post} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -142,6 +186,6 @@ export function HomePage() {
           </section>
         )}
       </div>
-    </>
+    </PullToRefresh>
   )
 }

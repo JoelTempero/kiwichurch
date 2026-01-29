@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { AppLayout } from '@/components/layout'
 import { ProtectedRoute } from '@/components/auth'
-import { ToastProvider } from '@/components/common'
+import { ToastProvider, ScrollToTop } from '@/components/common'
 
 // Eager load critical pages
 import { LoginPage } from '@/pages/LoginPage'
@@ -43,6 +43,7 @@ function App() {
 
   return (
     <ToastProvider>
+      <ScrollToTop />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public auth routes */}

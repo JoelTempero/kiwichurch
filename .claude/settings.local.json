@@ -7,7 +7,8 @@
       "Bash(npm install)",
       "Bash(npm run typecheck:*)",
       "Bash(timeout 15 npm run dev:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(grep:*)"
     ]
   }
 }
