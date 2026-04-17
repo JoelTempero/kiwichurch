@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors - mapped from existing CSS custom properties */
+  --color-forest: #1a3a2f;
+  --color-forest-light: #2d5a4a;
+  --color-forest-dark: #0f251e;
+  --color-sage: #7d9a87;
+  --color-sage-light: #a8c4b0;
+  --color-cream: #faf8f5;
+  --color-cream-dark: #f0ebe3;
+  --color-terracotta: #c17f59;
+  --color-terracotta-light: #d4a07d;
+  --color-terracotta-dark: #a66b48;
+  --color-gold: #d4a574;
+  --color-text-primary: #2c3e36;
+  --color-text-light: #5a6b62;
+  --color-text-lighter: #8a9b92;
+  --color-overlay: rgba(26, 58, 47, 0.85);
+
+  /* Fonts */
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(26, 58, 47, 0.08);
+  --shadow-md: 0 4px 20px rgba(26, 58, 47, 0.12);
+  --shadow-lg: 0 8px 40px rgba(26, 58, 47, 0.16);
+  --shadow-xl: 0 20px 60px rgba(26, 58, 47, 0.2);
+
+  /* Border radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-full: 9999px;
+}
+
+/* Keep existing CSS variables for legacy styles during migration */
+@import './styles.css';
+@import './index.css';

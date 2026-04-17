@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
-import './styles/index.css'
+import './styles/app.css'
 
 // Add app-mode class to body for styling
 document.body.classList.add('app-mode')
