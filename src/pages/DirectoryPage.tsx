@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Search } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { dbService } from '@/services/firebase'
 import { useQuery } from '@tanstack/react-query'
@@ -23,12 +24,9 @@ export function DirectoryPage() {
     )
   })
 
-  // Group users by first letter
   const groupedUsers = filteredUsers.reduce((groups: Record<string, User[]>, user: User) => {
     const letter = user.displayName.charAt(0).toUpperCase()
-    if (!groups[letter]) {
-      groups[letter] = []
-    }
+    if (!groups[letter]) groups[letter] = []
     groups[letter].push(user)
     return groups
   }, {})
@@ -36,30 +34,25 @@ export function DirectoryPage() {
   const sortedLetters = Object.keys(groupedUsers).sort()
 
   return (
-    <div className="directory-page">
-      <div className="directory-header">
-        <h1 className="directory-title">Directory</h1>
-        <p className="directory-subtitle">{users.length} members</p>
+    <div className="max-w-[800px] mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl mb-1">Directory</h1>
+        <p className="text-text-light m-0">{users.length} members</p>
       </div>
 
-      {/* Search */}
-      <div className="directory-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+      <div className="flex items-center gap-3 px-4 py-3 bg-white rounded-md mb-6 shadow-sm">
+        <Search size={20} className="text-text-light shrink-0" />
         <input
           type="text"
-          className="form-input"
+          className="w-full border-none p-0 bg-transparent font-body text-base outline-none"
           placeholder="Search members..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
-      {/* Directory List */}
       {isLoading ? (
-        <div className="directory-list">
+        <div className="flex flex-col gap-2">
           <Skeleton variant="rectangular" height={60} />
           <Skeleton variant="rectangular" height={60} />
           <Skeleton variant="rectangular" height={60} />
@@ -71,21 +64,21 @@ export function DirectoryPage() {
           message={searchQuery ? 'Try a different search term' : 'No members in the directory'}
         />
       ) : (
-        <div className="directory-list">
+        <div className="flex flex-col gap-2">
           {sortedLetters.map(letter => (
-            <div key={letter} className="directory-group">
-              <div className="directory-letter">{letter}</div>
+            <div key={letter} className="mb-4">
+              <div className="text-sm font-semibold text-forest py-2 border-b border-cream mb-2">{letter}</div>
               {groupedUsers[letter].map((member: User) => (
-                <div key={member.id} className="directory-item">
+                <div key={member.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-md shadow-sm">
                   <Avatar src={member.photoURL} name={member.displayName} size="md" />
-                  <div className="directory-item-info">
-                    <h3 className="directory-item-name">{member.displayName}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base m-0">{member.displayName}</h3>
                     {member.bio && (
-                      <p className="directory-item-bio">{member.bio}</p>
+                      <p className="text-sm text-text-light m-0 truncate">{member.bio}</p>
                     )}
                   </div>
                   {member.role !== 'member' && (
-                    <span className="directory-item-role">{member.role}</span>
+                    <span className="text-xs px-2 py-1 bg-forest text-white rounded-sm capitalize">{member.role}</span>
                   )}
                 </div>
               ))}
@@ -93,19 +86,6 @@ export function DirectoryPage() {
           ))}
         </div>
       )}
-
-      {/* Alphabet Index */}
-      <div className="directory-index">
-        {sortedLetters.map(letter => (
-          <a
-            key={letter}
-            href={`#letter-${letter}`}
-            className="directory-index-letter"
-          >
-            {letter}
-          </a>
-        ))}
-      </div>
     </div>
   )
 }
