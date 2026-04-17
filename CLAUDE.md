@@ -57,18 +57,23 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Events + RSVPs, Groups + message boards, Kete (blog), Directory, Giving, Admin tools all functional
 - Firebase security rules comprehensive (role-based per collection)
 - PWA with service worker, offline persistence, install prompt
-- Vanilla CSS (59KB) — needs migration to Tailwind v4
+- Tailwind v4 installed and configured alongside existing CSS (migration in progress)
 - No Cloud Functions yet. No push notifications. No real-time chat (only forum-style boards)
 
 ## Next Steps
-- [ ] **Phase 1: Foundation modernisation** (START HERE)
-  - Install Tailwind v4 + clsx + tailwind-merge + Lucide React + react-hook-form + zod
-  - Configure Tailwind v4 in Vite alongside existing CSS
-  - Create cn() utility
-  - Create DESIGN.md (creative refresh — current UI is "very AI template")
-  - Migrate layout components to Tailwind (AppLayout, AppHeader, BottomNav, DesktopSidebar)
-  - Migrate common components (Button, Modal, Toast, Badge, etc.)
-  - Migrate pages and swap forms to react-hook-form + zod
+- [ ] **Phase 1: Foundation modernisation** (IN PROGRESS — ~60% done)
+  - [x] Install Tailwind v4 + clsx + tailwind-merge + Lucide React + react-hook-form + zod
+  - [x] Configure Tailwind v4 in Vite alongside existing CSS (`src/styles/app.css` with `@theme` block)
+  - [x] Create cn() utility (`src/utils/cn.ts`)
+  - [ ] Create DESIGN.md (creative refresh — current UI is "very AI template")
+  - [x] Migrate layout components to Lucide icons (AppHeader, BottomNav, DesktopSidebar) — kept structural CSS class names for grid layout compat
+  - [x] Migrate common components to Tailwind + cn() (Button, Modal, Toast, Badge, Avatar, EmptyState, Skeleton, PullToRefresh)
+  - [x] Migrate 3 pages to Tailwind: HomePage, GivingPage, DirectoryPage
+  - [ ] Migrate remaining pages: EventsPage, GroupsPage, GroupDetailPage, KetePage, KetePostPage, ProfilePage, SettingsPage, HostingPage, UsersPage, LoginPage
+  - [ ] Migrate event/group/kete sub-components (EventCard, KeteCard, etc.) — these still use CSS classes
+  - [ ] Swap forms to react-hook-form + zod (LoginPage, ProfilePage edit, EventForm, message board, comment forms)
+  - [ ] Clean up old CSS from index.css — remove migrated sections (Button, Badge, Modal, Toast, Skeleton, EmptyState, Giving, Directory CSS blocks)
+  - [ ] NotificationPanel and SearchPanel — migrate inline SVGs to Lucide
 - [ ] Phase 2: Real-time group chat (upgrade message boards to live chat)
 - [ ] Phase 3: Direct messaging (1:1 conversations)
 - [ ] Phase 4: Notifications (FCM push, Web Notifications — will need Cloud Functions init)
@@ -89,6 +94,33 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Cloud Functions not yet initialised (no functions/ dir). RTDB status unknown. Neither blocks Phase 1
 - Ready to build Phase 1 next session
 
+### 2026-04-17 — Autopilot Session (overnight)
+**Status:** Completed 5 of 8 tasks, context limit reached during page migration
+**Build:** Clean (`npm run build` passes)
+
+**Completed:**
+- Installed all Phase 1 deps: tailwindcss v4 (@tailwindcss/vite), clsx, tailwind-merge, lucide-react, react-hook-form, zod
+- Configured Tailwind v4 in Vite — `@theme` block in `src/styles/app.css` maps all existing CSS custom properties (colors, fonts, shadows, radii) to Tailwind utilities
+- Created `src/utils/cn.ts` — clsx + tailwind-merge utility
+- Migrated layout components: AppHeader, BottomNav, DesktopSidebar — all inline SVGs replaced with Lucide React icons. Kept structural CSS class names (app-header, bottom-nav, desktop-sidebar, etc.) because they're referenced by the responsive grid layout in styles.css
+- Migrated all 8 common components to Tailwind: Button (cn() variants), Modal (Lucide X), Toast (Lucide X, variant classes), Badge (rounded-full pills), Avatar (size classes), EmptyState (Lucide icon map), Skeleton (animate-pulse), PullToRefresh (Lucide ArrowDown/Loader2)
+- Migrated 3 page components: HomePage (gradient hero, Lucide quick actions), GivingPage (full Tailwind layout), DirectoryPage (Tailwind search/cards)
+- 3 atomic git commits
+
+**Not completed (continue next session):**
+- Remaining 10 page components need Tailwind migration
+- Event/group/kete sub-components (EventCard, KeteCard, etc.) still use CSS classes
+- Forms not yet migrated to react-hook-form + zod
+- CSS cleanup of index.css (migrated sections still present but unused)
+- DESIGN.md not created yet
+- NotificationPanel/SearchPanel SVGs not migrated
+
+**Architecture notes for next session:**
+- `src/styles/app.css` is the new entry point (imported in main.tsx). It imports tailwindcss, defines @theme, then imports styles.css and index.css for legacy compatibility
+- Layout CSS in styles.css (grid, sidebar, bottom-nav positioning) is STRUCTURAL and must be kept. The class names `app-header`, `bottom-nav`, `desktop-sidebar`, `#app-view`, `#app-main` are load-bearing for responsive layout
+- Common components now use Tailwind classes exclusively — their CSS blocks in index.css can be safely removed
+- Page CSS blocks in index.css for GivingPage, DirectoryPage can be removed. HomePage still uses some app-dashboard/app-quick-action CSS classes from styles.css
+
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
 - **Firestore for chat, RTDB for presence only** — hybrid approach
@@ -104,7 +136,7 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - **No budget/timeline constraints** from client
 
 ## Known Issues
-- Vanilla CSS (59KB) needs migrating to Tailwind v4
+- Vanilla CSS partially migrated to Tailwind v4 — ~40% of CSS blocks still need migration
 - NotificationPanel and SearchPanel components are stubbed but not functional
 - manifest.json start_url points to ./portal.html instead of / (needs fixing)
 - Message board reactions data model exists but UI not built
