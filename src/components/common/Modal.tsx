@@ -1,5 +1,7 @@
 import { useEffect, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
+import { cn } from '@/utils/cn'
 
 interface ModalProps {
   isOpen: boolean
@@ -10,6 +12,12 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg'
 }
 
+const sizeClasses: Record<string, string> = {
+  sm: 'max-w-sm',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl'
+}
+
 export function Modal({
   isOpen,
   onClose,
@@ -18,11 +26,8 @@ export function Modal({
   footer,
   size = 'md'
 }: ModalProps) {
-  // Handle escape key
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose()
-    }
+    if (e.key === 'Escape') onClose()
   }, [onClose])
 
   useEffect(() => {
@@ -30,7 +35,6 @@ export function Modal({
       document.addEventListener('keydown', handleKeyDown)
       document.body.style.overflow = 'hidden'
     }
-
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = ''
@@ -41,28 +45,31 @@ export function Modal({
 
   return createPortal(
     <div
-      className="modal-overlay open"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1000] animate-in fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className={`modal modal-${size}`} tabIndex={-1}>
-        <div className="modal-header">
-          <h3 id="modal-title" className="modal-title">{title}</h3>
+      <div
+        className={cn(
+          'bg-white rounded-lg w-full max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4',
+          sizeClasses[size]
+        )}
+        tabIndex={-1}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-cream-dark">
+          <h3 id="modal-title" className="text-xl font-medium text-forest m-0">{title}</h3>
           <button
-            className="modal-close"
+            className="p-1.5 rounded-md text-text-light hover:bg-cream hover:text-text-primary transition-colors cursor-pointer"
             onClick={onClose}
             aria-label="Close modal"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X size={20} />
           </button>
         </div>
-        <div className="modal-body">{children}</div>
-        {footer && <div className="modal-footer">{footer}</div>}
+        <div className="p-6">{children}</div>
+        {footer && <div className="px-6 pb-6">{footer}</div>}
       </div>
     </div>,
     document.body

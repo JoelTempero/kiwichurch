@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { X } from 'lucide-react'
+import { cn } from '@/utils/cn'
 
 type ToastType = 'default' | 'success' | 'error' | 'warning'
 
@@ -22,6 +24,13 @@ export function useToast() {
   return context
 }
 
+const typeClasses: Record<ToastType, string> = {
+  default: 'bg-forest',
+  success: 'bg-green-800',
+  error: 'bg-red-600',
+  warning: 'bg-amber-600'
+}
+
 interface ToastProviderProps {
   children: ReactNode
 }
@@ -32,8 +41,6 @@ export function ToastProvider({ children }: ToastProviderProps) {
   const showToast = useCallback((message: string, type: ToastType = 'default') => {
     const id = Math.random().toString(36).substring(7)
     setToasts((prev) => [...prev, { id, message, type }])
-
-    // Auto-remove after 4 seconds
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
     }, 4000)
@@ -46,27 +53,27 @@ export function ToastProvider({ children }: ToastProviderProps) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="toast-container" id="toast-container">
+      <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-[2000] flex flex-col gap-2 md:bottom-8 md:right-8 md:left-auto md:translate-x-0">
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`toast toast-${toast.type}`}
+            className={cn(
+              'flex items-center gap-3 px-4 py-3 text-white rounded-md shadow-lg animate-in slide-in-from-bottom-4',
+              typeClasses[toast.type]
+            )}
             onClick={() => removeToast(toast.id)}
             role="alert"
           >
-            <span className="toast-message">{toast.message}</span>
+            <span>{toast.message}</span>
             <button
-              className="toast-close"
+              className="p-0.5 hover:opacity-80 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation()
                 removeToast(toast.id)
               }}
               aria-label="Close"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <X size={16} />
             </button>
           </div>
         ))}

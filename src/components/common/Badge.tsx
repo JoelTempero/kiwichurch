@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { cn } from '@/utils/cn'
 
 type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info'
 
@@ -8,30 +9,22 @@ interface BadgeProps {
   className?: string
 }
 
-const variantStyles: Record<BadgeVariant, { bg: string; color: string }> = {
-  default: { bg: 'var(--color-cream-dark)', color: 'var(--color-text)' },
-  success: { bg: '#dcfce7', color: '#166534' },
-  warning: { bg: '#fef3c7', color: '#92400e' },
-  error: { bg: '#fee2e2', color: '#dc2626' },
-  info: { bg: '#dbeafe', color: '#1d4ed8' }
+const variantClasses: Record<BadgeVariant, string> = {
+  default: 'bg-cream-dark text-text-primary',
+  success: 'bg-green-100 text-green-800',
+  warning: 'bg-amber-100 text-amber-800',
+  error: 'bg-red-100 text-red-600',
+  info: 'bg-blue-100 text-blue-700'
 }
 
-export function Badge({ variant = 'default', children, className = '' }: BadgeProps) {
-  const styles = variantStyles[variant]
-
+export function Badge({ variant = 'default', children, className }: BadgeProps) {
   return (
     <span
-      className={`badge badge-${variant} ${className}`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '0.25rem 0.75rem',
-        borderRadius: '100px',
-        fontSize: '0.75rem',
-        fontWeight: 500,
-        backgroundColor: styles.bg,
-        color: styles.color
-      }}
+      className={cn(
+        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+        variantClasses[variant],
+        className
+      )}
     >
       {children}
     </span>

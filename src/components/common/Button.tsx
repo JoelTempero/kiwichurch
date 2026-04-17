@@ -1,4 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { Loader2 } from 'lucide-react'
+import { cn } from '@/utils/cn'
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md' | 'lg'
@@ -11,40 +13,49 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode
 }
 
+const variantClasses: Record<ButtonVariant, string> = {
+  primary: 'bg-terracotta text-white hover:bg-terracotta-dark',
+  secondary: 'bg-forest text-white hover:bg-forest-light',
+  outline: 'bg-transparent border-2 border-forest text-forest hover:bg-forest hover:text-white',
+  ghost: 'bg-transparent text-text-primary hover:bg-cream',
+  danger: 'bg-red-600 text-white hover:bg-red-700'
+}
+
+const sizeClasses: Record<ButtonSize, string> = {
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-5 py-2.5 text-base',
+  lg: 'px-7 py-3 text-lg'
+}
+
 export function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
   icon,
   children,
-  className = '',
+  className,
   disabled,
   ...props
 }: ButtonProps) {
-  const classes = [
-    'btn',
-    `btn-${variant}`,
-    size !== 'md' ? `btn-${size}` : '',
-    className
-  ].filter(Boolean).join(' ')
-
   return (
     <button
-      className={classes}
+      className={cn(
+        'inline-flex items-center justify-center gap-2 rounded-md font-body font-medium transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed',
+        variantClasses[variant],
+        sizeClasses[size],
+        className
+      )}
       disabled={loading || disabled}
       {...props}
     >
       {loading ? (
-        <span className="btn-loading">
-          <svg className="btn-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" opacity="0.25" />
-            <path d="M12 2a10 10 0 0 1 10 10" />
-          </svg>
+        <>
+          <Loader2 size={16} className="animate-spin" />
           Loading...
-        </span>
+        </>
       ) : (
         <>
-          {icon && <span className="btn-icon">{icon}</span>}
+          {icon}
           {children}
         </>
       )}

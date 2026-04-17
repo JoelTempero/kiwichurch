@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { cn } from '@/utils/cn'
 
 interface AvatarProps {
   src?: string | null
@@ -7,16 +8,15 @@ interface AvatarProps {
   className?: string
 }
 
-const sizeMap = {
-  sm: 32,
-  md: 40,
-  lg: 56,
-  xl: 80
+const sizeClasses: Record<string, string> = {
+  sm: 'size-8 text-xs',
+  md: 'size-10 text-sm',
+  lg: 'size-14 text-xl',
+  xl: 'size-20 text-2xl'
 }
 
-export function Avatar({ src, name = '?', size = 'md', className = '' }: AvatarProps) {
+export function Avatar({ src, name = '?', size = 'md', className }: AvatarProps) {
   const [imgError, setImgError] = useState(false)
-  const pixels = sizeMap[size]
   const initials = name
     .split(' ')
     .map(n => n[0])
@@ -28,21 +28,12 @@ export function Avatar({ src, name = '?', size = 'md', className = '' }: AvatarP
 
   return (
     <div
-      className={`avatar avatar-${size} ${className}`}
-      style={{
-        width: pixels,
-        height: pixels,
-        minWidth: pixels,
-        borderRadius: '50%',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: showImage ? 'transparent' : 'var(--color-sage-light)',
-        color: 'var(--color-forest)',
-        fontWeight: 600,
-        fontSize: pixels * 0.4
-      }}
+      className={cn(
+        'flex items-center justify-center rounded-full shrink-0 font-semibold overflow-hidden',
+        showImage ? 'bg-transparent' : 'bg-sage-light text-forest',
+        sizeClasses[size],
+        className
+      )}
     >
       {showImage ? (
         <img
@@ -50,7 +41,7 @@ export function Avatar({ src, name = '?', size = 'md', className = '' }: AvatarP
           alt={name}
           loading="lazy"
           onError={() => setImgError(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          className="size-full object-cover"
         />
       ) : (
         initials

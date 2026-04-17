@@ -1,5 +1,7 @@
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react'
+import { ArrowDown, Loader2 } from 'lucide-react'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { cn } from '@/utils/cn'
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void> | void
@@ -12,7 +14,7 @@ export function PullToRefresh({
   onRefresh,
   children,
   disabled = false,
-  className = ''
+  className
 }: PullToRefreshProps) {
   const {
     isPulling,
@@ -30,47 +32,34 @@ export function PullToRefresh({
   return (
     <div
       ref={containerRef}
-      className={`pull-to-refresh-container ${className}`}
+      className={cn('relative min-h-full overflow-y-auto', className)}
       style={{
         transform: showIndicator ? `translateY(${pullDistance}px)` : undefined,
-        transition: !isPulling ? 'transform 0.3s ease-out' : undefined
+        transition: !isPulling ? 'transform 0.3s ease-out' : undefined,
+        WebkitOverflowScrolling: 'touch'
       }}
     >
-      {/* Pull indicator */}
       <div
-        className={`pull-indicator ${showIndicator ? 'pull-indicator-visible' : ''}`}
+        className={cn(
+          'absolute -top-15 left-0 right-0 flex flex-col items-center justify-center gap-2 p-4 pointer-events-none z-10 transition-all',
+          showIndicator && 'pointer-events-auto'
+        )}
         style={{
           transform: `translateY(${showIndicator ? 0 : -60}px)`,
           opacity: showIndicator ? 1 : 0
         }}
       >
         <div
-          className={`pull-indicator-spinner ${isRefreshing ? 'pull-indicator-refreshing' : ''}`}
-          style={{
-            transform: `rotate(${pullProgress * 360}deg)`
-          }}
+          className="flex items-center justify-center text-forest"
+          style={{ transform: isRefreshing ? undefined : `rotate(${pullProgress * 360}deg)` }}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            width="24"
-            height="24"
-          >
-            {isRefreshing ? (
-              // Spinning loader
-              <path d="M12 2v4m0 12v4m-8-10H2m20 0h-4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-            ) : (
-              // Arrow down
-              <>
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <polyline points="19 12 12 19 5 12" />
-              </>
-            )}
-          </svg>
+          {isRefreshing ? (
+            <Loader2 size={24} className="animate-spin" />
+          ) : (
+            <ArrowDown size={24} />
+          )}
         </div>
-        <span className="pull-indicator-text">
+        <span className="text-sm text-text-light">
           {isRefreshing
             ? 'Refreshing...'
             : pullProgress >= 1

@@ -1,15 +1,19 @@
+import { cn } from '@/utils/cn'
+
 interface SkeletonProps {
   variant?: 'text' | 'circular' | 'rectangular' | 'card'
   width?: string | number
   height?: string | number
   count?: number
+  className?: string
 }
 
 export function Skeleton({
   variant = 'text',
   width,
   height,
-  count = 1
+  count = 1,
+  className
 }: SkeletonProps) {
   const style = {
     width: width || (variant === 'circular' ? '40px' : '100%'),
@@ -22,12 +26,12 @@ export function Skeleton({
     return (
       <>
         {items.map((i) => (
-          <div key={i} className="skeleton-card">
-            <div className="skeleton skeleton-rectangular" style={{ height: '120px' }} />
-            <div className="skeleton-card-content">
-              <div className="skeleton skeleton-text" style={{ width: '60%' }} />
-              <div className="skeleton skeleton-text" style={{ width: '80%' }} />
-              <div className="skeleton skeleton-text" style={{ width: '40%' }} />
+          <div key={i} className="rounded-lg overflow-hidden bg-white shadow-sm">
+            <div className={cn('animate-pulse bg-cream-dark', className)} style={{ height: '120px' }} />
+            <div className="p-4 space-y-2">
+              <div className="animate-pulse bg-cream-dark rounded h-4 w-3/5" />
+              <div className="animate-pulse bg-cream-dark rounded h-4 w-4/5" />
+              <div className="animate-pulse bg-cream-dark rounded h-4 w-2/5" />
             </div>
           </div>
         ))}
@@ -40,7 +44,12 @@ export function Skeleton({
       {items.map((i) => (
         <div
           key={i}
-          className={`skeleton skeleton-${variant}`}
+          className={cn(
+            'animate-pulse bg-cream-dark',
+            variant === 'circular' ? 'rounded-full' : 'rounded',
+            variant === 'text' && 'mb-2',
+            className
+          )}
           style={style}
         />
       ))}
@@ -50,14 +59,14 @@ export function Skeleton({
 
 export function EventCardSkeleton() {
   return (
-    <div className="app-event-card skeleton-event-card">
-      <div className="app-event-date">
-        <div className="skeleton skeleton-text" style={{ width: '24px', height: '28px' }} />
-        <div className="skeleton skeleton-text" style={{ width: '32px', height: '14px' }} />
+    <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+      <div className="flex flex-col items-center">
+        <div className="animate-pulse bg-cream-dark rounded w-6 h-7" />
+        <div className="animate-pulse bg-cream-dark rounded w-8 h-3.5 mt-1" />
       </div>
-      <div className="app-event-info" style={{ flex: 1 }}>
-        <div className="skeleton skeleton-text" style={{ width: '70%', marginBottom: '8px' }} />
-        <div className="skeleton skeleton-text" style={{ width: '50%' }} />
+      <div className="flex-1">
+        <div className="animate-pulse bg-cream-dark rounded h-4 w-[70%] mb-2" />
+        <div className="animate-pulse bg-cream-dark rounded h-4 w-1/2" />
       </div>
     </div>
   )
@@ -65,12 +74,12 @@ export function EventCardSkeleton() {
 
 export function GatheringCardSkeleton() {
   return (
-    <div className="gathering-card skeleton-gathering-card">
-      <div className="gathering-card-header skeleton" style={{ height: '80px' }} />
-      <div className="gathering-card-body">
-        <div className="skeleton skeleton-text" style={{ width: '60%', marginBottom: '8px' }} />
-        <div className="skeleton skeleton-text" style={{ width: '100%', marginBottom: '4px' }} />
-        <div className="skeleton skeleton-text" style={{ width: '80%' }} />
+    <div className="rounded-lg overflow-hidden bg-white shadow-sm">
+      <div className="animate-pulse bg-cream-dark h-20" />
+      <div className="p-4 space-y-2">
+        <div className="animate-pulse bg-cream-dark rounded h-4 w-3/5" />
+        <div className="animate-pulse bg-cream-dark rounded h-4 w-full" />
+        <div className="animate-pulse bg-cream-dark rounded h-4 w-4/5" />
       </div>
     </div>
   )
