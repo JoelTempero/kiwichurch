@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kiwi Church Portal - Brainstorm & Design</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --surface: #1a1f2e;
+    --surface-hover: #232940;
+    --border: #2a3144;
+    --text: #e4e8f1;
+    --text-muted: #8b95a8;
+    --accent: #4ade80;
+    --accent-dim: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --forest: #2d6b4f;
+    --forest-light: #3d8b66;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 2rem; margin-bottom: 0.5rem; color: var(--accent); }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  h3 { font-size: 1.15rem; margin: 1.5rem 0 0.75rem; color: var(--text); }
+  p { margin-bottom: 0.75rem; }
+  .subtitle { color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; margin-right: 0.4rem; }
+  .tag-green { background: #16a34a22; color: var(--accent); border: 1px solid #16a34a55; }
+  .tag-yellow { background: #f59e0b22; color: var(--warning); border: 1px solid #f59e0b55; }
+  .tag-red { background: #ef444422; color: var(--danger); border: 1px solid #ef444455; }
+  .tag-blue { background: #3b82f622; color: var(--info); border: 1px solid #3b82f655; }
+  .tag-grey { background: #6b728022; color: var(--text-muted); border: 1px solid #6b728055; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+  .card h3 { margin: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { font-size: 0.95rem; }
+  tr:hover td { background: var(--surface-hover); }
+
+  .approach {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+  .approach.recommended { border-color: var(--accent-dim); box-shadow: 0 0 0 1px var(--accent-dim); }
+  .approach.recommended::before {
+    content: "RECOMMENDED";
+    position: absolute;
+    top: -10px;
+    right: 16px;
+    background: var(--accent-dim);
+    color: #000;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+  }
+
+  .pro-con { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem; }
+  .pro-con ul { list-style: none; padding: 0; }
+  .pro-con li { padding: 0.25rem 0; padding-left: 1.5rem; position: relative; font-size: 0.9rem; }
+  .pro-con .pros li::before { content: "+"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+  .pro-con .cons li::before { content: "-"; position: absolute; left: 0; color: var(--danger); font-weight: 700; }
+
+  .phase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+  .phase-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  .phase-card h4 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1rem; }
+  .phase-card ul { padding-left: 1.25rem; margin: 0; }
+  .phase-card li { font-size: 0.9rem; margin-bottom: 0.25rem; }
+  .phase-card .effort { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem; }
+
+  details { margin-bottom: 0.5rem; }
+  summary {
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  summary:hover { background: var(--surface-hover); }
+  details[open] summary { border-radius: 8px 8px 0 0; border-bottom-color: transparent; }
+  details .content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 1rem;
+  }
+
+  .callout {
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    border-left: 4px solid;
+  }
+  .callout-info { background: #3b82f612; border-color: var(--info); }
+  .callout-warning { background: #f59e0b12; border-color: var(--warning); }
+  .callout-success { background: #22c55e12; border-color: var(--accent-dim); }
+  .callout-danger { background: #ef444412; border-color: var(--danger); }
+  .callout strong { display: block; margin-bottom: 0.25rem; }
+
+  .decision { margin: 1.5rem 0; }
+  .decision-q { font-weight: 600; color: var(--info); margin-bottom: 0.5rem; }
+
+  ul.checklist { list-style: none; padding-left: 0; }
+  ul.checklist li { padding: 0.3rem 0; padding-left: 1.75rem; position: relative; }
+  ul.checklist li::before { content: "\2610"; position: absolute; left: 0; color: var(--text-muted); }
+
+  .gap-table td:first-child { font-weight: 600; white-space: nowrap; }
+  .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<h1>Kiwi Church Community Platform</h1>
+<p class="subtitle">Brainstorm & Design Review - 17 April 2026</p>
+
+<div class="callout callout-success">
+  <strong>TL;DR</strong>
+  The existing portal already covers ~70% of the client's requirements. We don't need to start from scratch. The recommended approach is to <strong>modernise the existing codebase</strong> (migrate to Tailwind v4, add react-hook-form + zod) and <strong>build the missing features on top</strong> (real-time chat, global search, push notifications, polls, moderation). This saves months of work and keeps everything Joel's already built.
+</div>
+
+<!-- ============================================ -->
+<h2>1. What the Client Wants</h2>
+
+<p>The client document describes a <strong>private community platform</strong> for Kiwi Church members. Think "church Slack" — groups, messaging, file sharing, events, and content, all in one place. Key themes:</p>
+
+<table>
+  <tr><th>Theme</th><th>Summary</th><th>Priority</th></tr>
+  <tr><td>Community groups</td><td>WhatsApp-style group communication for leadership, events, manaakitanga groups</td><td><span class="tag tag-red">Must have</span></td></tr>
+  <tr><td>Real-time messaging</td><td>1:1 and group chat with threads, reactions, mentions</td><td><span class="tag tag-red">Must have</span></td></tr>
+  <tr><td>File sharing</td><td>Upload docs/images/video per group, drag-and-drop, previews</td><td><span class="tag tag-red">Must have</span></td></tr>
+  <tr><td>Events & RSVPs</td><td>Create events, RSVP, link to calendar</td><td><span class="tag tag-green">Already built</span></td></tr>
+  <tr><td>Notifications</td><td>Push (mobile), desktop, customisable, mentions/priority alerts</td><td><span class="tag tag-yellow">High</span></td></tr>
+  <tr><td>Content / Kete</td><td>Blog-style posts, announcements, easy website content updates</td><td><span class="tag tag-green">Already built</span></td></tr>
+  <tr><td>Search</td><td>Global search across messages, users, files, with filters</td><td><span class="tag tag-yellow">High</span></td></tr>
+  <tr><td>Polls & surveys</td><td>In-group polling and feedback collection</td><td><span class="tag tag-blue">Medium</span></td></tr>
+  <tr><td>Moderation</td><td>Content moderation, reporting, flagging, audit logs</td><td><span class="tag tag-yellow">High</span></td></tr>
+  <tr><td>Security</td><td>Private groups, role-based access, potentially E2E encryption, 2FA</td><td><span class="tag tag-yellow">High</span></td></tr>
+  <tr><td>Multi-device</td><td>Phone, tablet, laptop — seamless transition</td><td><span class="tag tag-green">Already built (PWA)</span></td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2>2. What's Already Built</h2>
+
+<p>The existing codebase is <strong>surprisingly complete</strong>. Here's the audit:</p>
+
+<table class="gap-table">
+  <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Auth system</td><td><span class="tag tag-green">Complete</span></td><td>Email/password, username, password reset, role-based (admin/host/member)</td></tr>
+  <tr><td>User profiles</td><td><span class="tag tag-green">Complete</span></td><td>Photo, bio, phone, avatar upload, password change</td></tr>
+  <tr><td>Member directory</td><td><span class="tag tag-green">Complete</span></td><td>Alphabetical, search, index nav</td></tr>
+  <tr><td>Groups (Gatherings)</td><td><span class="tag tag-green">Complete</span></td><td>CRUD, join/leave, public/private, message boards</td></tr>
+  <tr><td>Group message boards</td><td><span class="tag tag-green">Complete</span></td><td>Posts with attachments, comments — but not real-time chat</td></tr>
+  <tr><td>Events + RSVPs</td><td><span class="tag tag-green">Complete</span></td><td>CRUD, calendar/list view, RSVP with guests, real-time updates</td></tr>
+  <tr><td>Kete (blog/content)</td><td><span class="tag tag-green">Complete</span></td><td>Rich text (Quill), featured images, publish workflow, comments</td></tr>
+  <tr><td>Giving page</td><td><span class="tag tag-green">Complete</span></td><td>Static bank details</td></tr>
+  <tr><td>File uploads</td><td><span class="tag tag-green">Complete</span></td><td>Images, docs, with size limits and validation</td></tr>
+  <tr><td>PWA</td><td><span class="tag tag-green">Complete</span></td><td>Service worker, manifest, offline persistence, install prompt</td></tr>
+  <tr><td>Admin tools</td><td><span class="tag tag-green">Complete</span></td><td>User management, hosting panel, role management</td></tr>
+  <tr><td>Firestore rules</td><td><span class="tag tag-green">Complete</span></td><td>Role-based, per-collection, helper functions</td></tr>
+  <tr><td>Real-time chat</td><td><span class="tag tag-red">Missing</span></td><td>Message boards exist, but no live chat UX</td></tr>
+  <tr><td>1:1 messaging</td><td><span class="tag tag-red">Missing</span></td><td>No direct messaging at all</td></tr>
+  <tr><td>Threaded conversations</td><td><span class="tag tag-red">Missing</span></td><td>Comments exist but not chat-style threads</td></tr>
+  <tr><td>Message reactions</td><td><span class="tag tag-yellow">Stubbed</span></td><td>Data model has reactions field, UI not built</td></tr>
+  <tr><td>@mentions</td><td><span class="tag tag-red">Missing</span></td><td>No mention system</td></tr>
+  <tr><td>Push notifications</td><td><span class="tag tag-red">Missing</span></td><td>Notification model exists, no FCM integration</td></tr>
+  <tr><td>Desktop notifications</td><td><span class="tag tag-red">Missing</span></td><td>No Web Notification API</td></tr>
+  <tr><td>Global search</td><td><span class="tag tag-yellow">Stubbed</span></td><td>Search panel UI exists, not functional</td></tr>
+  <tr><td>Polls / surveys</td><td><span class="tag tag-red">Missing</span></td><td>Not built at all</td></tr>
+  <tr><td>Moderation tools</td><td><span class="tag tag-red">Missing</span></td><td>No reporting, flagging, or audit logs</td></tr>
+  <tr><td>2FA</td><td><span class="tag tag-grey">Deferred</span></td><td>Firebase supports it but adds friction — recommend post-launch</td></tr>
+  <tr><td>E2E encryption</td><td><span class="tag tag-grey">Deferred</span></td><td>Massive complexity, not realistic for v1</td></tr>
+  <tr><td>Tailwind CSS</td><td><span class="tag tag-red">Missing</span></td><td>Currently vanilla CSS (59KB). Needs migration to match our standard stack</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2>3. Approaches</h2>
+
+<div class="approach">
+  <h3>A. Full Rebuild from Scratch</h3>
+  <p>Throw away the existing code. Scaffold a new Vite + React + TS + Tailwind v4 project. Rebuild everything following the CMS-Portal-Backend playbook from Phase 1.</p>
+  <div class="pro-con">
+    <div class="pros">
+      <strong style="color: var(--accent); font-size: 0.85rem;">PROS</strong>
+      <ul>
+        <li>Clean architecture from day one</li>
+        <li>Tailwind v4, react-hook-form + zod, cn() utility from the start</li>
+        <li>Modern folder structure matching playbook exactly</li>
+        <li>No legacy CSS to untangle</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <strong style="color: var(--danger); font-size: 0.85rem;">CONS</strong>
+      <ul>
+        <li>Wastes months of existing work (~12 pages, ~27 components, full service layer)</li>
+        <li>The Firebase backend (rules, collections, types) doesn't change either way</li>
+        <li>Significantly more expensive in time and tokens</li>
+        <li>Violates Joel's core principle: "edit, don't rewrite"</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="approach recommended">
+  <h3>B. Modernise + Extend (Evolve the Existing Codebase)</h3>
+  <p>Keep the existing app. Migrate styling from vanilla CSS to Tailwind v4. Add react-hook-form + zod for forms. Then build the missing features (chat, search, notifications, polls, moderation) on top of what's already working.</p>
+  <div class="pro-con">
+    <div class="pros">
+      <strong style="color: var(--accent); font-size: 0.85rem;">PROS</strong>
+      <ul>
+        <li>Preserves all working features — events, groups, kete, auth, directory, admin</li>
+        <li>Firebase backend (rules, types, services) stays as-is</li>
+        <li>Faster to ship v1 — only building what's actually missing</li>
+        <li>Incremental and deployable at every step</li>
+        <li>Lower token cost and less risk of regressions</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <strong style="color: var(--danger); font-size: 0.85rem;">CONS</strong>
+      <ul>
+        <li>CSS migration is tedious (59KB of vanilla CSS to convert)</li>
+        <li>Existing code may need some refactoring to accommodate new features</li>
+        <li>Won't perfectly match the playbook folder structure</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="approach">
+  <h3>C. Hybrid: New Shell, Port Features</h3>
+  <p>Scaffold a new Tailwind v4 project shell (layout, routing, auth). Then port existing feature logic (services, hooks, types, stores) directly — they're well-structured and mostly framework-agnostic. Rebuild only the UI components in Tailwind.</p>
+  <div class="pro-con">
+    <div class="pros">
+      <strong style="color: var(--accent); font-size: 0.85rem;">PROS</strong>
+      <ul>
+        <li>Clean Tailwind foundation without CSS migration headaches</li>
+        <li>Preserves the valuable backend layer (services, hooks, types, stores)</li>
+        <li>Fresh UI that matches our current design standards</li>
+        <li>Structured like a rebuild, priced like a migration</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <strong style="color: var(--danger); font-size: 0.85rem;">CONS</strong>
+      <ul>
+        <li>More work than Approach B (rebuilding all UI components)</li>
+        <li>Risk of subtle regressions in ported logic</li>
+        <li>Porting is tedious — lots of copy-paste-adapt</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="callout callout-info">
+  <strong>Recommendation: Approach B (Modernise + Extend)</strong>
+  The existing codebase is solid. The service layer, hooks, types, and stores are well-architected. The only real weakness is the vanilla CSS. A Tailwind migration is tedious but straightforward, and it's far less work than rebuilding 27 components and 12 pages from scratch. The new features (chat, search, notifications) are independent enough to bolt on cleanly.
+</div>
+
+<!-- ============================================ -->
+<h2>4. Key Design Decisions (For Joel)</h2>
+
+<div class="decision">
+  <div class="decision-q">1. Real-time chat: Firestore or Firebase Realtime Database?</div>
+  <div class="card">
+    <p><strong>Recommendation: Firestore</strong> for messages, <strong>RTDB</strong> for presence/typing indicators only.</p>
+    <p>Firestore gives us better querying (search messages by date, user, content), offline persistence, and security rules we already know. RTDB is better for ephemeral real-time state like "Joel is typing..." and online/offline presence. This hybrid approach is what Firebase themselves recommend.</p>
+    <p><strong>Cost consideration:</strong> Firestore charges per read. A busy group chat could generate lots of reads. Mitigations: paginate message history (load last 50, scroll to load more), use <code>onSnapshot</code> for live updates (only charges for new/changed docs), and set up Firestore bundle caching for frequently accessed channels.</p>
+  </div>
+</div>
+
+<div class="decision">
+  <div class="decision-q">2. 1:1 messaging: How to model it?</div>
+  <div class="card">
+    <p><strong>Recommendation:</strong> A <code>conversations</code> collection with a sorted participant pair as the document ID (e.g., <code>uid1_uid2</code> where uid1 &lt; uid2). Messages as a subcollection. This makes it easy to look up "does a conversation between these two users exist?" and avoids duplicates.</p>
+    <p>Each user gets a <code>conversationMeta</code> subcollection on their user doc for inbox display (last message preview, unread count, timestamp) — denormalised for fast list rendering.</p>
+  </div>
+</div>
+
+<div class="decision">
+  <div class="decision-q">3. Push notifications: What's the plan?</div>
+  <div class="card">
+    <p><strong>Recommendation: Firebase Cloud Messaging (FCM)</strong> via a Cloud Function triggered on new messages/events/announcements. The PWA already supports service workers, so adding push notification support is a natural extension.</p>
+    <p>Requires: a Cloud Function to send notifications, FCM token management (store per-user device tokens in Firestore), and user permission prompts in the app.</p>
+    <p><strong>Desktop notifications:</strong> Use the Web Notification API alongside FCM for when the app is open in a browser tab.</p>
+  </div>
+</div>
+
+<div class="decision">
+  <div class="decision-q">4. Global search: Client-side or server-side?</div>
+  <div class="card">
+    <p><strong>Recommendation: Client-side for v1</strong> with a path to Algolia/Typesense later if needed.</p>
+    <p>For a community of likely &lt;500 members, client-side search across users and recent messages is fast enough. Use Firestore's <code>where</code> + <code>orderBy</code> for basic text matching, and TanStack Query's client-side filtering for loaded data. If the community grows significantly, add Algolia (Firebase has a native Algolia extension).</p>
+  </div>
+</div>
+
+<div class="decision">
+  <div class="decision-q">5. E2E encryption and 2FA?</div>
+  <div class="card">
+    <p><strong>Recommendation: Defer both to post-launch.</strong></p>
+    <p>E2E encryption is a massive engineering effort (key management, key rotation, multi-device sync) that's overkill for a church community app. Firestore security rules + HTTPS + Firebase Auth already provide strong security. If the client specifically asks, we can add it for private channels later using the Web Crypto API.</p>
+    <p>2FA via Firebase Auth is straightforward to add later but adds friction for a community app. Recommend making it optional and admin-configurable post-launch.</p>
+  </div>
+</div>
+
+<div class="decision">
+  <div class="decision-q">6. CSS migration strategy?</div>
+  <div class="card">
+    <p><strong>Recommendation: Incremental migration.</strong> Install Tailwind v4 alongside the existing CSS. New components and pages use Tailwind from the start. Existing components get migrated page-by-page as we touch them. Delete old CSS rules as they're replaced.</p>
+    <p>This avoids a "big bang" migration that could break everything, and means every commit is deployable.</p>
+  </div>
+</div>
+
+<div class="decision">
+  <div class="decision-q">7. What about the static HTML pages in the root?</div>
+  <div class="card">
+    <p><strong>Recommendation: Keep them for now, plan to replace.</strong> The client mentions "shift current website connection over to the new one" in their rollout plan. The static HTML pages (about.html, calendar.html, etc.) are the current public website. Eventually the portal becomes the primary destination, but that's a later phase. For now, don't touch them.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<h2>5. Subsystem Decomposition</h2>
+
+<p>This project is too large for a single spec. Here are the independent subsystems, in recommended build order:</p>
+
+<div class="phase-grid">
+  <div class="phase-card">
+    <h4>Phase 1: Foundation Modernisation</h4>
+    <ul>
+      <li>Install Tailwind v4 alongside existing CSS</li>
+      <li>Add react-hook-form + zod</li>
+      <li>Add cn() utility (clsx + tailwind-merge)</li>
+      <li>Migrate layout components to Tailwind first</li>
+      <li>Add Lucide React icons</li>
+      <li>Verify all existing features still work</li>
+    </ul>
+    <div class="effort"><span class="tag tag-blue">Effort: Medium</span> ~2-3 sessions</div>
+  </div>
+
+  <div class="phase-card">
+    <h4>Phase 2: Real-Time Group Chat</h4>
+    <ul>
+      <li>Upgrade group message boards to real-time chat UX</li>
+      <li>Chat input with file attachments</li>
+      <li>Message reactions (emoji picker)</li>
+      <li>@mentions with autocomplete</li>
+      <li>Threaded replies</li>
+      <li>Typing indicators (RTDB)</li>
+      <li>Unread message counts</li>
+    </ul>
+    <div class="effort"><span class="tag tag-red">Effort: Large</span> ~4-6 sessions</div>
+  </div>
+
+  <div class="phase-card">
+    <h4>Phase 3: Direct Messaging</h4>
+    <ul>
+      <li>Conversations collection + data model</li>
+      <li>DM inbox with conversation list</li>
+      <li>1:1 chat view (reuse group chat components)</li>
+      <li>Start conversation from directory/profile</li>
+      <li>Unread counts in navigation</li>
+    </ul>
+    <div class="effort"><span class="tag tag-yellow">Effort: Medium</span> ~2-3 sessions</div>
+  </div>
+
+  <div class="phase-card">
+    <h4>Phase 4: Notifications System</h4>
+    <ul>
+      <li>Cloud Function for FCM push notifications</li>
+      <li>FCM token management per device</li>
+      <li>Web Notification API for desktop</li>
+      <li>Notification preferences (per-channel muting)</li>
+      <li>Priority alerts for @mentions</li>
+      <li>Complete the existing NotificationPanel UI</li>
+    </ul>
+    <div class="effort"><span class="tag tag-yellow">Effort: Medium</span> ~2-3 sessions</div>
+  </div>
+
+  <div class="phase-card">
+    <h4>Phase 5: Global Search</h4>
+    <ul>
+      <li>Complete the existing SearchPanel component</li>
+      <li>Search across: messages, users, files, events, kete</li>
+      <li>Filters: date range, user, channel/group, content type</li>
+      <li>Search result previews with navigation</li>
+      <li>Recent searches</li>
+    </ul>
+    <div class="effort"><span class="tag tag-blue">Effort: Medium</span> ~1-2 sessions</div>
+  </div>
+
+  <div class="phase-card">
+    <h4>Phase 6: Polls & Engagement</h4>
+    <ul>
+      <li>Poll creation within groups</li>
+      <li>Single/multi-choice, anonymous option</li>
+      <li>Real-time vote counts</li>
+      <li>Announcements (admin broadcast to all/specific groups)</li>
+      <li>Discussion forums (structured threads vs chat)</li>
+    </ul>
+    <div class="effort"><span class="tag tag-blue">Effort: Medium</span> ~1-2 sessions</div>
+  </div>
+
+  <div class="phase-card">
+    <h4>Phase 7: Moderation & Admin</h4>
+    <ul>
+      <li>Content reporting and flagging</li>
+      <li>Moderation queue for reported content</li>
+      <li>Message edit/delete for moderators</li>
+      <li>Audit log (all admin actions)</li>
+      <li>User suspension capability</li>
+      <li>Add moderator role to existing role system</li>
+    </ul>
+    <div class="effort"><span class="tag tag-yellow">Effort: Medium</span> ~2-3 sessions</div>
+  </div>
+
+  <div class="phase-card">
+    <h4>Phase 8: Polish & Launch Prep</h4>
+    <ul>
+      <li>Complete Tailwind migration for remaining pages</li>
+      <li>Mobile responsiveness audit</li>
+      <li>Accessibility audit (WCAG 2.1 AA)</li>
+      <li>Security audit (Firestore rules, storage rules)</li>
+      <li>Performance optimisation</li>
+      <li>Client testing invite (prototype phase)</li>
+    </ul>
+    <div class="effort"><span class="tag tag-yellow">Effort: Medium</span> ~2-3 sessions</div>
+  </div>
+</div>
+
+<div class="callout callout-warning">
+  <strong>Total estimated effort: ~16-25 sessions</strong>
+  <p>This is a significant project. The client's rollout plan (prototype &rarr; invite groups &rarr; go live) aligns well with incremental delivery. We can ship after Phase 4 (chat + DMs + notifications) for the prototype testing phase, then layer on search, polls, and moderation before going fully live.</p>
+</div>
+
+<!-- ============================================ -->
+<h2>6. Proposed Data Model (New Collections)</h2>
+
+<p>These are the new Firestore collections needed alongside the existing ones:</p>
+
+<details>
+  <summary>conversations (1:1 direct messages)</summary>
+  <div class="content">
+<pre style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+conversations/{conversationId}
+  participants: string[]          // [uid1, uid2] sorted
+  participantNames: Record&lt;string, string&gt;
+  lastMessage: {
+    content: string
+    senderId: string
+    timestamp: Timestamp
+  }
+  createdAt: Timestamp
+  updatedAt: Timestamp
+
+  messages/{messageId}
+    senderId: string
+    senderName: string
+    senderPhotoURL: string
+    content: string
+    attachmentURL?: string
+    attachmentType?: 'image' | 'document' | 'video'
+    readBy: Record&lt;string, Timestamp&gt;
+    createdAt: Timestamp
+    editedAt?: Timestamp
+</pre>
+  </div>
+</details>
+
+<details>
+  <summary>chatMessages (group channel messages - upgrade of existing board posts)</summary>
+  <div class="content">
+<pre style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+gatherings/{gatheringId}/messages/{messageId}
+  senderId: string
+  senderName: string
+  senderPhotoURL: string
+  content: string
+  attachmentURL?: string
+  attachmentType?: 'image' | 'document' | 'video'
+  threadId?: string              // parent message ID for threads
+  threadCount?: number           // reply count (denormalised on parent)
+  reactions: Record&lt;string, string[]&gt;  // emoji -> [userIds]
+  mentions: string[]             // mentioned user IDs
+  pinned: boolean
+  edited: boolean
+  editedAt?: Timestamp
+  createdAt: Timestamp
+</pre>
+  </div>
+</details>
+
+<details>
+  <summary>polls</summary>
+  <div class="content">
+<pre style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+gatherings/{gatheringId}/polls/{pollId}
+  question: string
+  options: { id: string, text: string }[]
+  multiSelect: boolean
+  anonymous: boolean
+  closesAt?: Timestamp
+  createdBy: string
+  createdAt: Timestamp
+
+  votes/{oderId}
+    optionIds: string[]
+    createdAt: Timestamp
+</pre>
+  </div>
+</details>
+
+<details>
+  <summary>reports (moderation)</summary>
+  <div class="content">
+<pre style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+reports/{reportId}
+  reporterId: string
+  targetType: 'message' | 'post' | 'comment' | 'user'
+  targetId: string
+  targetCollectionPath: string   // full path to the reported document
+  reason: string
+  status: 'pending' | 'reviewed' | 'actioned' | 'dismissed'
+  reviewedBy?: string
+  reviewedAt?: Timestamp
+  action?: 'deleted' | 'warned' | 'suspended' | 'none'
+  createdAt: Timestamp
+</pre>
+  </div>
+</details>
+
+<details>
+  <summary>auditLog</summary>
+  <div class="content">
+<pre style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+auditLog/{logId}
+  action: 'create' | 'update' | 'delete' | 'suspend' | 'unsuspend' | 'role_change' | 'moderate'
+  actorId: string
+  actorName: string
+  targetType: string
+  targetId: string
+  description: string
+  metadata?: Record&lt;string, any&gt;
+  createdAt: Timestamp
+</pre>
+  </div>
+</details>
+
+<details>
+  <summary>presence (Firebase Realtime Database, not Firestore)</summary>
+  <div class="content">
+<pre style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+/presence/{userId}
+  online: boolean
+  lastSeen: number (timestamp)
+  typing?: {
+    channelId: string
+    timestamp: number
+  }
+</pre>
+  </div>
+</details>
+
+<!-- ============================================ -->
+<h2>7. Rollout Plan (Aligned with Client's Process)</h2>
+
+<p>The client specified: <strong>Prototype &rarr; Small group test &rarr; Roll out to groups &rarr; Go live &rarr; Decommission old site.</strong></p>
+
+<table>
+  <tr><th>Client Phase</th><th>Our Phases</th><th>What's Shippable</th></tr>
+  <tr>
+    <td><strong>Prototype</strong><br><span style="color: var(--text-muted)">Small group test</span></td>
+    <td>Phases 1-4</td>
+    <td>Modernised portal + group chat + DMs + push notifications. Enough for a real group to test daily use.</td>
+  </tr>
+  <tr>
+    <td><strong>Roll out</strong><br><span style="color: var(--text-muted)">Invite groups</span></td>
+    <td>Phases 5-6</td>
+    <td>Add global search and polls based on prototype feedback. Invite leadership, manaakitanga groups, event teams.</td>
+  </tr>
+  <tr>
+    <td><strong>Go live</strong><br><span style="color: var(--text-muted)">Full community</span></td>
+    <td>Phases 7-8</td>
+    <td>Moderation tools, security audit, accessibility audit, performance polish. Open to all members.</td>
+  </tr>
+  <tr>
+    <td><strong>Post-launch</strong><br><span style="color: var(--text-muted)">Decommission old site</span></td>
+    <td>Future</td>
+    <td>Migrate static HTML pages into portal. Optional: 2FA, E2E encryption, calendar integration, guest access.</td>
+  </tr>
+</table>
+
+<!-- ============================================ -->
+<h2>8. Open Questions for Joel</h2>
+
+<ul class="checklist">
+  <li><strong>Approach confirmation:</strong> Are you happy with Approach B (modernise + extend)? Or would you prefer Approach C (new shell, port logic)?</li>
+  <li><strong>Cloud Functions:</strong> The push notification system needs Cloud Functions. Is that already set up for this Firebase project, or do we need to initialise it?</li>
+  <li><strong>Realtime Database:</strong> Typing indicators need RTDB. Is that enabled on the kiwichurch-1ef0f project?</li>
+  <li><strong>Guest access:</strong> The client mentions "external guests (optional/limited access)". Do we want to plan for this now or defer?</li>
+  <li><strong>Calendar integration:</strong> The client wants "link to online calendar." Does this mean Google Calendar integration, or just a calendar view in the app (which we already have)?</li>
+  <li><strong>Video uploads:</strong> The client mentions video file sharing. Firebase Storage can handle this, but we need to think about size limits and transcoding. Defer to post-launch?</li>
+  <li><strong>Design system:</strong> Should we create a DESIGN.md for this project? The existing UI has a nice forest green / cream palette. Do we keep that direction or refresh?</li>
+  <li><strong>Budget/timeline:</strong> Is there a client deadline or budget that should inform scoping? Some features could be deferred.</li>
+</ul>
+
+<!-- ============================================ -->
+<div class="footer">
+  <p>Prepared by Claude Code for Joel Tempero, Sidequest Digital. 17 April 2026.</p>
+  <p>Based on: client requirements document (ref/), existing codebase audit, CMS-Portal-Backend playbook, Joel's working profile.</p>
+</div>
+
+</body>
+</html>
