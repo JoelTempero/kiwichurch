@@ -1,13 +1,13 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Calendar, Users, BookOpen, User } from 'lucide-react'
+import { Home, Calendar, Users, MessageCircle, BookOpen } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 const navItems: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/home', label: 'Home', icon: Home },
   { to: '/events', label: 'Events', icon: Calendar },
   { to: '/groups', label: 'Groups', icon: Users },
-  { to: '/kete', label: 'Kete', icon: BookOpen },
-  { to: '/profile', label: 'Profile', icon: User }
+  { to: '/messages', label: 'Messages', icon: MessageCircle },
+  { to: '/kete', label: 'Kete', icon: BookOpen }
 ]
 
 export function BottomNav() {

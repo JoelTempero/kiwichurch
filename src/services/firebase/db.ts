@@ -32,7 +32,10 @@ import type {
   KetePost,
   KeteComment,
   KeteQueryOptions,
-  Notification
+  Notification,
+  Conversation,
+  ConversationParticipant,
+  DirectMessage
 } from '@/types'
 
 // Helper to convert Firestore doc to typed object
@@ -594,6 +597,146 @@ export const dbService = {
     return onSnapshot(q, snapshot => {
       const notifications = snapshot.docs.map(doc => docToObject<Notification>(doc))
       callback(notifications)
+    })
+  },
+
+  // ============================================
+  // DIRECT MESSAGES
+  // ============================================
+
+  getConversationId(userIdA: string, userIdB: string): string {
+    return [userIdA, userIdB].sort().join('_')
+  },
+
+  async getOrCreateConversation(
+    currentUserId: string,
+    currentUser: ConversationParticipant,
+    otherUserId: string,
+    otherUser: ConversationParticipant
+  ): Promise<Conversation> {
+    const conversationId = this.getConversationId(currentUserId, otherUserId)
+    const docRef = doc(db, 'conversations', conversationId)
+    const docSnap = await getDoc(docRef)
+
+    if (docSnap.exists()) {
+      return docToObject<Conversation>(docSnap)
+    }
+
+    const timestamp = serverTimestamp()
+    const conversationData = {
+      participantIds: [currentUserId, otherUserId].sort(),
+      participants: {
+        [currentUserId]: currentUser,
+        [otherUserId]: otherUser,
+      },
+      lastReadAt: {
+        [currentUserId]: timestamp,
+        [otherUserId]: timestamp,
+      },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    await setDoc(docRef, conversationData)
+    return { id: conversationId, ...conversationData } as unknown as Conversation
+  },
+
+  async getConversation(conversationId: string): Promise<Conversation | null> {
+    const docSnap = await getDoc(doc(db, 'conversations', conversationId))
+    return docSnap.exists() ? docToObject<Conversation>(docSnap) : null
+  },
+
+  async getUserConversations(userId: string): Promise<Conversation[]> {
+    const q = query(
+      collection(db, 'conversations'),
+      where('participantIds', 'array-contains', userId),
+      orderBy('updatedAt', 'desc')
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(d => docToObject<Conversation>(d))
+  },
+
+  async getMessages(conversationId: string, messageLimit = 50): Promise<DirectMessage[]> {
+    const q = query(
+      collection(db, 'conversations', conversationId, 'messages'),
+      orderBy('createdAt', 'asc'),
+      limit(messageLimit)
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(d => docToObject<DirectMessage>(d))
+  },
+
+  async sendMessage(
+    conversationId: string,
+    messageData: Omit<DirectMessage, 'id' | 'conversationId' | 'createdAt'>
+  ): Promise<DirectMessage> {
+    const timestamp = serverTimestamp()
+    const batch = writeBatch(db)
+
+    const msgRef = doc(collection(db, 'conversations', conversationId, 'messages'))
+    batch.set(msgRef, {
+      ...messageData,
+      conversationId,
+      createdAt: timestamp,
+    })
+
+    const convRef = doc(db, 'conversations', conversationId)
+    batch.update(convRef, {
+      lastMessage: {
+        content: messageData.content,
+        senderId: messageData.senderId,
+        senderName: messageData.senderName,
+        createdAt: timestamp,
+      },
+      updatedAt: timestamp,
+    })
+
+    await batch.commit()
+    return { id: msgRef.id, ...messageData, conversationId } as DirectMessage
+  },
+
+  async markConversationRead(conversationId: string, userId: string): Promise<void> {
+    await updateDoc(doc(db, 'conversations', conversationId), {
+      [`lastReadAt.${userId}`]: serverTimestamp(),
+    })
+  },
+
+  subscribeToConversations(userId: string, callback: (conversations: Conversation[]) => void): Unsubscribe {
+    const q = query(
+      collection(db, 'conversations'),
+      where('participantIds', 'array-contains', userId),
+      orderBy('updatedAt', 'desc')
+    )
+    return onSnapshot(q, snapshot => {
+      const conversations = snapshot.docs.map(d => docToObject<Conversation>(d))
+      callback(conversations)
+    })
+  },
+
+  subscribeToMessages(conversationId: string, callback: (messages: DirectMessage[]) => void): Unsubscribe {
+    const q = query(
+      collection(db, 'conversations', conversationId, 'messages'),
+      orderBy('createdAt', 'asc')
+    )
+    return onSnapshot(q, snapshot => {
+      const messages = snapshot.docs.map(d => docToObject<DirectMessage>(d))
+      callback(messages)
+    })
+  },
+
+  async createDmNotification(
+    recipientId: string,
+    senderName: string,
+    conversationId: string,
+    snippet: string
+  ): Promise<void> {
+    await addDoc(collection(db, 'notifications'), {
+      userId: recipientId,
+      type: 'direct_message' as const,
+      title: `${senderName} sent you a message`,
+      message: snippet.length > 80 ? snippet.slice(0, 80) + '...' : snippet,
+      link: `/messages/${conversationId}`,
+      read: false,
+      createdAt: serverTimestamp(),
     })
   }
 }

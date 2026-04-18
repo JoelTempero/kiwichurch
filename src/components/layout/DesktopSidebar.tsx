@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Calendar, Users, BookOpen, Heart, Settings, UserPlus, BookMarked, SlidersHorizontal } from 'lucide-react'
+import { Home, Calendar, Users, MessageCircle, BookOpen, Heart, Settings, UserPlus, BookMarked, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import type { LucideIcon } from 'lucide-react'
 
@@ -13,6 +13,7 @@ const mainNavItems: NavItem[] = [
   { to: '/home', label: 'Home', icon: Home },
   { to: '/events', label: 'Events', icon: Calendar },
   { to: '/groups', label: 'Groups', icon: Users },
+  { to: '/messages', label: 'Messages', icon: MessageCircle },
   { to: '/kete', label: 'Kete', icon: BookOpen },
   { to: '/giving', label: 'Giving', icon: Heart }
 ]

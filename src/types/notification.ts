@@ -7,6 +7,7 @@ export type NotificationType =
   | 'new_comment'
   | 'mention'
   | 'group_invite'
+  | 'direct_message'
   | 'system'
 
 export interface Notification {
