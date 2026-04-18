@@ -52,7 +52,7 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Emulators configured: Auth (9099), Firestore (8080), Storage (9199), Hosting (5000)
 
 ## Current Progress
-- Portal app fully built with 14 pages, 28 components, full service layer, hooks, types, stores
+- Portal app fully built with 16 pages, 28 components, full service layer, hooks, types, stores
 - Auth system complete (email/password, username, role-based)
 - Events + RSVPs, Groups + message boards, Kete (blog), Directory, Giving, Admin tools all functional
 - Firebase security rules comprehensive (role-based per collection)
@@ -63,7 +63,10 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - styles.css (3,133 lines) still contains structural layout CSS (grid, sidebar, bottom-nav) — load-bearing
 - Group message boards upgraded with real-time comments, @mentions with notifications, and inline replies
 - Direct messaging system complete with real-time 1:1 conversations, @mentions, unread tracking
-- No Cloud Functions yet. No push notifications (in-app mention notifications only)
+- Web Notifications API for browser-level alerts when tab is backgrounded
+- Polls and emoji reactions on group message boards
+- Content reporting and moderation queue for admins/hosts
+- No Cloud Functions yet. FCM deferred — Web Notifications API covers v1 use case
 
 ## Next Steps
 - [x] **Phase 1: Foundation modernisation** (COMPLETE — DESIGN.md deferred to design phase)
@@ -99,11 +102,36 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
   - [x] Fixed notification create rule to allow client-side writes (was `allow create: if false`)
   - [x] DM notification: recipient gets notified on new message
   - New files: `src/types/directMessage.ts`, `src/hooks/useDirectMessages.ts`, `src/pages/DirectMessagesPage.tsx`, `src/pages/ConversationPage.tsx`
-- [ ] Phase 4: Notifications (FCM push, Web Notifications — will need Cloud Functions init)
-- [ ] Phase 5: Global search
-- [ ] Phase 6: Polls & engagement
-- [ ] Phase 7: Moderation & admin tools
-- [ ] Phase 8: Polish & launch prep
+- [x] **Phase 4: Notifications** (COMPLETE)
+  - [x] Activated real-time notification subscription in AppLayout (was defined but not called)
+  - [x] Added `direct_message` type to NotificationPanel icon map
+  - [x] Web Notifications API: browser-level notifications when tab is backgrounded
+  - [x] Settings page: real notification permission UI (enable/blocked/granted states)
+  - [x] New file: `src/utils/webNotifications.ts`
+- [x] **Phase 5: Global search** (COMPLETE — already built)
+  - [x] SearchPanel with debounced search across events, kete, groups, users
+  - [x] Ctrl+K keyboard shortcut, Escape to close
+  - [x] Already fully functional from prior work
+- [x] **Phase 6: Polls & engagement** (COMPLETE)
+  - [x] Poll creation in group post form (2-5 options)
+  - [x] Poll display with percentage bars, one vote per user
+  - [x] 6 emoji reactions (❤️ 🙏 👍 😂 🎉 😢) with toggle and counts
+  - [x] Service methods: `votePoll`, `addReaction` (toggle)
+  - [x] `BoardPoll` type added to gathering.ts
+- [x] **Phase 7: Moderation & admin tools** (PARTIAL)
+  - [x] Report type with reason, status, target tracking
+  - [x] `ModerationPage` for admins/hosts with Pending/Reviewed/All tabs
+  - [x] Report service methods and TanStack Query hooks
+  - [x] Firestore security rules for reports collection
+  - [x] Moderation nav item in admin sidebar
+  - [ ] Report button on BoardPost/comments (deferred — needs UI integration)
+  - [ ] Member blocking (deferred)
+- [x] **Phase 8: Polish & launch prep** (PARTIAL)
+  - [x] Fixed manifest.json start_url (./portal.html → /)
+  - [x] Fixed manifest shortcut URLs
+  - [ ] Accessibility audit (deferred)
+  - [ ] styles.css unused CSS audit (deferred)
+  - [ ] Unread badge on Messages nav item (deferred)
 
 ## Session Log
 ### 2026-04-17
@@ -201,6 +229,25 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Message deletion UI
 - Typing indicators (would need RTDB or presence system)
 - Message pagination (currently loads up to 50 messages)
+
+### 2026-04-19 — Autopilot Session: Phases 4-8
+**Status:** Completed Phases 4-6 fully, Phase 7 partially, Phase 8 partially. Context limit reached.
+**Build:** Clean
+
+**Completed:**
+- Phase 4: Real-time notification subscription activated, Web Notifications API with browser permission management, DM notification type added
+- Phase 5: Verified SearchPanel already fully functional (no changes needed)
+- Phase 6: Polls (2-5 options, vote tracking, percentage bars) + emoji reactions (6 presets, toggle) on BoardPost
+- Phase 7: Report type, ModerationPage (admin tabs), Firestore rules, service methods + hooks
+- Phase 8: Fixed manifest.json start_url and shortcut URLs
+
+**Deferred (needs next session):**
+- Report button UI on BoardPost/comments/KetePost (moderation backend is ready, just needs the trigger button)
+- Member blocking feature
+- Accessibility audit (heading hierarchy, focus states, keyboard nav)
+- styles.css unused CSS audit
+- Unread badge on Messages nav item
+- Dark mode sync to Firestore
 
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
