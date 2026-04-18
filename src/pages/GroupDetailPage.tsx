@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   useGathering,
   useGatheringMembers,
+  useGatheringMemberProfiles,
   useBoardPosts,
   useBoardPostsSubscription,
   useJoinGathering,
@@ -28,6 +29,7 @@ export function GroupDetailPage() {
 
   const { data: gathering, isLoading: loadingGathering } = useGathering(groupId || null)
   const { data: members = [] } = useGatheringMembers(groupId || null)
+  const { data: memberProfiles = [] } = useGatheringMemberProfiles(groupId || null)
   const { data: posts = [], isLoading: loadingPosts } = useBoardPosts(groupId || null)
 
   useBoardPostsSubscription(groupId || null)
@@ -41,10 +43,10 @@ export function GroupDetailPage() {
   }, [members, user?.id])
 
   const mentionMembers: MentionMember[] = useMemo(() => {
-    return members
+    return memberProfiles
       .filter(m => m.id !== user?.id)
-      .map(m => ({ id: m.id, displayName: (m as any).displayName || m.id }))
-  }, [members, user?.id])
+      .map(m => ({ id: m.id, displayName: m.displayName, photoURL: m.photoURL }))
+  }, [memberProfiles, user?.id])
 
   const handleMentionsChange = useCallback((mentions: Map<string, string>) => {
     setPostMentions(mentions)

@@ -163,6 +163,21 @@ export const dbService = {
     return snapshot.docs.map(doc => docToObject<GatheringMember>(doc))
   },
 
+  async getGatheringMembersWithProfiles(gatheringId: string): Promise<Array<{ id: string; displayName: string; photoURL?: string }>> {
+    const members = await this.getGatheringMembers(gatheringId)
+    const profiles = await Promise.all(
+      members.map(async (member) => {
+        const userDoc = await getDoc(doc(db, 'users', member.id))
+        if (userDoc.exists()) {
+          const data = userDoc.data()
+          return { id: member.id, displayName: data.displayName || member.id, photoURL: data.photoURL }
+        }
+        return { id: member.id, displayName: member.id }
+      })
+    )
+    return profiles
+  },
+
   async getUserGatherings(userId: string): Promise<Gathering[]> {
     const gatherings = await this.getGatherings()
     const userGatherings: Gathering[] = []

@@ -45,6 +45,15 @@ export function useGatheringMembers(gatheringId: string | null) {
   })
 }
 
+// Get gathering members with user profiles (for mention dropdowns)
+export function useGatheringMemberProfiles(gatheringId: string | null) {
+  return useQuery({
+    queryKey: [...gatheringKeys.members(gatheringId || ''), 'profiles'],
+    queryFn: () => dbService.getGatheringMembersWithProfiles(gatheringId!),
+    enabled: !!gatheringId
+  })
+}
+
 // Get user's gatherings
 export function useUserGatherings(userId: string | null) {
   return useQuery({
