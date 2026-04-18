@@ -52,7 +52,7 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Emulators configured: Auth (9099), Firestore (8080), Storage (9199), Hosting (5000)
 
 ## Current Progress
-- Portal app fully built with 12 pages, 27 components, full service layer, hooks, types, stores
+- Portal app fully built with 14 pages, 28 components, full service layer, hooks, types, stores
 - Auth system complete (email/password, username, role-based)
 - Events + RSVPs, Groups + message boards, Kete (blog), Directory, Giving, Admin tools all functional
 - Firebase security rules comprehensive (role-based per collection)
@@ -62,6 +62,7 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Legacy CSS cleaned up — index.css reduced from 3,386 to 35 lines (loading styles only)
 - styles.css (3,133 lines) still contains structural layout CSS (grid, sidebar, bottom-nav) — load-bearing
 - Group message boards upgraded with real-time comments, @mentions with notifications, and inline replies
+- Direct messaging system complete with real-time 1:1 conversations, @mentions, unread tracking
 - No Cloud Functions yet. No push notifications (in-app mention notifications only)
 
 ## Next Steps
@@ -85,7 +86,19 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
   - [x] Member profile enrichment for mention dropdown (fetches displayName from users collection)
   - [x] New files: `src/utils/mentions.ts`, `src/components/common/MentionInput.tsx`
   - [x] Modified: types, db service, hooks, BoardPost, GroupDetailPage
-- [ ] Phase 3: Direct messaging (1:1 conversations)
+- [x] **Phase 3: Direct messaging** (COMPLETE)
+  - [x] `Conversation` and `DirectMessage` types with denormalized `lastMessage` for inbox preview
+  - [x] Deterministic conversation IDs: `[idA, idB].sort().join('_')` — deduplicates conversations
+  - [x] DB service: `getOrCreateConversation`, `sendMessage` (batch write: message + lastMessage update), `markConversationRead`, real-time subscriptions
+  - [x] TanStack Query hooks: `useConversations`, `useMessages`, `useSendMessage`, `useMarkConversationRead` + subscription hooks
+  - [x] `DirectMessagesPage`: conversation list with unread badges, time formatting, member picker for new conversations
+  - [x] `ConversationPage`: chat bubble UI, @mentions via MentionInput, date separators, auto-scroll, mark-as-read on open
+  - [x] Routes: `/messages` and `/messages/:conversationId` (lazy loaded)
+  - [x] Navigation: Messages (MessageCircle) added to BottomNav (replaced Profile) and DesktopSidebar
+  - [x] Firestore security rules: conversations collection with participant-only access, messages subcollection
+  - [x] Fixed notification create rule to allow client-side writes (was `allow create: if false`)
+  - [x] DM notification: recipient gets notified on new message
+  - New files: `src/types/directMessage.ts`, `src/hooks/useDirectMessages.ts`, `src/pages/DirectMessagesPage.tsx`, `src/pages/ConversationPage.tsx`
 - [ ] Phase 4: Notifications (FCM push, Web Notifications — will need Cloud Functions init)
 - [ ] Phase 5: Global search
 - [ ] Phase 6: Polls & engagement
@@ -160,6 +173,34 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Build + typecheck clean, 11 atomic commits
 - Code review caught and fixed: stateful regex bug, unbounded batch write, cursor typo, @-trigger regex
 - **Deferred to later:** N+1 profile fetches could be batched, `useGatheringMemberProfiles` could be conditional on membership, comment schema in `schemas.ts` not updated with reply/mention fields
+
+### 2026-04-19 — Autopilot Session: Phase 3 — Direct Messaging
+**Status:** Completed 8 of 8 tasks
+**Build:** Clean
+
+**Completed:**
+- Defined `Conversation` and `DirectMessage` types with denormalized `lastMessage` and `lastReadAt` for unread tracking
+- Added 10 DM service methods to `db.ts`: CRUD, real-time subscriptions, `getOrCreateConversation` with deterministic IDs
+- Created `useDirectMessages.ts` hook file with full TanStack Query integration (6 hooks)
+- Built `DirectMessagesPage` with conversation list, unread badges, new conversation member picker
+- Built `ConversationPage` with chat bubble UI, @mentions, date separators, auto-scroll
+- Added lazy-loaded routes and Messages nav item to BottomNav + DesktopSidebar
+- Added Firestore security rules for conversations collection (participant-only access)
+- Fixed existing notification rule bug (`allow create: if false` → allows client-side notification creation)
+- Committed Phase 1/2 uncommitted form migrations and Phase 3 as separate commits
+
+**Architecture decisions:**
+- Deterministic conversation IDs (`sorted_ids.join('_')`) prevent duplicate conversations
+- `lastMessage` denormalized on conversation doc for fast inbox rendering without reading messages subcollection
+- `lastReadAt` per-participant timestamps for unread tracking (compare vs lastMessage.createdAt)
+- Removed Profile from BottomNav to keep 5 items; Profile still accessible via DesktopSidebar
+- Notification create rule fixed — was blocking all client-side notification writes from Phase 2
+
+**Deferred:**
+- Unread count badge on Messages nav item (needs subscription at app level)
+- Message deletion UI
+- Typing indicators (would need RTDB or presence system)
+- Message pagination (currently loads up to 50 messages)
 
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
