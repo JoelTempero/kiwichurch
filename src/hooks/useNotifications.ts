@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { dbService } from '@/services/firebase'
-// types imported from @/types as needed
+import { showNotification } from '@/utils/webNotifications'
+import type { Notification } from '@/types'
 
 // Query keys
 export const notificationKeys = {
@@ -24,12 +25,24 @@ export function useNotifications(userId: string | null, options: { unreadOnly?: 
 // Subscribe to real-time notifications
 export function useNotificationsSubscription(userId: string | null) {
   const queryClient = useQueryClient()
+  const prevIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (!userId) return
 
-    const unsubscribe = dbService.subscribeToNotifications(userId, (notifications) => {
+    const unsubscribe = dbService.subscribeToNotifications(userId, (notifications: Notification[]) => {
       queryClient.setQueryData(notificationKeys.unread(userId), notifications)
+
+      for (const notif of notifications) {
+        if (!prevIdsRef.current.has(notif.id) && !notif.read) {
+          showNotification(notif.title, {
+            body: notif.message,
+            tag: notif.id,
+            data: { link: notif.link },
+          })
+        }
+      }
+      prevIdsRef.current = new Set(notifications.map(n => n.id))
     })
 
     return unsubscribe

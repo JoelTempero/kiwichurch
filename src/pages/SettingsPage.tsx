@@ -1,15 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { Button, EmptyState } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { Users, Calendar, BookOpen } from 'lucide-react'
+import {
+  isNotificationSupported,
+  getNotificationPermission,
+  requestNotificationPermission,
+} from '@/utils/webNotifications'
 
 export function SettingsPage() {
   const { user, isAdmin } = useAuth()
   const { showToast } = useToast()
   const [darkMode, setDarkMode] = useState(false)
-  const [notifications, setNotifications] = useState(true)
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>(
+    getNotificationPermission()
+  )
   const [emailUpdates, setEmailUpdates] = useState(true)
+
+  useEffect(() => {
+    setNotifPermission(getNotificationPermission())
+  }, [])
 
   if (!user) {
     return (
@@ -27,7 +38,6 @@ export function SettingsPage() {
     // Save to localStorage for now
     localStorage.setItem('preferences', JSON.stringify({
       darkMode,
-      notifications,
       emailUpdates
     }))
     showToast('Preferences saved', 'success')
@@ -61,18 +71,38 @@ export function SettingsPage() {
 
         <div className="flex items-center justify-between py-3 border-b border-cream last:border-none">
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-text-primary">Push Notifications</h3>
-            <p className="text-xs text-text-light mt-0.5">Receive push notifications</p>
+            <h3 className="text-sm font-semibold text-text-primary">Browser Notifications</h3>
+            <p className="text-xs text-text-light mt-0.5">
+              {notifPermission === 'unsupported'
+                ? 'Not supported in this browser'
+                : notifPermission === 'granted'
+                  ? 'Enabled — you\'ll get notified of new messages and mentions'
+                  : notifPermission === 'denied'
+                    ? 'Blocked — enable in browser settings'
+                    : 'Get notified when you receive messages'}
+            </p>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              className="sr-only peer"
-              checked={notifications}
-              onChange={(e) => setNotifications(e.target.checked)}
-            />
-            <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-forest/30 rounded-full peer-checked:bg-forest transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5" />
-          </label>
+          {notifPermission === 'default' && isNotificationSupported() && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={async () => {
+                const result = await requestNotificationPermission()
+                setNotifPermission(result)
+                if (result === 'granted') {
+                  showToast('Notifications enabled', 'success')
+                }
+              }}
+            >
+              Enable
+            </Button>
+          )}
+          {notifPermission === 'granted' && (
+            <span className="text-xs text-forest font-medium px-2 py-1 bg-forest/10 rounded-full">Enabled</span>
+          )}
+          {notifPermission === 'denied' && (
+            <span className="text-xs text-red-600 font-medium px-2 py-1 bg-red-50 rounded-full">Blocked</span>
+          )}
         </div>
 
         <div className="flex items-center justify-between py-3 border-b border-cream last:border-none">
