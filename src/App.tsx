@@ -23,6 +23,7 @@ const UsersPage = lazy(() => import('@/pages/UsersPage').then(m => ({ default: m
 const DirectoryPage = lazy(() => import('@/pages/DirectoryPage').then(m => ({ default: m.DirectoryPage })))
 const DirectMessagesPage = lazy(() => import('@/pages/DirectMessagesPage').then(m => ({ default: m.DirectMessagesPage })))
 const ConversationPage = lazy(() => import('@/pages/ConversationPage').then(m => ({ default: m.ConversationPage })))
+const ModerationPage = lazy(() => import('@/pages/ModerationPage').then(m => ({ default: m.ModerationPage })))
 
 function PageLoader() {
   return (
@@ -68,6 +69,7 @@ function App() {
             <Route path="/directory" element={<DirectoryPage />} />
             <Route path="/messages" element={<DirectMessagesPage />} />
             <Route path="/messages/:conversationId" element={<ConversationPage />} />
+            <Route path="/moderation" element={<ModerationPage />} />
           </Route>
 
           {/* Fallback */}

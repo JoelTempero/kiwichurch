@@ -18,7 +18,8 @@ const pageTitles: Record<string, string> = {
   '/settings': 'Settings',
   '/users': 'Users',
   '/directory': 'Directory',
-  '/messages': 'Messages'
+  '/messages': 'Messages',
+  '/moderation': 'Moderation'
 }
 
 export function AppHeader({

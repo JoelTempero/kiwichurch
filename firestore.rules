@@ -288,6 +288,24 @@ service cloud.firestore {
     }
 
     // ============================================
+    // REPORTS (Content Moderation)
+    // ============================================
+    match /reports/{reportId} {
+      // Admins and hosts can read all reports
+      allow read: if isAdminOrHost();
+
+      // Any authenticated user can create a report
+      allow create: if isAuthenticated() &&
+        request.resource.data.reporterId == request.auth.uid;
+
+      // Only admins can update report status
+      allow update: if isAdmin();
+
+      // Only admins can delete reports
+      allow delete: if isAdmin();
+    }
+
+    // ============================================
     // CONVERSATIONS (Direct Messages)
     // ============================================
     match /conversations/{conversationId} {

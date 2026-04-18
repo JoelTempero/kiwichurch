@@ -35,7 +35,9 @@ import type {
   Notification,
   Conversation,
   ConversationParticipant,
-  DirectMessage
+  DirectMessage,
+  Report,
+  ReportStatus
 } from '@/types'
 
 // Helper to convert Firestore doc to typed object
@@ -563,6 +565,36 @@ export const dbService = {
     }
 
     await batch.commit()
+  },
+
+  // ============================================
+  // REPORTS (Content Moderation)
+  // ============================================
+
+  async createReport(reportData: Omit<Report, 'id' | 'createdAt'>): Promise<Report> {
+    const docRef = await addDoc(collection(db, 'reports'), {
+      ...reportData,
+      createdAt: serverTimestamp(),
+    })
+    return { id: docRef.id, ...reportData, createdAt: new Date() } as Report
+  },
+
+  async getReports(options?: { status?: ReportStatus }): Promise<Report[]> {
+    const constraints: Parameters<typeof query>[1][] = [orderBy('createdAt', 'desc')]
+    if (options?.status) {
+      constraints.push(where('status', '==', options.status))
+    }
+    const q = query(collection(db, 'reports'), ...constraints)
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(d => docToObject<Report>(d))
+  },
+
+  async updateReportStatus(reportId: string, status: ReportStatus, reviewerId: string): Promise<void> {
+    await updateDoc(doc(db, 'reports', reportId), {
+      status,
+      reviewedBy: reviewerId,
+      reviewedAt: serverTimestamp(),
+    })
   },
 
   // ============================================
