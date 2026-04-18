@@ -180,13 +180,30 @@ export function useCreateBoardPost() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       gatheringId,
+      gatheringName,
       postData
     }: {
       gatheringId: string
+      gatheringName: string
       postData: Omit<BoardPost, 'id' | 'createdAt' | 'updatedAt'>
-    }) => dbService.createBoardPost(gatheringId, postData),
+    }) => {
+      const post = await dbService.createBoardPost(gatheringId, postData)
+
+      if (postData.mentions && postData.mentions.length > 0) {
+        await dbService.createMentionNotifications(postData.mentions, {
+          authorId: postData.authorId,
+          authorName: postData.authorName,
+          gatheringId,
+          gatheringName,
+          postId: post.id,
+          snippet: postData.content.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1'),
+        })
+      }
+
+      return post
+    },
     onSuccess: (_, { gatheringId }) => {
       queryClient.invalidateQueries({ queryKey: gatheringKeys.posts(gatheringId) })
     }
@@ -231,15 +248,33 @@ export function useAddPostComment() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       gatheringId,
+      gatheringName,
       postId,
       commentData
     }: {
       gatheringId: string
+      gatheringName: string
       postId: string
       commentData: Omit<BoardComment, 'id' | 'createdAt'>
-    }) => dbService.addPostComment(gatheringId, postId, commentData),
+    }) => {
+      const comment = await dbService.addPostComment(gatheringId, postId, commentData)
+
+      if (commentData.mentions && commentData.mentions.length > 0) {
+        await dbService.createMentionNotifications(commentData.mentions, {
+          authorId: commentData.authorId,
+          authorName: commentData.authorName,
+          gatheringId,
+          gatheringName,
+          postId,
+          commentId: comment.id,
+          snippet: commentData.content.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1'),
+        })
+      }
+
+      return comment
+    },
     onSuccess: (_, { gatheringId, postId }) => {
       queryClient.invalidateQueries({ queryKey: gatheringKeys.postComments(gatheringId, postId) })
     }
