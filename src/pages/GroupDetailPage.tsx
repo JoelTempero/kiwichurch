@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, MapPin, Users } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,8 +12,10 @@ import {
   useCreateBoardPost
 } from '@/hooks/useGatherings'
 import { BoardPost } from '@/components/groups'
-import { Button, EmptyState, Avatar, Skeleton } from '@/components/common'
+import { Button, EmptyState, Avatar, Skeleton, MentionInput } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
+import { encodeMention, extractMentionIds } from '@/utils/mentions'
+import type { MentionMember } from '@/components/common/MentionInput'
 
 export function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>()
@@ -22,12 +24,12 @@ export function GroupDetailPage() {
   const { showToast } = useToast()
   const [newPostContent, setNewPostContent] = useState('')
   const [isPosting, setIsPosting] = useState(false)
+  const [postMentions, setPostMentions] = useState<Map<string, string>>(new Map())
 
   const { data: gathering, isLoading: loadingGathering } = useGathering(groupId || null)
   const { data: members = [] } = useGatheringMembers(groupId || null)
   const { data: posts = [], isLoading: loadingPosts } = useBoardPosts(groupId || null)
 
-  // Subscribe to real-time updates
   useBoardPostsSubscription(groupId || null)
 
   const joinGathering = useJoinGathering()
@@ -38,12 +40,22 @@ export function GroupDetailPage() {
     return members.some(m => m.id === user?.id)
   }, [members, user?.id])
 
+  const mentionMembers: MentionMember[] = useMemo(() => {
+    return members
+      .filter(m => m.id !== user?.id)
+      .map(m => ({ id: m.id, displayName: (m as any).displayName || m.id }))
+  }, [members, user?.id])
+
+  const handleMentionsChange = useCallback((mentions: Map<string, string>) => {
+    setPostMentions(mentions)
+  }, [])
+
   const handleJoin = async () => {
     if (!user?.id || !groupId) return
     try {
       await joinGathering.mutateAsync({ gatheringId: groupId, userId: user.id })
       showToast('Joined group!', 'success')
-    } catch (error) {
+    } catch {
       showToast('Failed to join group', 'error')
     }
   }
@@ -54,29 +66,42 @@ export function GroupDetailPage() {
     try {
       await leaveGathering.mutateAsync({ gatheringId: groupId, userId: user.id })
       showToast('Left group', 'success')
-    } catch (error) {
+    } catch {
       showToast('Failed to leave group', 'error')
     }
   }
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newPostContent.trim() || !user || !groupId) return
+    if (!newPostContent.trim() || !user || !groupId || !gathering) return
 
     setIsPosting(true)
     try {
+      let content = newPostContent.trim()
+      for (const [displayName, userId] of postMentions) {
+        content = content.replace(
+          new RegExp(`@${displayName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\])`, 'g'),
+          encodeMention(displayName, userId)
+        )
+      }
+
+      const mentionIds = extractMentionIds(content)
+
       await createPost.mutateAsync({
         gatheringId: groupId,
+        gatheringName: gathering.name,
         postData: {
           authorId: user.id,
           authorName: user.displayName,
           authorPhotoURL: user.photoURL,
-          content: newPostContent.trim()
+          content,
+          mentions: mentionIds.length > 0 ? mentionIds : undefined,
         }
       })
       setNewPostContent('')
+      setPostMentions(new Map())
       showToast('Post created!', 'success')
-    } catch (error) {
+    } catch {
       showToast('Failed to create post', 'error')
     } finally {
       setIsPosting(false)
@@ -177,12 +202,16 @@ export function GroupDetailPage() {
           <form onSubmit={handleCreatePost} className="bg-white rounded-lg p-4 shadow-sm mb-6">
             <div className="flex gap-3 mb-3">
               <Avatar src={user?.photoURL} name={user?.displayName} size="md" />
-              <textarea
-                className="w-full px-4 py-3 rounded-sm border border-gray-200 text-base resize-y focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
-                placeholder="Share something with the group..."
+              <MentionInput
                 value={newPostContent}
-                onChange={(e) => setNewPostContent(e.target.value)}
+                onChange={setNewPostContent}
+                onMentionsChange={handleMentionsChange}
+                members={mentionMembers}
+                placeholder="Share something with the group..."
+                disabled={isPosting}
                 rows={3}
+                className="resize-y"
+                ariaLabel="New post content"
               />
             </div>
             <div className="flex justify-end">
@@ -216,6 +245,8 @@ export function GroupDetailPage() {
                   key={post.id}
                   post={post}
                   gatheringId={groupId!}
+                  gatheringName={gathering.name}
+                  members={mentionMembers}
                 />
               ))}
             </div>
