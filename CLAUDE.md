@@ -157,7 +157,9 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Member enrichment: `getGatheringMembersWithProfiles` fetches displayName from users collection
 - New files: `src/utils/mentions.ts`, `src/components/common/MentionInput.tsx`
 - Modified: `gathering.ts` types, `db.ts` service (3 new methods), `useGatherings.ts` hooks (3 new), `BoardPost.tsx` (full rewrite), `GroupDetailPage.tsx` (MentionInput + mention encoding)
-- Build + typecheck clean, 9 atomic commits
+- Build + typecheck clean, 11 atomic commits
+- Code review caught and fixed: stateful regex bug, unbounded batch write, cursor typo, @-trigger regex
+- **Deferred to later:** N+1 profile fetches could be batched, `useGatheringMemberProfiles` could be conditional on membership, comment schema in `schemas.ts` not updated with reply/mention fields
 
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
