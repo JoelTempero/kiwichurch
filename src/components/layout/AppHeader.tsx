@@ -17,7 +17,8 @@ const pageTitles: Record<string, string> = {
   '/hosting': 'Hosting',
   '/settings': 'Settings',
   '/users': 'Users',
-  '/directory': 'Directory'
+  '/directory': 'Directory',
+  '/messages': 'Messages'
 }
 
 export function AppHeader({
@@ -34,6 +35,7 @@ export function AppHeader({
     }
     if (location.pathname.startsWith('/groups/')) return 'Group'
     if (location.pathname.startsWith('/kete/')) return 'Post'
+    if (location.pathname.startsWith('/messages/')) return 'Conversation'
     return 'Home'
   }
 

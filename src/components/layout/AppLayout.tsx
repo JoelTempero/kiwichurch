@@ -6,7 +6,7 @@ import { AppHeader } from './AppHeader'
 import { NotificationPanel } from './NotificationPanel'
 import { SearchPanel } from './SearchPanel'
 import { useAuth } from '@/hooks/useAuth'
-import { useUnreadNotificationCount } from '@/hooks/useNotifications'
+import { useUnreadNotificationCount, useNotificationsSubscription } from '@/hooks/useNotifications'
 import { useKeyboardShortcuts, useNavigationShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 export function AppLayout() {
@@ -15,6 +15,7 @@ export function AppLayout() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const unreadCount = useUnreadNotificationCount(user?.id || null)
+  useNotificationsSubscription(user?.id || null)
 
   const handleSearchClick = () => {
     setShowSearch(true)

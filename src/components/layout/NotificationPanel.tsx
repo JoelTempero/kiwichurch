@@ -44,6 +44,8 @@ function getNotificationIcon(type: Notification['type']): JSX.Element {
       return <MessageCircle size={18} />
     case 'mention':
       return <AtSign size={18} />
+    case 'direct_message':
+      return <MessageCircle size={18} />
     case 'group_invite':
       return <Users size={18} />
     default:
