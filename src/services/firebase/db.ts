@@ -454,6 +454,30 @@ export const dbService = {
     await deleteDoc(doc(db, 'messageBoards', gatheringId, 'posts', postId, 'comments', commentId))
   },
 
+  async votePoll(gatheringId: string, postId: string, userId: string, optionIndex: number): Promise<void> {
+    const postRef = doc(db, 'messageBoards', gatheringId, 'posts', postId)
+    await updateDoc(postRef, {
+      [`poll.votes.${userId}`]: optionIndex,
+      updatedAt: serverTimestamp(),
+    })
+  },
+
+  async addReaction(gatheringId: string, postId: string, emoji: string, userId: string): Promise<void> {
+    const postRef = doc(db, 'messageBoards', gatheringId, 'posts', postId)
+    const postSnap = await getDoc(postRef)
+    if (!postSnap.exists()) return
+    const data = postSnap.data()
+    const reactions = data.reactions || {}
+    const users: string[] = reactions[emoji] || []
+    if (users.includes(userId)) {
+      reactions[emoji] = users.filter((id: string) => id !== userId)
+      if (reactions[emoji].length === 0) delete reactions[emoji]
+    } else {
+      reactions[emoji] = [...users, userId]
+    }
+    await updateDoc(postRef, { reactions, updatedAt: serverTimestamp() })
+  },
+
   // ============================================
   // NOTIFICATIONS
   // ============================================

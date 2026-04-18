@@ -21,6 +21,13 @@ export interface GatheringMember {
   joinedAt: Timestamp | Date
 }
 
+export interface BoardPoll {
+  question: string
+  options: string[]
+  votes: Record<string, number> // userId -> optionIndex
+  allowMultiple?: boolean
+}
+
 export interface BoardPost {
   id: string
   authorId: string
@@ -32,6 +39,7 @@ export interface BoardPost {
   attachmentName?: string
   pinned?: boolean
   reactions?: Record<string, string[]> // emoji -> userIds
+  poll?: BoardPoll
   mentions?: string[]
   createdAt: Timestamp | Date
   updatedAt?: Timestamp | Date

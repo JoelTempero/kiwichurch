@@ -309,3 +309,47 @@ export function useDeletePostComment() {
     }
   })
 }
+
+// Vote on poll
+export function useVotePoll() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      gatheringId,
+      postId,
+      userId,
+      optionIndex,
+    }: {
+      gatheringId: string
+      postId: string
+      userId: string
+      optionIndex: number
+    }) => dbService.votePoll(gatheringId, postId, userId, optionIndex),
+    onSuccess: (_, { gatheringId }) => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.posts(gatheringId) })
+    }
+  })
+}
+
+// Toggle reaction
+export function useToggleReaction() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      gatheringId,
+      postId,
+      emoji,
+      userId,
+    }: {
+      gatheringId: string
+      postId: string
+      emoji: string
+      userId: string
+    }) => dbService.addReaction(gatheringId, postId, emoji, userId),
+    onSuccess: (_, { gatheringId }) => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.posts(gatheringId) })
+    }
+  })
+}

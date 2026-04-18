@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, MapPin, Users } from 'lucide-react'
+import { ChevronLeft, MapPin, Users, BarChart3, Plus, X } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import {
   useGathering,
@@ -26,6 +26,9 @@ export function GroupDetailPage() {
   const [newPostContent, setNewPostContent] = useState('')
   const [isPosting, setIsPosting] = useState(false)
   const [postMentions, setPostMentions] = useState<Map<string, string>>(new Map())
+  const [showPollCreator, setShowPollCreator] = useState(false)
+  const [pollQuestion, setPollQuestion] = useState('')
+  const [pollOptions, setPollOptions] = useState(['', ''])
 
   const { data: gathering, isLoading: loadingGathering } = useGathering(groupId || null)
   const { data: members = [] } = useGatheringMembers(groupId || null)
@@ -89,6 +92,11 @@ export function GroupDetailPage() {
 
       const mentionIds = extractMentionIds(content)
 
+      const validPollOptions = pollOptions.map(o => o.trim()).filter(Boolean)
+      const pollData = showPollCreator && pollQuestion.trim() && validPollOptions.length >= 2
+        ? { question: pollQuestion.trim(), options: validPollOptions, votes: {} }
+        : undefined
+
       await createPost.mutateAsync({
         gatheringId: groupId,
         gatheringName: gathering.name,
@@ -98,10 +106,14 @@ export function GroupDetailPage() {
           authorPhotoURL: user.photoURL,
           content,
           mentions: mentionIds.length > 0 ? mentionIds : undefined,
+          poll: pollData,
         }
       })
       setNewPostContent('')
       setPostMentions(new Map())
+      setShowPollCreator(false)
+      setPollQuestion('')
+      setPollOptions(['', ''])
       showToast('Post created!', 'success')
     } catch {
       showToast('Failed to create post', 'error')
@@ -216,7 +228,72 @@ export function GroupDetailPage() {
                 ariaLabel="New post content"
               />
             </div>
-            <div className="flex justify-end">
+            {showPollCreator && (
+              <div className="mb-3 p-3 bg-cream/50 rounded-md">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-forest flex items-center gap-1.5">
+                    <BarChart3 size={14} /> Poll
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPollCreator(false)}
+                    className="p-0.5 text-text-lighter hover:text-text-primary transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={pollQuestion}
+                  onChange={(e) => setPollQuestion(e.target.value)}
+                  placeholder="Ask a question..."
+                  className="w-full px-3 py-2 border border-sage-light rounded-md text-sm mb-2 focus:outline-none focus:border-forest"
+                />
+                {pollOptions.map((opt, i) => (
+                  <div key={i} className="flex items-center gap-2 mb-1">
+                    <input
+                      type="text"
+                      value={opt}
+                      onChange={(e) => {
+                        const updated = [...pollOptions]
+                        updated[i] = e.target.value
+                        setPollOptions(updated)
+                      }}
+                      placeholder={`Option ${i + 1}`}
+                      className="flex-1 px-3 py-1.5 border border-sage-light rounded-md text-sm focus:outline-none focus:border-forest"
+                    />
+                    {pollOptions.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
+                        className="p-1 text-text-lighter hover:text-red-500 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {pollOptions.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setPollOptions([...pollOptions, ''])}
+                    className="flex items-center gap-1 text-xs text-forest hover:text-forest/80 mt-1 transition-colors"
+                  >
+                    <Plus size={12} /> Add option
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="flex justify-between items-center">
+              <button
+                type="button"
+                onClick={() => setShowPollCreator(!showPollCreator)}
+                className={`flex items-center gap-1.5 text-sm transition-colors ${showPollCreator ? 'text-forest' : 'text-text-light hover:text-forest'}`}
+                title="Add poll"
+              >
+                <BarChart3 size={16} />
+                Poll
+              </button>
               <Button
                 type="submit"
                 variant="primary"

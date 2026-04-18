@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Pin, MoreVertical, Edit, Trash2, MessageCircle, X, Reply } from 'lucide-react'
+import { Pin, MoreVertical, Edit, Trash2, MessageCircle, X, Reply, BarChart3, SmilePlus } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Avatar, Button, MentionInput } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
@@ -9,7 +9,9 @@ import {
   useAddPostComment,
   useUpdateBoardPost,
   useDeleteBoardPost,
-  useDeletePostComment
+  useDeletePostComment,
+  useVotePoll,
+  useToggleReaction
 } from '@/hooks/useGatherings'
 import { useToast } from '@/components/common/Toast'
 import { parseMentions, encodeMention, extractMentionIds } from '@/utils/mentions'
@@ -69,6 +71,8 @@ function ReplyQuote({ comment }: { comment: BoardComment | undefined }) {
   )
 }
 
+const REACTION_EMOJIS = ['❤️', '🙏', '👍', '😂', '🎉', '😢']
+
 export function BoardPost({ post, gatheringId, gatheringName, members, onDelete }: BoardPostProps) {
   const { user, isAdminOrHost } = useAuth()
   const { showToast } = useToast()
@@ -80,6 +84,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(post.content)
   const [replyTo, setReplyTo] = useState<BoardComment | null>(null)
+  const [showReactionPicker, setShowReactionPicker] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const editInputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -96,6 +101,8 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
   const updatePost = useUpdateBoardPost()
   const deletePost = useDeleteBoardPost()
   const deleteComment = useDeletePostComment()
+  const votePoll = useVotePoll()
+  const toggleReaction = useToggleReaction()
 
   const canEdit = user?.id === post.authorId
   const canDelete = user?.id === post.authorId || isAdminOrHost
@@ -317,7 +324,76 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
         )}
       </div>
 
-      <div className="border-t border-cream-dark pt-2">
+      {/* Poll */}
+      {post.poll && (
+        <div className="mb-3 p-3 bg-cream/30 rounded-md">
+          <p className="text-sm font-semibold text-text-primary mb-2 flex items-center gap-1.5">
+            <BarChart3 size={14} className="text-forest" />
+            {post.poll.question}
+          </p>
+          {post.poll.options.map((option, i) => {
+            const totalVotes = Object.keys(post.poll!.votes || {}).length
+            const optionVotes = Object.values(post.poll!.votes || {}).filter(v => v === i).length
+            const pct = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0
+            const userVote = user?.id ? post.poll!.votes?.[user.id] : undefined
+            const hasVoted = userVote !== undefined
+            const isSelected = userVote === i
+
+            return (
+              <button
+                key={i}
+                onClick={() => {
+                  if (!user?.id || hasVoted) return
+                  votePoll.mutate({ gatheringId, postId: post.id, userId: user.id, optionIndex: i })
+                }}
+                disabled={hasVoted}
+                className={cn(
+                  'relative w-full text-left px-3 py-2 mb-1 rounded-md text-sm transition-colors overflow-hidden',
+                  hasVoted ? 'cursor-default' : 'cursor-pointer hover:bg-cream',
+                  isSelected ? 'ring-1 ring-forest/40 font-semibold' : 'border border-sage-light'
+                )}
+              >
+                {hasVoted && (
+                  <div
+                    className="absolute inset-y-0 left-0 bg-forest/10 transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                )}
+                <span className="relative flex justify-between">
+                  <span>{option}</span>
+                  {hasVoted && <span className="text-text-light">{pct}%</span>}
+                </span>
+              </button>
+            )
+          })}
+          <p className="text-xs text-text-lighter mt-1">
+            {Object.keys(post.poll.votes || {}).length} vote{Object.keys(post.poll.votes || {}).length !== 1 ? 's' : ''}
+          </p>
+        </div>
+      )}
+
+      {/* Reactions */}
+      {post.reactions && Object.keys(post.reactions).length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {Object.entries(post.reactions).map(([emoji, userIds]) => (
+            <button
+              key={emoji}
+              onClick={() => user?.id && toggleReaction.mutate({ gatheringId, postId: post.id, emoji, userId: user.id })}
+              className={cn(
+                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors',
+                userIds.includes(user?.id || '')
+                  ? 'border-forest/30 bg-forest/10 text-forest'
+                  : 'border-cream-dark bg-white text-text-light hover:bg-cream'
+              )}
+            >
+              <span>{emoji}</span>
+              <span>{userIds.length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="border-t border-cream-dark pt-2 flex items-center gap-3">
         <button
           className="flex items-center gap-1.5 text-sm text-text-light hover:text-forest transition-colors bg-transparent border-none cursor-pointer"
           onClick={() => setShowComments(!showComments)}
@@ -326,6 +402,31 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
           <MessageCircle size={16} />
           {comments.length > 0 ? `${comments.length} comments` : 'Comment'}
         </button>
+        <div className="relative">
+          <button
+            className="flex items-center gap-1 text-sm text-text-light hover:text-forest transition-colors bg-transparent border-none cursor-pointer"
+            onClick={() => setShowReactionPicker(!showReactionPicker)}
+          >
+            <SmilePlus size={16} />
+          </button>
+          {showReactionPicker && (
+            <div className="absolute bottom-full mb-1 left-0 flex gap-1 bg-white rounded-full shadow-lg border border-cream px-2 py-1 z-10">
+              {REACTION_EMOJIS.map(emoji => (
+                <button
+                  key={emoji}
+                  onClick={() => {
+                    if (!user?.id) return
+                    toggleReaction.mutate({ gatheringId, postId: post.id, emoji, userId: user.id })
+                    setShowReactionPicker(false)
+                  }}
+                  className="text-lg hover:scale-125 transition-transform p-0.5"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {showComments && (
