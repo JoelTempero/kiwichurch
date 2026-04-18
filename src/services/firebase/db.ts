@@ -489,6 +489,40 @@ export const dbService = {
     await batch.commit()
   },
 
+  async createMentionNotifications(
+    mentionedUserIds: string[],
+    context: {
+      authorId: string
+      authorName: string
+      gatheringId: string
+      gatheringName: string
+      postId: string
+      commentId?: string
+      snippet: string
+    }
+  ): Promise<void> {
+    const batch = writeBatch(db)
+    const timestamp = serverTimestamp()
+
+    for (const userId of mentionedUserIds) {
+      if (userId === context.authorId) continue
+      const notifRef = doc(collection(db, 'notifications'))
+      batch.set(notifRef, {
+        userId,
+        type: 'mention' as const,
+        title: `${context.authorName} mentioned you`,
+        message: context.snippet.length > 80
+          ? context.snippet.slice(0, 80) + '...'
+          : context.snippet,
+        link: `/groups/${context.gatheringId}`,
+        read: false,
+        createdAt: timestamp,
+      })
+    }
+
+    await batch.commit()
+  },
+
   // ============================================
   // REAL-TIME LISTENERS
   // ============================================
