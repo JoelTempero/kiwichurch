@@ -82,7 +82,7 @@ export function UsersPage() {
         <Search size={20} className="text-text-lighter flex-shrink-0" />
         <input
           type="text"
-          className="form-input"
+          className="w-full px-3 py-2 border-none bg-transparent text-base focus:outline-none"
           placeholder="Search users..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

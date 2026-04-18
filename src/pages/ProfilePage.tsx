@@ -1,20 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuth } from '@/hooks/useAuth'
 import { Avatar, Button, Modal } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { storageService } from '@/services/firebase'
 import { Camera, Pencil, Lock, LogOut, Loader2 } from 'lucide-react'
+import { profileSchema, passwordSchema } from '@/utils/schemas'
+import type { ProfileInput, PasswordInput } from '@/utils/schemas'
+import { cn } from '@/utils/cn'
 
-interface ProfileFormErrors {
-  displayName?: string
-  phone?: string
-}
-
-interface PasswordFormErrors {
-  currentPassword?: string
-  newPassword?: string
-  confirmPassword?: string
-}
+const inputBase = 'w-full px-3 py-3 border border-sage-light rounded-md font-body text-base transition-colors focus:outline-none focus:border-forest'
+const inputError = 'border-red-600 focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
 
 export function ProfilePage() {
   const { user, signOut, updateProfile, updatePassword } = useAuth()
@@ -22,137 +19,56 @@ export function ProfilePage() {
 
   const [isEditing, setIsEditing] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
 
-  // Form state
-  const [displayName, setDisplayName] = useState(user?.displayName || '')
-  const [phone, setPhone] = useState(user?.phone || '')
-  const [bio, setBio] = useState(user?.bio || '')
-  const [profileErrors, setProfileErrors] = useState<ProfileFormErrors>({})
+  const profileForm = useForm<ProfileInput>({
+    resolver: zodResolver(profileSchema),
+    values: {
+      displayName: user?.displayName || '',
+      phone: user?.phone || '',
+      bio: user?.bio || '',
+    },
+  })
 
-  // Password form state
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [passwordErrors, setPasswordErrors] = useState<PasswordFormErrors>({})
+  const passwordForm = useForm<PasswordInput>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
+  })
 
-  // Reset form when user data changes
-  useEffect(() => {
-    if (user) {
-      setDisplayName(user.displayName || '')
-      setPhone(user.phone || '')
-      setBio(user.bio || '')
-    }
-  }, [user])
-
-  // Reset form when editing is cancelled
-  useEffect(() => {
-    if (!isEditing && user) {
-      setDisplayName(user.displayName || '')
-      setPhone(user.phone || '')
-      setBio(user.bio || '')
-      setProfileErrors({})
-    }
-  }, [isEditing, user])
-
-  // Reset password form when modal closes
-  useEffect(() => {
-    if (!isChangingPassword) {
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-      setPasswordErrors({})
-    }
-  }, [isChangingPassword])
-
-  const validateProfileForm = (): boolean => {
-    const errors: ProfileFormErrors = {}
-
-    if (!displayName.trim()) {
-      errors.displayName = 'Display name is required'
-    } else if (displayName.trim().length < 2) {
-      errors.displayName = 'Display name must be at least 2 characters'
-    }
-
-    if (phone && !/^[\d\s\-+()]*$/.test(phone)) {
-      errors.phone = 'Please enter a valid phone number'
-    }
-
-    setProfileErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  const validatePasswordForm = (): boolean => {
-    const errors: PasswordFormErrors = {}
-
-    if (!currentPassword) {
-      errors.currentPassword = 'Current password is required'
-    }
-
-    if (!newPassword) {
-      errors.newPassword = 'New password is required'
-    } else if (newPassword.length < 6) {
-      errors.newPassword = 'Password must be at least 6 characters'
-    }
-
-    if (!confirmPassword) {
-      errors.confirmPassword = 'Please confirm your new password'
-    } else if (newPassword !== confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match'
-    }
-
-    setPasswordErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!validateProfileForm()) return
-
-    setIsSaving(true)
+  const handleSaveProfile = profileForm.handleSubmit(async (data) => {
     try {
-      await updateProfile({ displayName: displayName.trim(), phone: phone.trim(), bio: bio.trim() })
+      await updateProfile({ displayName: data.displayName.trim(), phone: data.phone.trim(), bio: (data.bio || '').trim() })
       setIsEditing(false)
       showToast('Profile updated', 'success')
-    } catch (error) {
+    } catch {
       showToast('Failed to update profile', 'error')
-    } finally {
-      setIsSaving(false)
     }
-  }
+  })
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!validatePasswordForm()) return
-
-    setIsSaving(true)
+  const handleChangePassword = passwordForm.handleSubmit(async (data) => {
     try {
-      await updatePassword(currentPassword, newPassword)
+      await updatePassword(data.currentPassword, data.newPassword)
       setIsChangingPassword(false)
+      passwordForm.reset()
       showToast('Password updated', 'success')
     } catch (error) {
       if (error instanceof Error && error.message.includes('wrong-password')) {
-        setPasswordErrors({ currentPassword: 'Current password is incorrect' })
+        passwordForm.setError('currentPassword', { message: 'Current password is incorrect' })
       } else {
         showToast(error instanceof Error ? error.message : 'Failed to update password', 'error')
       }
-    } finally {
-      setIsSaving(false)
     }
-  }
+  })
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !user?.id) return
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       showToast('Please select an image file', 'error')
       return
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       showToast('Image must be less than 5MB', 'error')
       return
@@ -173,21 +89,19 @@ export function ProfilePage() {
   const handleSignOut = async () => {
     try {
       await signOut()
-    } catch (error) {
+    } catch {
       showToast('Failed to sign out', 'error')
     }
   }
 
-  const clearFieldError = (field: keyof ProfileFormErrors) => {
-    if (profileErrors[field]) {
-      setProfileErrors(prev => ({ ...prev, [field]: undefined }))
-    }
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    profileForm.reset()
   }
 
-  const clearPasswordFieldError = (field: keyof PasswordFormErrors) => {
-    if (passwordErrors[field]) {
-      setPasswordErrors(prev => ({ ...prev, [field]: undefined }))
-    }
+  const handleClosePasswordModal = () => {
+    setIsChangingPassword(false)
+    passwordForm.reset()
   }
 
   if (!user) return null
@@ -265,77 +179,67 @@ export function ProfilePage() {
         </div>
       ) : (
         <form onSubmit={handleSaveProfile} className="bg-white rounded-lg shadow-sm p-6 mb-4 space-y-4" noValidate>
-          <div className="form-group">
-            <label className="form-label" htmlFor="profile-name">
-              Display Name <span className="form-required">*</span>
+          <div>
+            <label className="block font-medium mb-2" htmlFor="profile-name">
+              Display Name <span className="text-red-600">*</span>
             </label>
             <input
               id="profile-name"
               type="text"
-              className={`form-input ${profileErrors.displayName ? 'form-input-error' : ''}`}
-              value={displayName}
-              onChange={(e) => {
-                setDisplayName(e.target.value)
-                clearFieldError('displayName')
-              }}
-              aria-invalid={!!profileErrors.displayName}
-              aria-describedby={profileErrors.displayName ? 'name-error' : undefined}
-              required
+              className={cn(inputBase, profileForm.formState.errors.displayName && inputError)}
+              aria-invalid={!!profileForm.formState.errors.displayName}
+              aria-describedby={profileForm.formState.errors.displayName ? 'name-error' : undefined}
+              {...profileForm.register('displayName')}
             />
-            {profileErrors.displayName && (
-              <span id="name-error" className="form-error" role="alert">
-                {profileErrors.displayName}
+            {profileForm.formState.errors.displayName && (
+              <span id="name-error" className="text-sm text-red-600 mt-1 block" role="alert">
+                {profileForm.formState.errors.displayName.message}
               </span>
             )}
           </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="profile-phone">
+          <div>
+            <label className="block font-medium mb-2" htmlFor="profile-phone">
               Phone
             </label>
             <input
               id="profile-phone"
               type="tel"
-              className={`form-input ${profileErrors.phone ? 'form-input-error' : ''}`}
-              value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value)
-                clearFieldError('phone')
-              }}
+              className={cn(inputBase, profileForm.formState.errors.phone && inputError)}
               placeholder="+64 21 123 4567"
-              aria-invalid={!!profileErrors.phone}
-              aria-describedby={profileErrors.phone ? 'phone-error' : 'phone-hint'}
+              aria-invalid={!!profileForm.formState.errors.phone}
+              aria-describedby={profileForm.formState.errors.phone ? 'phone-error' : 'phone-hint'}
+              {...profileForm.register('phone')}
             />
-            {profileErrors.phone ? (
-              <span id="phone-error" className="form-error" role="alert">
-                {profileErrors.phone}
+            {profileForm.formState.errors.phone ? (
+              <span id="phone-error" className="text-sm text-red-600 mt-1 block" role="alert">
+                {profileForm.formState.errors.phone.message}
               </span>
             ) : (
-              <span id="phone-hint" className="form-hint">Optional - visible to other members</span>
+              <span id="phone-hint" className="text-sm text-text-light mt-1 block">Optional - visible to other members</span>
             )}
           </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="profile-bio">
+          <div>
+            <label className="block font-medium mb-2" htmlFor="profile-bio">
               Bio
             </label>
             <textarea
               id="profile-bio"
-              className="form-textarea"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
+              className={cn(inputBase, 'resize-y min-h-[100px]')}
               placeholder="Tell us a bit about yourself"
               rows={4}
               aria-describedby="bio-hint"
+              {...profileForm.register('bio')}
             />
-            <span id="bio-hint" className="form-hint">Optional - share a little about yourself</span>
+            <span id="bio-hint" className="text-sm text-text-light mt-1 block">Optional - share a little about yourself</span>
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button type="submit" variant="primary" loading={isSaving}>
+            <Button type="submit" variant="primary" loading={profileForm.formState.isSubmitting}>
               Save Changes
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setIsEditing(false)} disabled={isSaving}>
+            <Button type="button" variant="ghost" onClick={handleCancelEdit} disabled={profileForm.formState.isSubmitting}>
               Cancel
             </Button>
           </div>
@@ -353,92 +257,77 @@ export function ProfilePage() {
       {/* Change Password Modal */}
       <Modal
         isOpen={isChangingPassword}
-        onClose={() => setIsChangingPassword(false)}
+        onClose={handleClosePasswordModal}
         title="Change Password"
       >
-        <form onSubmit={handleChangePassword} noValidate>
-          <div className="form-group">
-            <label className="form-label" htmlFor="current-password">
-              Current Password <span className="form-required">*</span>
+        <form onSubmit={handleChangePassword} className="space-y-4" noValidate>
+          <div>
+            <label className="block font-medium mb-2" htmlFor="current-password">
+              Current Password <span className="text-red-600">*</span>
             </label>
             <input
               id="current-password"
               type="password"
-              className={`form-input ${passwordErrors.currentPassword ? 'form-input-error' : ''}`}
-              value={currentPassword}
-              onChange={(e) => {
-                setCurrentPassword(e.target.value)
-                clearPasswordFieldError('currentPassword')
-              }}
+              className={cn(inputBase, passwordForm.formState.errors.currentPassword && inputError)}
               autoComplete="current-password"
-              aria-invalid={!!passwordErrors.currentPassword}
-              aria-describedby={passwordErrors.currentPassword ? 'current-password-error' : undefined}
-              required
+              aria-invalid={!!passwordForm.formState.errors.currentPassword}
+              aria-describedby={passwordForm.formState.errors.currentPassword ? 'current-password-error' : undefined}
+              {...passwordForm.register('currentPassword')}
             />
-            {passwordErrors.currentPassword && (
-              <span id="current-password-error" className="form-error" role="alert">
-                {passwordErrors.currentPassword}
+            {passwordForm.formState.errors.currentPassword && (
+              <span id="current-password-error" className="text-sm text-red-600 mt-1 block" role="alert">
+                {passwordForm.formState.errors.currentPassword.message}
               </span>
             )}
           </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="new-password">
-              New Password <span className="form-required">*</span>
+          <div>
+            <label className="block font-medium mb-2" htmlFor="new-password">
+              New Password <span className="text-red-600">*</span>
             </label>
             <input
               id="new-password"
               type="password"
-              className={`form-input ${passwordErrors.newPassword ? 'form-input-error' : ''}`}
-              value={newPassword}
-              onChange={(e) => {
-                setNewPassword(e.target.value)
-                clearPasswordFieldError('newPassword')
-              }}
+              className={cn(inputBase, passwordForm.formState.errors.newPassword && inputError)}
               autoComplete="new-password"
-              aria-invalid={!!passwordErrors.newPassword}
-              aria-describedby={passwordErrors.newPassword ? 'new-password-error' : 'new-password-hint'}
-              required
+              aria-invalid={!!passwordForm.formState.errors.newPassword}
+              aria-describedby={passwordForm.formState.errors.newPassword ? 'new-password-error' : 'new-password-hint'}
+              {...passwordForm.register('newPassword')}
             />
-            {passwordErrors.newPassword ? (
-              <span id="new-password-error" className="form-error" role="alert">
-                {passwordErrors.newPassword}
+            {passwordForm.formState.errors.newPassword ? (
+              <span id="new-password-error" className="text-sm text-red-600 mt-1 block" role="alert">
+                {passwordForm.formState.errors.newPassword.message}
               </span>
             ) : (
-              <span id="new-password-hint" className="form-hint">Must be at least 6 characters</span>
+              <span id="new-password-hint" className="text-sm text-text-light mt-1 block">Must be at least 6 characters</span>
             )}
           </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="confirm-password">
-              Confirm New Password <span className="form-required">*</span>
+          <div>
+            <label className="block font-medium mb-2" htmlFor="confirm-password">
+              Confirm New Password <span className="text-red-600">*</span>
             </label>
             <input
               id="confirm-password"
               type="password"
-              className={`form-input ${passwordErrors.confirmPassword ? 'form-input-error' : ''}`}
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value)
-                clearPasswordFieldError('confirmPassword')
-              }}
+              className={cn(inputBase, passwordForm.formState.errors.confirmPassword && inputError)}
               autoComplete="new-password"
-              aria-invalid={!!passwordErrors.confirmPassword}
-              aria-describedby={passwordErrors.confirmPassword ? 'confirm-password-error' : undefined}
-              required
+              aria-invalid={!!passwordForm.formState.errors.confirmPassword}
+              aria-describedby={passwordForm.formState.errors.confirmPassword ? 'confirm-password-error' : undefined}
+              {...passwordForm.register('confirmPassword')}
             />
-            {passwordErrors.confirmPassword && (
-              <span id="confirm-password-error" className="form-error" role="alert">
-                {passwordErrors.confirmPassword}
+            {passwordForm.formState.errors.confirmPassword && (
+              <span id="confirm-password-error" className="text-sm text-red-600 mt-1 block" role="alert">
+                {passwordForm.formState.errors.confirmPassword.message}
               </span>
             )}
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit" variant="primary" loading={isSaving}>
+            <Button type="submit" variant="primary" loading={passwordForm.formState.isSubmitting}>
               Update Password
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setIsChangingPassword(false)} disabled={isSaving}>
+            <Button type="button" variant="ghost" onClick={handleClosePasswordModal} disabled={passwordForm.formState.isSubmitting}>
               Cancel
             </Button>
           </div>

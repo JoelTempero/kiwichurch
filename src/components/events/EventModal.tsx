@@ -239,13 +239,13 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
           {/* RSVP Form with Guest Count */}
           {showRsvpForm && (
             <div className="space-y-3 bg-cream rounded-md p-3">
-              <div className="form-group">
-                <label className="form-label" htmlFor="rsvp-guests">
+              <div className="mb-4">
+                <label className="block font-medium mb-2" htmlFor="rsvp-guests">
                   Bringing guests?
                 </label>
                 <select
                   id="rsvp-guests"
-                  className="form-select"
+                  className="w-full px-3 py-3 border border-sage-light rounded-md font-body text-base transition-colors focus:outline-none focus:border-forest"
                   value={guestCount}
                   onChange={(e) => setGuestCount(parseInt(e.target.value))}
                 >
@@ -257,8 +257,8 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
                   <option value={5}>+5 guests</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="rsvp-notes">
+              <div className="mb-4">
+                <label className="block font-medium mb-2" htmlFor="rsvp-notes">
                   Notes (dietary requirements, etc.)
                 </label>
                 <textarea

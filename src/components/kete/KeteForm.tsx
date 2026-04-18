@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Modal } from '@/components/common'
 import { useCreateKetePost, useUpdateKetePost, useDeleteKetePost } from '@/hooks/useKete'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/hooks/useAuth'
+import { keteSchema } from '@/utils/schemas'
+import { cn } from '@/utils/cn'
 import type { KetePost } from '@/types'
 
 interface KeteFormProps {
@@ -12,21 +16,8 @@ interface KeteFormProps {
   onSuccess?: () => void
 }
 
-interface FormData {
-  title: string
-  excerpt: string
-  content: string
-  featuredImage: string
-  published: boolean
-}
-
-const initialFormData: FormData = {
-  title: '',
-  excerpt: '',
-  content: '',
-  featuredImage: '',
-  published: true
-}
+const inputBase = 'w-full px-3 py-3 border border-sage-light rounded-md font-body text-base transition-colors focus:outline-none focus:border-forest'
+const inputError = 'border-red-600 focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
 
 export function KeteForm({ post, isOpen, onClose, onSuccess }: KeteFormProps) {
   const { user } = useAuth()
@@ -36,71 +27,46 @@ export function KeteForm({ post, isOpen, onClose, onSuccess }: KeteFormProps) {
   const updatePost = useUpdateKetePost()
   const deletePost = useDeleteKetePost()
 
-  const [formData, setFormData] = useState<FormData>(initialFormData)
-  const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
   const isEditMode = !!post
 
-  // Populate form when editing
+  const form = useForm({
+    resolver: zodResolver(keteSchema),
+    defaultValues: {
+      title: '', excerpt: '', content: '', featuredImage: '', published: true,
+    },
+  })
+
   useEffect(() => {
-    if (post) {
-      setFormData({
-        title: post.title || '',
-        excerpt: post.excerpt || '',
-        content: post.content || '',
-        featuredImage: post.featuredImage || '',
-        published: post.published ?? true
-      })
-    } else {
-      setFormData(initialFormData)
+    if (isOpen) {
+      if (post) {
+        form.reset({
+          title: post.title || '', excerpt: post.excerpt || '',
+          content: post.content || '', featuredImage: post.featuredImage || '',
+          published: post.published ?? true,
+        })
+      } else {
+        form.reset()
+      }
     }
-    setErrors({})
-  }, [post, isOpen])
+  }, [post, isOpen, form])
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof FormData, string>> = {}
+  const handleSubmit = form.handleSubmit(async (data) => {
+    if (!user) return
 
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required'
-    }
-    if (!formData.content.trim()) {
-      newErrors.content = 'Content is required'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleChange = (field: keyof FormData, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!validateForm() || !user) return
-
-    setIsSaving(true)
     try {
       const postData = {
-        ...formData,
+        ...data,
         authorId: post?.authorId || user.id,
         authorName: post?.authorName || user.displayName,
         authorPhotoURL: post?.authorPhotoURL || user.photoURL,
-        publishedAt: formData.published ? (post?.publishedAt || new Date()) : null
+        publishedAt: data.published ? (post?.publishedAt || new Date()) : null,
       }
 
       if (isEditMode && post) {
-        await updatePost.mutateAsync({
-          postId: post.id,
-          updates: postData
-        })
+        await updatePost.mutateAsync({ postId: post.id, updates: postData })
         showToast('Post updated', 'success')
       } else {
         await createPost.mutateAsync(postData)
@@ -109,12 +75,10 @@ export function KeteForm({ post, isOpen, onClose, onSuccess }: KeteFormProps) {
 
       onSuccess?.()
       onClose()
-    } catch (error) {
+    } catch {
       showToast(`Failed to ${isEditMode ? 'update' : 'create'} post`, 'error')
-    } finally {
-      setIsSaving(false)
     }
-  }
+  })
 
   const handleDelete = async () => {
     if (!post) return
@@ -126,7 +90,7 @@ export function KeteForm({ post, isOpen, onClose, onSuccess }: KeteFormProps) {
       setShowDeleteConfirm(false)
       onSuccess?.()
       onClose()
-    } catch (error) {
+    } catch {
       showToast('Failed to delete post', 'error')
     } finally {
       setIsDeleting(false)
@@ -134,17 +98,7 @@ export function KeteForm({ post, isOpen, onClose, onSuccess }: KeteFormProps) {
   }
 
   const handleClose = () => {
-    const hasChanges = isEditMode
-      ? JSON.stringify(formData) !== JSON.stringify({
-          title: post?.title || '',
-          excerpt: post?.excerpt || '',
-          content: post?.content || '',
-          featuredImage: post?.featuredImage || '',
-          published: post?.published ?? true
-        })
-      : formData.title || formData.content
-
-    if (hasChanges) {
+    if (form.formState.isDirty) {
       if (confirm('You have unsaved changes. Are you sure you want to close?')) {
         onClose()
       }
@@ -153,149 +107,101 @@ export function KeteForm({ post, isOpen, onClose, onSuccess }: KeteFormProps) {
     }
   }
 
+  const { errors, isSubmitting } = form.formState
+
   return (
     <>
-      <Modal
-        isOpen={isOpen}
-        onClose={handleClose}
-        title={isEditMode ? 'Edit Post' : 'Create Post'}
-        size="lg"
-      >
-        <form onSubmit={handleSubmit} className="kete-form">
-          {/* Title */}
-          <div className="form-group">
-            <label className="form-label" htmlFor="kete-title">
-              Title <span className="form-required">*</span>
+      <Modal isOpen={isOpen} onClose={handleClose} title={isEditMode ? 'Edit Post' : 'Create Post'} size="lg">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block font-medium mb-2" htmlFor="kete-title">
+              Title <span className="text-red-600">*</span>
             </label>
             <input
               id="kete-title"
               type="text"
-              className={`form-input ${errors.title ? 'form-input-error' : ''}`}
-              value={formData.title}
-              onChange={(e) => handleChange('title', e.target.value)}
+              className={cn(inputBase, errors.title && inputError)}
               placeholder="Post title"
-              required
+              {...form.register('title')}
             />
             {errors.title && (
-              <span className="form-error" role="alert">{errors.title}</span>
+              <span className="text-sm text-red-600 mt-1 block" role="alert">{errors.title.message}</span>
             )}
           </div>
 
-          {/* Excerpt */}
-          <div className="form-group">
-            <label className="form-label" htmlFor="kete-excerpt">
-              Excerpt
-            </label>
+          <div>
+            <label className="block font-medium mb-2" htmlFor="kete-excerpt">Excerpt</label>
             <textarea
               id="kete-excerpt"
-              className="form-textarea"
-              value={formData.excerpt}
-              onChange={(e) => handleChange('excerpt', e.target.value)}
+              className={cn(inputBase, 'resize-y min-h-[60px]')}
               placeholder="Brief summary shown on cards..."
               rows={2}
+              {...form.register('excerpt')}
             />
-            <span className="form-hint">A short summary that appears on the post card</span>
+            <span className="text-sm text-text-light mt-1 block">A short summary that appears on the post card</span>
           </div>
 
-          {/* Featured Image */}
-          <div className="form-group">
-            <label className="form-label" htmlFor="kete-image">
-              Featured Image URL
-            </label>
+          <div>
+            <label className="block font-medium mb-2" htmlFor="kete-image">Featured Image URL</label>
             <input
               id="kete-image"
               type="url"
-              className="form-input"
-              value={formData.featuredImage}
-              onChange={(e) => handleChange('featuredImage', e.target.value)}
+              className={inputBase}
               placeholder="https://example.com/image.jpg"
+              {...form.register('featuredImage')}
             />
           </div>
 
-          {/* Content */}
-          <div className="form-group">
-            <label className="form-label" htmlFor="kete-content">
-              Content <span className="form-required">*</span>
+          <div>
+            <label className="block font-medium mb-2" htmlFor="kete-content">
+              Content <span className="text-red-600">*</span>
             </label>
             <textarea
               id="kete-content"
-              className={`form-textarea ${errors.content ? 'form-input-error' : ''}`}
-              value={formData.content}
-              onChange={(e) => handleChange('content', e.target.value)}
+              className={cn(inputBase, 'resize-y min-h-[200px]', errors.content && inputError)}
               placeholder="Write your post content here... HTML is supported."
               rows={12}
-              required
+              {...form.register('content')}
             />
             {errors.content && (
-              <span className="form-error" role="alert">{errors.content}</span>
+              <span className="text-sm text-red-600 mt-1 block" role="alert">{errors.content.message}</span>
             )}
-            <span className="form-hint">HTML formatting is supported (bold, italic, links, etc.)</span>
+            <span className="text-sm text-text-light mt-1 block">HTML formatting is supported (bold, italic, links, etc.)</span>
           </div>
 
-          {/* Published Toggle */}
-          <div className="form-group">
-            <label className="form-checkbox-label">
-              <input
-                type="checkbox"
-                checked={formData.published}
-                onChange={(e) => handleChange('published', e.target.checked)}
-              />
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="w-[18px] h-[18px] accent-forest" {...form.register('published')} />
               <span>Publish immediately</span>
             </label>
-            <span className="form-hint">Uncheck to save as draft</span>
+            <span className="text-sm text-text-light mt-1 block">Uncheck to save as draft</span>
           </div>
 
-          {/* Actions */}
-          <div className="form-actions">
-            <div className="form-actions-left">
+          <div className="flex justify-between items-center mt-6 pt-6 border-t border-cream">
+            <div className="flex gap-2">
               {isEditMode && (
-                <Button
-                  type="button"
-                  variant="danger"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={isSaving}
-                >
+                <Button type="button" variant="danger" onClick={() => setShowDeleteConfirm(true)} disabled={isSubmitting}>
                   Delete Post
                 </Button>
               )}
             </div>
-            <div className="form-actions-right">
-              <Button type="button" variant="ghost" onClick={handleClose} disabled={isSaving}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary" loading={isSaving}>
-                {isEditMode ? 'Save Changes' : (formData.published ? 'Publish' : 'Save Draft')}
+            <div className="flex gap-3">
+              <Button type="button" variant="ghost" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
+              <Button type="submit" variant="primary" loading={isSubmitting}>
+                {isEditMode ? 'Save Changes' : (form.watch('published') ? 'Publish' : 'Save Draft')}
               </Button>
             </div>
           </div>
         </form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        title="Delete Post"
-        size="sm"
-      >
-        <div className="delete-confirm">
+      <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title="Delete Post" size="sm">
+        <div className="text-center">
           <p>Are you sure you want to delete "<strong>{post?.title}</strong>"?</p>
-          <p className="delete-confirm-warning">This action cannot be undone.</p>
-          <div className="modal-actions">
-            <Button
-              variant="danger"
-              onClick={handleDelete}
-              loading={isDeleting}
-            >
-              Yes, Delete Post
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setShowDeleteConfirm(false)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
+          <p className="text-red-600 text-sm mt-2">This action cannot be undone.</p>
+          <div className="flex justify-center gap-3 mt-6">
+            <Button variant="danger" onClick={handleDelete} loading={isDeleting}>Yes, Delete Post</Button>
+            <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>Cancel</Button>
           </div>
         </div>
       </Modal>
