@@ -57,22 +57,34 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Events + RSVPs, Groups + message boards, Kete (blog), Directory, Giving, Admin tools all functional
 - Firebase security rules comprehensive (role-based per collection)
 - PWA with service worker, offline persistence, install prompt
-- Tailwind v4 installed and configured alongside existing CSS (migration in progress)
-- No Cloud Functions yet. No push notifications. No real-time chat (only forum-style boards)
+- Tailwind v4 fully migrated — all components, pages, and forms use Tailwind utilities
+- All forms use react-hook-form + zod validation (schemas in src/utils/schemas.ts)
+- Legacy CSS cleaned up — index.css reduced from 3,386 to 35 lines (loading styles only)
+- styles.css (3,133 lines) still contains structural layout CSS (grid, sidebar, bottom-nav) — load-bearing
+- Group message boards upgraded with real-time comments, @mentions with notifications, and inline replies
+- No Cloud Functions yet. No push notifications (in-app mention notifications only)
 
 ## Next Steps
-- [ ] **Phase 1: Foundation modernisation** (IN PROGRESS — ~90% done)
-  - [x] Install Tailwind v4 + clsx + tailwind-merge + Lucide React + react-hook-form + zod
+- [x] **Phase 1: Foundation modernisation** (COMPLETE — DESIGN.md deferred to design phase)
+  - [x] Install Tailwind v4 + clsx + tailwind-merge + Lucide React + react-hook-form + zod + @hookform/resolvers
   - [x] Configure Tailwind v4 in Vite alongside existing CSS (`src/styles/app.css` with `@theme` block)
   - [x] Create cn() utility (`src/utils/cn.ts`)
-  - [ ] Create DESIGN.md (creative refresh — current UI is "very AI template")
   - [x] Migrate layout components to Lucide icons (AppHeader, BottomNav, DesktopSidebar) — kept structural CSS class names for grid layout compat
   - [x] Migrate common components to Tailwind + cn() (Button, Modal, Toast, Badge, Avatar, EmptyState, Skeleton, PullToRefresh)
-  - [x] Migrate all 13 pages to Tailwind + Lucide (HomePage, GivingPage, DirectoryPage, EventsPage, GroupsPage, GroupDetailPage, KetePage, KetePostPage, LoginPage, ProfilePage, SettingsPage, HostingPage, UsersPage)
-  - [x] Migrate all sub-components to Tailwind + Lucide (EventCard, EventModal, CalendarView, GatheringCard, BoardPost, KeteCard, NotificationPanel, SearchPanel)
-  - [ ] Swap forms to react-hook-form + zod (LoginPage, ProfilePage edit, EventForm, message board, comment forms)
-  - [ ] Clean up old CSS from index.css — remove migrated sections (all page/component CSS blocks now unused)
-- [ ] Phase 2: Real-time group chat (upgrade message boards to live chat)
+  - [x] Migrate all 13 pages to Tailwind + Lucide
+  - [x] Migrate all sub-components to Tailwind + Lucide
+  - [x] Swap forms to react-hook-form + zod (LoginPage, ProfilePage, EventForm, KeteForm, GroupForm, BoardPost comments, EventModal RSVP)
+  - [x] Clean up old CSS — index.css reduced from 3,386 → 35 lines; all form-* classes replaced with Tailwind
+  - Note: DESIGN.md creative refresh belongs to the static HTML site work, not portal phases
+- [x] **Phase 2: Real-time group chat** (COMPLETE)
+  - [x] Real-time comments via Firestore onSnapshot (lazy subscription — only when comments expanded)
+  - [x] @mentions with MentionInput component (textarea with @autocomplete dropdown)
+  - [x] Mention markup: `@[DisplayName](userId)` stored in content, rendered as highlighted spans
+  - [x] Client-side mention notifications (batch write to notifications collection)
+  - [x] Inline comment replies (flat with visual quote references, not nested)
+  - [x] Member profile enrichment for mention dropdown (fetches displayName from users collection)
+  - [x] New files: `src/utils/mentions.ts`, `src/components/common/MentionInput.tsx`
+  - [x] Modified: types, db service, hooks, BoardPost, GroupDetailPage
 - [ ] Phase 3: Direct messaging (1:1 conversations)
 - [ ] Phase 4: Notifications (FCM push, Web Notifications — will need Cloud Functions init)
 - [ ] Phase 5: Global search
@@ -126,6 +138,27 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Build clean. Phase 1 now ~90% done
 - Remaining Phase 1: react-hook-form + zod for forms, CSS cleanup of index.css, DESIGN.md
 
+### 2026-04-18 — Session 2: Phase 1 completion
+- Migrated all forms to react-hook-form + zod: LoginPage (3 sub-forms), ProfilePage (profile + password), EventForm, KeteForm, GroupForm
+- Created `src/utils/schemas.ts` with 8 zod schemas + inferred types
+- Installed `@hookform/resolvers` for zodResolver integration
+- Replaced all form-* CSS classes with Tailwind utilities in 8 files (BoardPost, EventModal, UsersPage included)
+- Cleaned up index.css: 3,386 → 35 lines (kept only loading-screen, loading-spinner, page-loader)
+- styles.css (3,133 lines) untouched — contains structural layout CSS
+- Build + typecheck clean
+- Phase 1 complete (DESIGN.md deferred — creative task, not a code blocker)
+
+### 2026-04-19: Phase 2 — Real-time group chat
+- Designed and planned Phase 2: enhanced group message boards (spec + 10-task plan)
+- Implemented all 10 tasks via subagent-driven development
+- Real-time comments: `subscribeToPostComments` onSnapshot listener, lazy subscription (only when expanded)
+- @mentions: `MentionInput` component with @autocomplete dropdown, `@[Name](userId)` markup, client-side notifications
+- Inline replies: flat display with visual quote references (ReplyQuote component), reply-to indicator
+- Member enrichment: `getGatheringMembersWithProfiles` fetches displayName from users collection
+- New files: `src/utils/mentions.ts`, `src/components/common/MentionInput.tsx`
+- Modified: `gathering.ts` types, `db.ts` service (3 new methods), `useGatherings.ts` hooks (3 new), `BoardPost.tsx` (full rewrite), `GroupDetailPage.tsx` (MentionInput + mention encoding)
+- Build + typecheck clean, 9 atomic commits
+
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
 - **Firestore for chat, RTDB for presence only** — hybrid approach
@@ -141,7 +174,7 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - **No budget/timeline constraints** from client
 
 ## Known Issues
-- Vanilla CSS mostly migrated to Tailwind v4 — index.css still contains old CSS blocks that are now unused (safe to remove)
+- styles.css (3,133 lines) still has structural layout + possibly unused page-specific CSS — could be audited in a future session
 - NotificationPanel and SearchPanel components are stubbed but not functional
 - manifest.json start_url points to ./portal.html instead of / (needs fixing)
 - Message board reactions data model exists but UI not built
