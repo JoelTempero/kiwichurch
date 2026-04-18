@@ -375,7 +375,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
                 Replying to <span className="font-semibold text-text-primary">{replyTo.authorName}</span>
               </span>
               <button
-                className="ml-auto p-0.5 text-text-lighter hover:text-text-primary transition-colors bg-transparent border-none cursor-none cursor-pointer"
+                className="ml-auto p-0.5 text-text-lighter hover:text-text-primary transition-colors bg-transparent border-none cursor-pointer"
                 onClick={() => setReplyTo(null)}
                 aria-label="Cancel reply"
               >

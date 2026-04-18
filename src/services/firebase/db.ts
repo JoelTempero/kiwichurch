@@ -519,7 +519,7 @@ export const dbService = {
     const batch = writeBatch(db)
     const timestamp = serverTimestamp()
 
-    for (const userId of mentionedUserIds) {
+    for (const userId of mentionedUserIds.slice(0, 50)) {
       if (userId === context.authorId) continue
       const notifRef = doc(collection(db, 'notifications'))
       batch.set(notifRef, {

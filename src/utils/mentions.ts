@@ -12,8 +12,9 @@ export function encodeMention(displayName: string, userId: string): string {
 
 export function extractMentionIds(text: string): string[] {
   const ids: string[] = []
+  const regex = /@\[([^\]]+)\]\(([^)]+)\)/g
   let match
-  while ((match = MENTION_REGEX.exec(text)) !== null) {
+  while ((match = regex.exec(text)) !== null) {
     ids.push(match[2])
   }
   return ids

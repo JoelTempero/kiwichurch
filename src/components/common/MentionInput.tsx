@@ -54,7 +54,7 @@ export function MentionInput({
 
     const cursorPos = el.selectionStart ?? newValue.length
     const textBeforeCursor = newValue.slice(0, cursorPos)
-    const atMatch = textBeforeCursor.match(/@(\w*)$/)
+    const atMatch = textBeforeCursor.match(/@([^\s]*)$/)
 
     if (atMatch) {
       setMentionStartPos(cursorPos - atMatch[0].length)
