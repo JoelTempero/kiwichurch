@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import { Pin, MoreVertical, Edit, Trash2, MessageCircle, X } from 'lucide-react'
+import { cn } from '@/utils/cn'
 import { Avatar, Button } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
 import {
@@ -178,64 +180,55 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
   }
 
   return (
-    <div className={`board-post ${post.pinned ? 'board-post-pinned' : ''}`}>
+    <div className={cn(
+      'bg-white rounded-lg shadow-sm p-4 mb-3',
+      post.pinned && 'ring-1 ring-gold/50 bg-gold/5'
+    )}>
       {post.pinned && (
-        <div className="board-post-pinned-badge">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" aria-hidden="true">
-            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
-          </svg>
+        <div className="flex items-center gap-1 text-xs text-gold font-semibold mb-2">
+          <Pin size={12} fill="currentColor" />
           Pinned
         </div>
       )}
 
-      <div className="board-post-header">
+      <div className="flex items-center gap-3 mb-3">
         <Avatar src={post.authorPhotoURL} name={post.authorName} size="md" />
-        <div className="board-post-author">
-          <span className="board-post-author-name">{post.authorName}</span>
-          <span className="board-post-time">
+        <div className="flex-1 min-w-0">
+          <span className="font-semibold text-text-primary text-sm">{post.authorName}</span>
+          <span className="text-xs text-text-lighter block">
             {formatTimeAgo(post.createdAt as Date)}
             {post.updatedAt && post.updatedAt !== post.createdAt && ' (edited)'}
           </span>
         </div>
         {(canEdit || canDelete) && (
-          <div className="board-post-menu-wrapper" ref={menuRef}>
+          <div className="relative" ref={menuRef}>
             <button
-              className="board-post-menu-btn"
+              className="p-1 rounded-full hover:bg-cream transition-colors"
               onClick={() => setShowMenu(!showMenu)}
               aria-label="Post options"
               aria-expanded={showMenu}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                <circle cx="12" cy="12" r="1" />
-                <circle cx="12" cy="5" r="1" />
-                <circle cx="12" cy="19" r="1" />
-              </svg>
+              <MoreVertical size={18} />
             </button>
             {showMenu && (
-              <div className="board-post-dropdown" role="menu">
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-md shadow-md py-1 min-w-[120px] z-10" role="menu">
                 {canEdit && (
                   <button
-                    className="board-post-dropdown-item"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-text-primary hover:bg-cream transition-colors text-left"
                     onClick={handleEditPost}
                     role="menuitem"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
+                    <Edit size={16} />
                     Edit
                   </button>
                 )}
                 {canDelete && (
                   <button
-                    className="board-post-dropdown-item board-post-dropdown-danger"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
                     onClick={handleDeletePost}
                     role="menuitem"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
+                    <Trash2 size={16} />
                     Delete
                   </button>
                 )}
@@ -245,18 +238,18 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
         )}
       </div>
 
-      <div className="board-post-content">
+      <div className="mb-3">
         {isEditing ? (
-          <div className="board-post-edit">
+          <div className="space-y-2">
             <textarea
               ref={editInputRef}
-              className="form-textarea"
+              className="w-full px-4 py-3 rounded-sm border border-gray-200 text-base resize-y focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               rows={4}
               aria-label="Edit post content"
             />
-            <div className="board-post-edit-actions">
+            <div className="flex gap-2">
               <Button
                 variant="primary"
                 size="sm"
@@ -277,11 +270,11 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
           </div>
         ) : (
           <>
-            <p>{post.content}</p>
+            <p className="text-text-primary leading-relaxed">{post.content}</p>
             {post.attachmentURL && (
-              <div className="board-post-attachment">
+              <div className="rounded-md overflow-hidden mt-2">
                 {post.attachmentType?.startsWith('image/') ? (
-                  <img src={post.attachmentURL} alt="Attachment" />
+                  <img src={post.attachmentURL} alt="Attachment" className="w-full rounded-md" />
                 ) : (
                   <a href={post.attachmentURL} target="_blank" rel="noopener noreferrer">
                     {post.attachmentName || 'View attachment'}
@@ -293,59 +286,51 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
         )}
       </div>
 
-      <div className="board-post-actions">
+      <div className="border-t border-cream-dark pt-2">
         <button
-          className="board-post-action"
+          className="flex items-center gap-1.5 text-sm text-text-light hover:text-forest transition-colors bg-transparent border-none cursor-pointer"
           onClick={() => setShowComments(!showComments)}
           aria-expanded={showComments}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
+          <MessageCircle size={16} />
           {comments.length > 0 ? `${comments.length} comments` : 'Comment'}
         </button>
       </div>
 
       {showComments && (
-        <div className="board-post-comments">
+        <div className="mt-3 pt-3 border-t border-cream-dark space-y-3">
           {comments.map((comment) => (
-            <div key={comment.id} className="board-comment">
+            <div key={comment.id} className="flex gap-2">
               <Avatar src={comment.authorPhotoURL} name={comment.authorName} size="sm" />
-              <div className="board-comment-content">
-                <div className="board-comment-header">
-                  <span className="board-comment-author">{comment.authorName}</span>
-                  <span className="board-comment-time">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-sm font-semibold text-text-primary">{comment.authorName}</span>
+                  <span className="text-xs text-text-lighter">
                     {formatTimeAgo(comment.createdAt as Date)}
                   </span>
                   {(user?.id === comment.authorId || isAdminOrHost) && (
-                    <div className="board-comment-actions">
+                    <div className="flex items-center gap-1 ml-auto">
                       {user?.id === comment.authorId && (
                         <button
-                          className="board-comment-action"
+                          className="p-0.5 text-text-lighter hover:text-text-light transition-colors bg-transparent border-none cursor-pointer"
                           onClick={() => handleEditComment(comment)}
                           aria-label="Edit comment"
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
+                          <Edit size={12} />
                         </button>
                       )}
                       <button
-                        className="board-comment-action board-comment-delete"
+                        className="p-0.5 text-text-lighter hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
                         onClick={() => handleDeleteComment(comment.id)}
                         aria-label="Delete comment"
                       >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
+                        <X size={12} />
                       </button>
                     </div>
                   )}
                 </div>
                 {editingCommentId === comment.id ? (
-                  <div className="board-comment-edit">
+                  <div className="mt-1 space-y-2">
                     <input
                       type="text"
                       className="form-input"
@@ -353,7 +338,7 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
                       onChange={(e) => setEditCommentContent(e.target.value)}
                       aria-label="Edit comment"
                     />
-                    <div className="board-comment-edit-actions">
+                    <div className="flex gap-2">
                       <Button
                         variant="primary"
                         size="sm"
@@ -377,10 +362,10 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
             </div>
           ))}
 
-          <form onSubmit={handleSubmitComment} className="board-comment-form">
+          <form onSubmit={handleSubmitComment} className="flex gap-2 items-center pt-2">
             <input
               type="text"
-              className="form-input"
+              className="form-input flex-1"
               placeholder="Write a comment..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}

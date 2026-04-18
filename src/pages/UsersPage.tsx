@@ -4,6 +4,8 @@ import { dbService } from '@/services/firebase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Avatar, Button, Modal, Badge, EmptyState, Skeleton } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
+import { Search, Pencil, Check } from 'lucide-react'
+import { cn } from '@/utils/cn'
 import type { User } from '@/types'
 
 export function UsersPage() {
@@ -37,7 +39,7 @@ export function UsersPage() {
 
   if (!isAdmin) {
     return (
-      <div className="users-page">
+      <div className="max-w-3xl mx-auto p-4">
         <EmptyState
           icon="lock"
           title="Access Denied"
@@ -69,18 +71,15 @@ export function UsersPage() {
   }
 
   return (
-    <div className="users-page">
-      <div className="users-header">
-        <h1 className="users-title">Users</h1>
-        <p className="users-subtitle">{users.length} members</p>
+    <div className="max-w-3xl mx-auto p-4">
+      <div className="mb-6">
+        <h1 className="text-2xl font-display text-forest">Users</h1>
+        <p className="text-text-light text-sm">{users.length} members</p>
       </div>
 
       {/* Search */}
-      <div className="users-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+      <div className="flex items-center gap-3 bg-white rounded-lg shadow-sm px-4 py-2 mb-4">
+        <Search size={20} className="text-text-lighter flex-shrink-0" />
         <input
           type="text"
           className="form-input"
@@ -92,7 +91,7 @@ export function UsersPage() {
 
       {/* Users List */}
       {isLoading ? (
-        <div className="users-list">
+        <div className="space-y-2">
           <Skeleton variant="rectangular" height={70} />
           <Skeleton variant="rectangular" height={70} />
           <Skeleton variant="rectangular" height={70} />
@@ -104,13 +103,13 @@ export function UsersPage() {
           message={searchQuery ? 'Try a different search term' : 'No users in the system'}
         />
       ) : (
-        <div className="users-list">
+        <div className="space-y-2">
           {filteredUsers.map((user: User) => (
-            <div key={user.id} className="users-item">
+            <div key={user.id} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
               <Avatar src={user.photoURL} name={user.displayName} size="md" />
-              <div className="users-item-info">
-                <h3 className="users-item-name">{user.displayName}</h3>
-                <p className="users-item-email">{user.email}</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-text-primary text-sm">{user.displayName}</h3>
+                <p className="text-xs text-text-light">{user.email}</p>
               </div>
               <Badge variant={getRoleBadgeVariant(user.role)}>
                 {user.role}
@@ -123,10 +122,7 @@ export function UsersPage() {
                   setShowRoleModal(true)
                 }}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
+                <Pencil size={16} />
               </Button>
             </div>
           ))}
@@ -143,8 +139,8 @@ export function UsersPage() {
         title="Change Role"
       >
         {selectedUser && (
-          <div className="role-modal-content">
-            <div className="role-modal-user">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 pb-4 border-b border-cream">
               <Avatar src={selectedUser.photoURL} name={selectedUser.displayName} size="lg" />
               <div>
                 <h3>{selectedUser.displayName}</h3>
@@ -152,54 +148,57 @@ export function UsersPage() {
               </div>
             </div>
 
-            <div className="role-options">
+            <div className="space-y-2">
               <button
-                className={`role-option ${selectedUser.role === 'member' ? 'active' : ''}`}
+                className={cn(
+                  'w-full text-left p-3 rounded-md border border-cream hover:border-forest/30 transition-colors cursor-pointer',
+                  selectedUser.role === 'member' && 'border-forest bg-forest/5'
+                )}
                 onClick={() => handleRoleChange('member')}
               >
-                <div className="role-option-header">
-                  <span className="role-option-title">Member</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-text-primary">Member</span>
                   {selectedUser.role === 'member' && (
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                      <polyline points="20 6 9 17 4 12" stroke="currentColor" fill="none" strokeWidth="2" />
-                    </svg>
+                    <Check size={16} className="text-forest" />
                   )}
                 </div>
-                <p className="role-option-description">
+                <p className="text-sm text-text-light">
                   Can view content, RSVP to events, and participate in groups
                 </p>
               </button>
 
               <button
-                className={`role-option ${selectedUser.role === 'host' ? 'active' : ''}`}
+                className={cn(
+                  'w-full text-left p-3 rounded-md border border-cream hover:border-forest/30 transition-colors cursor-pointer',
+                  selectedUser.role === 'host' && 'border-forest bg-forest/5'
+                )}
                 onClick={() => handleRoleChange('host')}
               >
-                <div className="role-option-header">
-                  <span className="role-option-title">Host</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-text-primary">Host</span>
                   {selectedUser.role === 'host' && (
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                      <polyline points="20 6 9 17 4 12" stroke="currentColor" fill="none" strokeWidth="2" />
-                    </svg>
+                    <Check size={16} className="text-forest" />
                   )}
                 </div>
-                <p className="role-option-description">
+                <p className="text-sm text-text-light">
                   Can create events, manage groups, and write Kete posts
                 </p>
               </button>
 
               <button
-                className={`role-option ${selectedUser.role === 'admin' ? 'active' : ''}`}
+                className={cn(
+                  'w-full text-left p-3 rounded-md border border-cream hover:border-forest/30 transition-colors cursor-pointer',
+                  selectedUser.role === 'admin' && 'border-forest bg-forest/5'
+                )}
                 onClick={() => handleRoleChange('admin')}
               >
-                <div className="role-option-header">
-                  <span className="role-option-title">Admin</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-text-primary">Admin</span>
                   {selectedUser.role === 'admin' && (
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                      <polyline points="20 6 9 17 4 12" stroke="currentColor" fill="none" strokeWidth="2" />
-                    </svg>
+                    <Check size={16} className="text-forest" />
                   )}
                 </div>
-                <p className="role-option-description">
+                <p className="text-sm text-text-light">
                   Full access to all features including user management
                 </p>
               </button>

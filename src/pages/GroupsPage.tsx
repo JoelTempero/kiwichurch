@@ -26,42 +26,42 @@ export function GroupsPage() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="groups-page">
+      <div className="max-w-3xl mx-auto p-4">
         {/* My Groups */}
-      <section className="groups-section">
-        <h2 className="groups-section-title">My Groups</h2>
-        {isLoading ? (
-          <div className="groups-grid">
-            <GatheringCardSkeleton />
-            <GatheringCardSkeleton />
-          </div>
-        ) : userGatherings.length === 0 ? (
-          <EmptyState
-            icon="users"
-            title="No groups yet"
-            message={publicGatherings.length > 0
-              ? "Browse the groups below and join one that interests you"
-              : "Check back later for groups to join"
-            }
-          />
-        ) : (
-          <div className="groups-grid">
-            {userGatherings.map(gathering => (
-              <GatheringCard
-                key={gathering.id}
-                gathering={gathering}
-                isMember={true}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+        <section className="mb-8">
+          <h2 className="text-xl font-display text-forest mb-4">My Groups</h2>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <GatheringCardSkeleton />
+              <GatheringCardSkeleton />
+            </div>
+          ) : userGatherings.length === 0 ? (
+            <EmptyState
+              icon="users"
+              title="No groups yet"
+              message={publicGatherings.length > 0
+                ? "Browse the groups below and join one that interests you"
+                : "Check back later for groups to join"
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {userGatherings.map(gathering => (
+                <GatheringCard
+                  key={gathering.id}
+                  gathering={gathering}
+                  isMember={true}
+                />
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Discover Groups */}
         {publicGatherings.length > 0 && (
-          <section className="groups-section">
-            <h2 className="groups-section-title">Discover</h2>
-            <div className="groups-grid">
+          <section className="mb-8">
+            <h2 className="text-xl font-display text-forest mb-4">Discover</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {publicGatherings.map(gathering => (
                 <GatheringCard
                   key={gathering.id}

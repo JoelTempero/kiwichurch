@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { Skeleton } from '@/components/common'
 import { useQuery } from '@tanstack/react-query'
 import { dbService } from '@/services/firebase/db'
-import type { Event, KetePost, User, Gathering } from '@/types'
+import { Search, X, Calendar, FileText, Users, User } from 'lucide-react'
+import type { Event, KetePost, User as UserType, Gathering } from '@/types'
 
 interface SearchPanelProps {
   isOpen: boolean
@@ -83,7 +84,7 @@ function useGlobalSearch(query: string) {
 
       // Search users (for directory)
       const users = await dbService.getAllUsers()
-      users.forEach((user: User) => {
+      users.forEach((user: UserType) => {
         if (
           user.displayName.toLowerCase().includes(normalizedQuery) ||
           user.email?.toLowerCase().includes(normalizedQuery)
@@ -108,37 +109,13 @@ function useGlobalSearch(query: string) {
 function getSearchIcon(type: SearchResult['type']): JSX.Element {
   switch (type) {
     case 'event':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      )
+      return <Calendar size={18} />
     case 'kete':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-        </svg>
-      )
+      return <FileText size={18} />
     case 'group':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      )
+      return <Users size={18} />
     case 'user':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-      )
+      return <User size={18} />
   }
 }
 
@@ -198,23 +175,20 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
 
   return createPortal(
     <div
-      className="search-panel-overlay"
+      className="fixed inset-0 z-50 bg-overlay/50 flex items-start justify-center pt-[10vh]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Search"
     >
-      <div className="search-panel" tabIndex={-1}>
-        <div className="search-panel-header">
-          <div className="search-panel-input-wrapper">
-            <svg className="search-panel-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+      <div className="w-full max-w-lg bg-white rounded-lg shadow-xl max-h-[70vh] flex flex-col mx-4" tabIndex={-1}>
+        <div className="flex items-center gap-2 p-3 border-b border-cream-dark">
+          <div className="flex items-center gap-2 flex-1">
+            <Search size={20} className="text-text-lighter flex-shrink-0" />
             <input
               ref={inputRef}
               type="search"
-              className="search-panel-input"
+              className="flex-1 border-none outline-none text-base bg-transparent placeholder:text-text-lighter"
               placeholder="Search events, posts, groups, members..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -223,68 +197,62 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
             />
             {query && (
               <button
-                className="search-panel-clear"
+                className="p-1 text-text-lighter hover:text-text-light transition-colors bg-transparent border-none cursor-pointer"
                 onClick={() => setQuery('')}
                 aria-label="Clear search"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <X size={16} />
               </button>
             )}
           </div>
           <button
-            className="search-panel-close"
+            className="p-1 text-text-lighter hover:text-text-light transition-colors bg-transparent border-none cursor-pointer"
             onClick={onClose}
             aria-label="Close search"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X size={20} />
           </button>
         </div>
 
-        <div className="search-panel-body">
+        <div className="flex-1 overflow-y-auto">
           {!query ? (
-            <div className="search-panel-hint">
+            <div className="text-center py-8 text-text-lighter">
               <p>Start typing to search...</p>
-              <div className="search-panel-shortcuts">
-                <span><kbd>Ctrl</kbd>+<kbd>K</kbd> to open</span>
-                <span><kbd>Esc</kbd> to close</span>
+              <div className="flex items-center justify-center gap-4 mt-2 text-xs text-text-lighter">
+                <span><kbd className="px-1.5 py-0.5 bg-cream rounded text-xs font-mono">Ctrl</kbd>+<kbd className="px-1.5 py-0.5 bg-cream rounded text-xs font-mono">K</kbd> to open</span>
+                <span><kbd className="px-1.5 py-0.5 bg-cream rounded text-xs font-mono">Esc</kbd> to close</span>
               </div>
             </div>
           ) : query.length < 2 ? (
-            <div className="search-panel-hint">
+            <div className="text-center py-8 text-text-lighter">
               <p>Type at least 2 characters to search</p>
             </div>
           ) : isLoading ? (
-            <div className="search-panel-loading">
+            <div className="p-4 space-y-3">
               <Skeleton variant="rectangular" height={50} />
               <Skeleton variant="rectangular" height={50} />
               <Skeleton variant="rectangular" height={50} />
             </div>
           ) : results.length === 0 ? (
-            <div className="search-panel-empty">
+            <div className="text-center py-8 text-text-lighter">
               <p>No results found for "{query}"</p>
-              <span>Try different keywords or check your spelling</span>
+              <span className="text-sm block mt-1">Try different keywords or check your spelling</span>
             </div>
           ) : (
-            <ul className="search-results" role="list">
+            <ul className="list-none m-0 p-0" role="list">
               {results.map((result) => (
                 <li key={`${result.type}-${result.id}`}>
                   <button
-                    className="search-result-item"
+                    className="flex items-center gap-3 w-full text-left px-4 py-3 hover:bg-cream transition-colors bg-transparent border-none cursor-pointer"
                     onClick={() => handleResultClick(result)}
                   >
-                    <div className="search-result-icon">
+                    <div className="text-text-lighter flex-shrink-0">
                       {getSearchIcon(result.type)}
                     </div>
-                    <div className="search-result-content">
-                      <p className="search-result-title">{result.title}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-text-primary m-0 truncate">{result.title}</p>
                       {result.subtitle && (
-                        <span className="search-result-subtitle">{result.subtitle}</span>
+                        <span className="text-xs text-text-light block">{result.subtitle}</span>
                       )}
                     </div>
                   </button>

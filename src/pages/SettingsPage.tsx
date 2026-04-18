@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { Button, EmptyState } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
+import { Users, Calendar, BookOpen } from 'lucide-react'
 
 export function SettingsPage() {
   const { user, isAdmin } = useAuth()
@@ -12,7 +13,7 @@ export function SettingsPage() {
 
   if (!user) {
     return (
-      <div className="settings-page">
+      <div className="max-w-[600px] mx-auto p-4">
         <EmptyState
           icon="settings"
           title="Not signed in"
@@ -33,57 +34,60 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="settings-page">
-      <div className="settings-header">
-        <h1 className="settings-title">Settings</h1>
+    <div className="max-w-[600px] mx-auto p-4">
+      <div className="mb-6">
+        <h1 className="text-2xl font-display text-forest">Settings</h1>
       </div>
 
       {/* Preferences */}
-      <section className="settings-section">
-        <h2 className="settings-section-title">Preferences</h2>
+      <section className="bg-white rounded-lg shadow-sm p-6 mb-4">
+        <h2 className="text-lg font-display text-forest mb-3">Preferences</h2>
 
-        <div className="settings-option">
-          <div className="settings-option-info">
-            <h3 className="settings-option-title">Dark Mode</h3>
-            <p className="settings-option-description">Use dark theme</p>
+        <div className="flex items-center justify-between py-3 border-b border-cream last:border-none">
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-text-primary">Dark Mode</h3>
+            <p className="text-xs text-text-light mt-0.5">Use dark theme</p>
           </div>
-          <label className="settings-toggle">
+          <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
+              className="sr-only peer"
               checked={darkMode}
               onChange={(e) => setDarkMode(e.target.checked)}
             />
-            <span className="settings-toggle-slider" />
+            <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-forest/30 rounded-full peer-checked:bg-forest transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5" />
           </label>
         </div>
 
-        <div className="settings-option">
-          <div className="settings-option-info">
-            <h3 className="settings-option-title">Push Notifications</h3>
-            <p className="settings-option-description">Receive push notifications</p>
+        <div className="flex items-center justify-between py-3 border-b border-cream last:border-none">
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-text-primary">Push Notifications</h3>
+            <p className="text-xs text-text-light mt-0.5">Receive push notifications</p>
           </div>
-          <label className="settings-toggle">
+          <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
+              className="sr-only peer"
               checked={notifications}
               onChange={(e) => setNotifications(e.target.checked)}
             />
-            <span className="settings-toggle-slider" />
+            <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-forest/30 rounded-full peer-checked:bg-forest transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5" />
           </label>
         </div>
 
-        <div className="settings-option">
-          <div className="settings-option-info">
-            <h3 className="settings-option-title">Email Updates</h3>
-            <p className="settings-option-description">Receive email notifications about events</p>
+        <div className="flex items-center justify-between py-3 border-b border-cream last:border-none">
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-text-primary">Email Updates</h3>
+            <p className="text-xs text-text-light mt-0.5">Receive email notifications about events</p>
           </div>
-          <label className="settings-toggle">
+          <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
+              className="sr-only peer"
               checked={emailUpdates}
               onChange={(e) => setEmailUpdates(e.target.checked)}
             />
-            <span className="settings-toggle-slider" />
+            <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-forest/30 rounded-full peer-checked:bg-forest transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5" />
           </label>
         </div>
 
@@ -93,22 +97,22 @@ export function SettingsPage() {
       </section>
 
       {/* Account */}
-      <section className="settings-section">
-        <h2 className="settings-section-title">Account</h2>
+      <section className="bg-white rounded-lg shadow-sm p-6 mb-4">
+        <h2 className="text-lg font-display text-forest mb-3">Account</h2>
 
-        <div className="settings-info-row">
-          <span className="settings-info-label">Email</span>
-          <span className="settings-info-value">{user.email}</span>
+        <div className="flex justify-between py-2 border-b border-cream last:border-none">
+          <span className="text-text-light text-sm">Email</span>
+          <span className="text-text-primary text-sm font-medium">{user.email}</span>
         </div>
 
-        <div className="settings-info-row">
-          <span className="settings-info-label">Role</span>
-          <span className="settings-info-value settings-role">{user.role}</span>
+        <div className="flex justify-between py-2 border-b border-cream last:border-none">
+          <span className="text-text-light text-sm">Role</span>
+          <span className="text-text-primary text-sm font-medium capitalize">{user.role}</span>
         </div>
 
-        <div className="settings-info-row">
-          <span className="settings-info-label">Member since</span>
-          <span className="settings-info-value">
+        <div className="flex justify-between py-2 border-b border-cream last:border-none">
+          <span className="text-text-light text-sm">Member since</span>
+          <span className="text-text-primary text-sm font-medium">
             {user.createdAt instanceof Date
               ? user.createdAt.toLocaleDateString('en-NZ')
               : 'Unknown'}
@@ -118,36 +122,23 @@ export function SettingsPage() {
 
       {/* Admin Section */}
       {isAdmin && (
-        <section className="settings-section">
-          <h2 className="settings-section-title">Admin</h2>
-          <p className="settings-section-description">
+        <section className="bg-white rounded-lg shadow-sm p-6 mb-4">
+          <h2 className="text-lg font-display text-forest mb-3">Admin</h2>
+          <p className="text-text-light text-sm mb-4">
             Admin-only settings and tools
           </p>
 
-          <div className="settings-admin-links">
-            <a href="/users" className="settings-admin-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
+          <div className="space-y-2">
+            <a href="/users" className="flex items-center gap-3 p-3 rounded-md hover:bg-cream transition-colors text-text-primary no-underline">
+              <Users size={20} />
               Manage Users
             </a>
-            <a href="/hosting" className="settings-admin-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
+            <a href="/hosting" className="flex items-center gap-3 p-3 rounded-md hover:bg-cream transition-colors text-text-primary no-underline">
+              <Calendar size={20} />
               Content Hosting
             </a>
-            <a href="/directory" className="settings-admin-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
+            <a href="/directory" className="flex items-center gap-3 p-3 rounded-md hover:bg-cream transition-colors text-text-primary no-underline">
+              <BookOpen size={20} />
               Member Directory
             </a>
           </div>
@@ -155,12 +146,12 @@ export function SettingsPage() {
       )}
 
       {/* About */}
-      <section className="settings-section">
-        <h2 className="settings-section-title">About</h2>
-        <div className="settings-about">
-          <p className="settings-about-name">Kiwi Church Portal</p>
-          <p className="settings-about-version">Version 2.0.0</p>
-          <p className="settings-about-description">
+      <section className="bg-white rounded-lg shadow-sm p-6 mb-4">
+        <h2 className="text-lg font-display text-forest mb-3">About</h2>
+        <div className="text-center py-2">
+          <p className="font-semibold text-text-primary">Kiwi Church Portal</p>
+          <p className="text-sm text-text-lighter">Version 2.0.0</p>
+          <p className="text-xs text-text-lighter mt-1">
             Built with React, TypeScript, and Firebase
           </p>
         </div>

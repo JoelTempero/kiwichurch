@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@/utils/cn'
 import { useUIStore } from '@/store'
 import type { Event } from '@/types'
 
@@ -59,52 +61,54 @@ export function CalendarView({ events, onDateClick, onEventClick }: CalendarView
   }
 
   return (
-    <div className="calendar-container">
+    <div className="bg-white rounded-lg shadow-sm p-4">
       {/* Calendar Header */}
-      <div className="calendar-header">
+      <div className="flex items-center justify-between mb-4">
         <button
-          className="calendar-nav-btn"
+          className="p-2 rounded-full hover:bg-cream transition-colors"
           onClick={() => changeMonth(-1)}
           aria-label="Previous month"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <ChevronLeft size={20} />
         </button>
-        <h3 className="calendar-title">
+        <h3 className="text-lg font-display text-forest">
           {MONTHS[calendarMonth]} {calendarYear}
         </h3>
         <button
-          className="calendar-nav-btn"
+          className="p-2 rounded-full hover:bg-cream transition-colors"
           onClick={() => changeMonth(1)}
           aria-label="Next month"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <ChevronRight size={20} />
         </button>
       </div>
 
       {/* Weekday Headers */}
-      <div className="calendar-weekdays">
+      <div className="grid grid-cols-7 mb-2">
         {WEEKDAYS.map(day => (
-          <div key={day} className="calendar-weekday">{day}</div>
+          <div key={day} className="text-center text-xs font-semibold text-text-light py-2">{day}</div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="calendar-grid">
+      <div className="grid grid-cols-7 gap-1">
         {calendarDays.map((day, index) => (
           <button
             key={index}
-            className={`calendar-day ${day.date ? '' : 'calendar-day-empty'} ${day.isToday ? 'calendar-day-today' : ''} ${day.date === selectedDate ? 'calendar-day-selected' : ''} ${day.hasEvents ? 'calendar-day-has-events' : ''}`}
+            className={cn(
+              'aspect-square flex flex-col items-center justify-center rounded-full text-sm relative transition-colors',
+              !day.date && 'invisible',
+              day.date && 'hover:bg-cream cursor-pointer',
+              day.isToday && 'font-bold text-terracotta',
+              day.date === selectedDate && 'bg-forest text-white hover:bg-forest'
+            )}
             onClick={() => handleDayClick(day.date)}
             disabled={!day.date}
           >
             {day.day && (
               <>
-                <span className="calendar-day-number">{day.day}</span>
-                {day.hasEvents && <span className="calendar-day-dot" />}
+                <span>{day.day}</span>
+                {day.hasEvents && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-terracotta" />}
               </>
             )}
           </button>
@@ -113,22 +117,22 @@ export function CalendarView({ events, onDateClick, onEventClick }: CalendarView
 
       {/* Selected Date Events */}
       {selectedDate && eventsForSelectedDate.length > 0 && (
-        <div className="calendar-events-preview">
-          <h4 className="calendar-events-title">
+        <div className="mt-4 border-t border-cream-dark pt-4">
+          <h4 className="text-sm font-semibold text-text-light mb-2">
             Events on {new Date(selectedDate).toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}
           </h4>
           {eventsForSelectedDate.map(event => (
             <div
               key={event.id}
-              className="calendar-event-item"
+              className="flex items-center gap-3 p-2 rounded-sm hover:bg-cream cursor-pointer transition-colors"
               onClick={() => onEventClick(event)}
               role="button"
               tabIndex={0}
             >
-              <span className="calendar-event-time">
+              <span className="text-sm text-text-light font-mono w-12 flex-shrink-0">
                 {event.time.split(':').slice(0, 2).join(':')}
               </span>
-              <span className="calendar-event-title">{event.title}</span>
+              <span className="text-sm text-text-primary">{event.title}</span>
             </div>
           ))}
         </div>

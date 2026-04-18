@@ -7,6 +7,8 @@ import { Button, EmptyState, Skeleton } from '@/components/common'
 import { EventForm } from '@/components/events'
 import { KeteForm } from '@/components/kete'
 import { GroupForm } from '@/components/groups'
+import { Plus, Pencil } from 'lucide-react'
+import { cn } from '@/utils/cn'
 import type { Event, KetePost, Gathering } from '@/types'
 
 export function HostingPage() {
@@ -32,7 +34,7 @@ export function HostingPage() {
 
   if (!isAdminOrHost) {
     return (
-      <div className="hosting-page">
+      <div className="max-w-3xl mx-auto p-4">
         <EmptyState
           icon="lock"
           title="Access Denied"
@@ -118,18 +120,23 @@ export function HostingPage() {
   }
 
   return (
-    <div className="hosting-page">
-      <div className="hosting-header">
-        <h1 className="hosting-title">Hosting</h1>
-        <p className="hosting-subtitle">Manage events, content, and groups</p>
+    <div className="max-w-3xl mx-auto p-4">
+      <div className="mb-6">
+        <h1 className="text-2xl font-display text-forest">Hosting</h1>
+        <p className="text-text-light text-sm">Manage events, content, and groups</p>
       </div>
 
       {/* Tabs */}
-      <div className="hosting-tabs" role="tablist">
+      <div className="flex gap-1 p-1 bg-cream rounded-md mb-6" role="tablist">
         <button
           role="tab"
           aria-selected={activeTab === 'events'}
-          className={`hosting-tab ${activeTab === 'events' ? 'active' : ''}`}
+          className={cn(
+            'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
+            activeTab === 'events'
+              ? 'bg-white text-forest shadow-sm'
+              : 'text-text-light hover:text-text-primary'
+          )}
           onClick={() => setActiveTab('events')}
         >
           Events
@@ -137,7 +144,12 @@ export function HostingPage() {
         <button
           role="tab"
           aria-selected={activeTab === 'kete'}
-          className={`hosting-tab ${activeTab === 'kete' ? 'active' : ''}`}
+          className={cn(
+            'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
+            activeTab === 'kete'
+              ? 'bg-white text-forest shadow-sm'
+              : 'text-text-light hover:text-text-primary'
+          )}
           onClick={() => setActiveTab('kete')}
         >
           Kete Posts
@@ -146,7 +158,12 @@ export function HostingPage() {
           <button
             role="tab"
             aria-selected={activeTab === 'groups'}
-            className={`hosting-tab ${activeTab === 'groups' ? 'active' : ''}`}
+            className={cn(
+              'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
+              activeTab === 'groups'
+                ? 'bg-white text-forest shadow-sm'
+                : 'text-text-light hover:text-text-primary'
+            )}
             onClick={() => setActiveTab('groups')}
           >
             Groups
@@ -156,20 +173,17 @@ export function HostingPage() {
 
       {/* Content */}
       {activeTab === 'events' && (
-        <div className="hosting-section" role="tabpanel">
-          <div className="hosting-section-header">
-            <h2 className="hosting-section-title">Upcoming Events</h2>
+        <div className="mb-8" role="tabpanel">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-display text-forest">Upcoming Events</h2>
             <Button variant="primary" size="sm" onClick={handleCreateEvent}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <Plus size={16} aria-hidden="true" />
               New Event
             </Button>
           </div>
 
           {loadingEvents ? (
-            <div className="hosting-list">
+            <div className="space-y-2">
               <Skeleton variant="rectangular" height={70} />
               <Skeleton variant="rectangular" height={70} />
             </div>
@@ -185,28 +199,25 @@ export function HostingPage() {
               }
             />
           ) : (
-            <div className="hosting-list">
+            <div className="space-y-2">
               {events.map((event: Event) => (
-                <div key={event.id} className="hosting-item">
-                  <div className="hosting-item-info">
-                    <h3 className="hosting-item-title">{event.title}</h3>
-                    <p className="hosting-item-meta">
+                <div key={event.id} className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-text-primary text-sm truncate">{event.title}</h3>
+                    <p className="text-xs text-text-light mt-0.5">
                       {formatDate(event.date)} at {event.time}
-                      {event.location && ` • ${event.location}`}
-                      {event.gatheringName && ` • ${event.gatheringName}`}
+                      {event.location && ` \u2022 ${event.location}`}
+                      {event.gatheringName && ` \u2022 ${event.gatheringName}`}
                     </p>
                   </div>
-                  <div className="hosting-item-actions">
+                  <div className="flex-shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditEvent(event)}
                       aria-label={`Edit ${event.title}`}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
+                      <Pencil size={16} aria-hidden="true" />
                       Edit
                     </Button>
                   </div>
@@ -218,20 +229,17 @@ export function HostingPage() {
       )}
 
       {activeTab === 'kete' && (
-        <div className="hosting-section" role="tabpanel">
-          <div className="hosting-section-header">
-            <h2 className="hosting-section-title">Kete Posts</h2>
+        <div className="mb-8" role="tabpanel">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-display text-forest">Kete Posts</h2>
             <Button variant="primary" size="sm" onClick={handleCreatePost}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <Plus size={16} aria-hidden="true" />
               New Post
             </Button>
           </div>
 
           {loadingKete ? (
-            <div className="hosting-list">
+            <div className="space-y-2">
               <Skeleton variant="rectangular" height={70} />
               <Skeleton variant="rectangular" height={70} />
             </div>
@@ -247,32 +255,29 @@ export function HostingPage() {
               }
             />
           ) : (
-            <div className="hosting-list">
+            <div className="space-y-2">
               {ketePosts.map((post: KetePost) => (
-                <div key={post.id} className="hosting-item">
-                  <div className="hosting-item-info">
-                    <div className="hosting-item-title-row">
-                      <h3 className="hosting-item-title">{post.title}</h3>
+                <div key={post.id} className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-text-primary text-sm truncate">{post.title}</h3>
                       {!post.published && (
-                        <span className="hosting-item-badge hosting-item-badge-draft">Draft</span>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Draft</span>
                       )}
                     </div>
-                    <p className="hosting-item-meta">
+                    <p className="text-xs text-text-light mt-0.5">
                       By {post.authorName}
-                      {post.publishedAt && ` • ${formatPostDate(post.publishedAt as Date)}`}
+                      {post.publishedAt && ` \u2022 ${formatPostDate(post.publishedAt as Date)}`}
                     </p>
                   </div>
-                  <div className="hosting-item-actions">
+                  <div className="flex-shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditPost(post)}
                       aria-label={`Edit ${post.title}`}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
+                      <Pencil size={16} aria-hidden="true" />
                       Edit
                     </Button>
                   </div>
@@ -284,20 +289,17 @@ export function HostingPage() {
       )}
 
       {activeTab === 'groups' && isAdmin && (
-        <div className="hosting-section" role="tabpanel">
-          <div className="hosting-section-header">
-            <h2 className="hosting-section-title">Groups</h2>
+        <div className="mb-8" role="tabpanel">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-display text-forest">Groups</h2>
             <Button variant="primary" size="sm" onClick={handleCreateGroup}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <Plus size={16} aria-hidden="true" />
               New Group
             </Button>
           </div>
 
           {loadingGroups ? (
-            <div className="hosting-list">
+            <div className="space-y-2">
               <Skeleton variant="rectangular" height={70} />
               <Skeleton variant="rectangular" height={70} />
             </div>
@@ -313,39 +315,36 @@ export function HostingPage() {
               }
             />
           ) : (
-            <div className="hosting-list">
+            <div className="space-y-2">
               {groups.map((group: Gathering) => (
-                <div key={group.id} className="hosting-item">
-                  <div className="hosting-item-info">
-                    <div className="hosting-item-title-row">
+                <div key={group.id} className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
                       <div
-                        className="hosting-item-color"
+                        className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: group.color || '#2d5a4a' }}
                       />
-                      <h3 className="hosting-item-title">{group.name}</h3>
+                      <h3 className="font-semibold text-text-primary text-sm truncate">{group.name}</h3>
                       {group.featured && (
-                        <span className="hosting-item-badge hosting-item-badge-featured">Featured</span>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gold/20 text-gold">Featured</span>
                       )}
                       {!group.isPublic && (
-                        <span className="hosting-item-badge hosting-item-badge-private">Private</span>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Private</span>
                       )}
                     </div>
-                    <p className="hosting-item-meta">
+                    <p className="text-xs text-text-light mt-0.5">
                       {group.rhythm || 'No schedule set'}
-                      {group.location && ` • ${group.location}`}
+                      {group.location && ` \u2022 ${group.location}`}
                     </p>
                   </div>
-                  <div className="hosting-item-actions">
+                  <div className="flex-shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditGroup(group)}
                       aria-label={`Edit ${group.name}`}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
+                      <Pencil size={16} aria-hidden="true" />
                       Edit
                     </Button>
                   </div>

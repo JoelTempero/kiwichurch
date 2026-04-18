@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { Users } from 'lucide-react'
+import { cn } from '@/utils/cn'
 import type { Gathering } from '@/types'
 
 interface GatheringCardProps {
@@ -11,43 +13,38 @@ export function GatheringCard({ gathering, memberCount = 0, isMember = false }: 
   return (
     <Link
       to={`/groups/${gathering.id}`}
-      className={`gathering-card ${gathering.featured ? 'gathering-card-featured' : ''}`}
+      className={cn(
+        'block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white no-underline text-inherit',
+        gathering.featured && 'ring-2 ring-gold'
+      )}
     >
       <div
-        className="gathering-card-header"
+        className="h-32 flex items-center justify-center overflow-hidden"
         style={{ backgroundColor: gathering.color || 'var(--color-forest)' }}
       >
         {gathering.imageURL ? (
           <img src={gathering.imageURL} alt={gathering.name} />
         ) : (
-          <div className="gathering-card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
+          <div className="text-white/60">
+            <Users size={40} strokeWidth={1.5} />
           </div>
         )}
       </div>
-      <div className="gathering-card-body">
-        <h3 className="gathering-card-title">{gathering.name}</h3>
+      <div className="p-4">
+        <h3 className="text-base font-semibold text-text-primary mb-1">{gathering.name}</h3>
         {gathering.rhythm && (
-          <p className="gathering-card-rhythm">{gathering.rhythm}</p>
+          <p className="text-sm text-text-light mb-1">{gathering.rhythm}</p>
         )}
         {gathering.description && (
-          <p className="gathering-card-description">{gathering.description}</p>
+          <p className="text-sm text-text-light line-clamp-2 mb-3">{gathering.description}</p>
         )}
-        <div className="gathering-card-footer">
-          <span className="gathering-card-members">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-            </svg>
+        <div className="flex items-center justify-between text-xs text-text-light">
+          <span className="flex items-center gap-1">
+            <Users size={14} />
             {memberCount} {memberCount === 1 ? 'member' : 'members'}
           </span>
           {isMember && (
-            <span className="gathering-card-member-badge">Member</span>
+            <span className="text-xs font-semibold text-terracotta bg-terracotta/10 px-2 py-0.5 rounded-full">Member</span>
           )}
         </div>
       </div>

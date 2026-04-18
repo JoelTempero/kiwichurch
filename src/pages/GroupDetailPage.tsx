@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { ChevronLeft, MapPin, Users } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import {
   useGathering,
@@ -84,11 +85,11 @@ export function GroupDetailPage() {
 
   if (loadingGathering) {
     return (
-      <div className="group-detail-page">
-        <div className="group-detail-header">
+      <div>
+        <div>
           <Skeleton variant="rectangular" height={120} />
         </div>
-        <div className="group-detail-content">
+        <div className="p-4">
           <Skeleton variant="text" width="60%" />
           <Skeleton variant="text" width="80%" />
         </div>
@@ -98,7 +99,7 @@ export function GroupDetailPage() {
 
   if (!gathering) {
     return (
-      <div className="group-detail-page">
+      <div>
         <EmptyState
           icon="users"
           title="Group not found"
@@ -114,52 +115,47 @@ export function GroupDetailPage() {
   }
 
   return (
-    <div className="group-detail-page">
+    <div>
       {/* Header */}
       <div
-        className="group-detail-header"
+        className="relative p-6 pt-12 pb-8 text-white rounded-b-lg"
         style={{ backgroundColor: gathering.color || 'var(--color-forest)' }}
       >
-        <button className="group-detail-back" onClick={() => navigate('/groups')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+        <button
+          className="absolute top-4 left-4 p-2 text-white/80 hover:text-white transition-colors"
+          onClick={() => navigate('/groups')}
+        >
+          <ChevronLeft size={24} />
         </button>
-        <div className="group-detail-header-content">
-          <h1 className="group-detail-title">{gathering.name}</h1>
+        <div className="text-center">
+          <h1 className="text-2xl font-display text-white mb-1">{gathering.name}</h1>
           {gathering.rhythm && (
-            <p className="group-detail-rhythm">{gathering.rhythm}</p>
+            <p className="text-sm text-white/80">{gathering.rhythm}</p>
           )}
         </div>
       </div>
 
       {/* Info */}
-      <div className="group-detail-info">
+      <div className="p-4">
         {gathering.description && (
-          <p className="group-detail-description">{gathering.description}</p>
+          <p className="text-text-primary leading-relaxed mb-4">{gathering.description}</p>
         )}
 
-        <div className="group-detail-meta">
+        <div className="flex flex-wrap gap-4 text-sm text-text-light mb-4">
           {gathering.location && (
-            <div className="group-detail-meta-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
+            <div className="flex items-center gap-1.5">
+              <MapPin size={16} />
               <span>{gathering.location}</span>
             </div>
           )}
-          <div className="group-detail-meta-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-            </svg>
+          <div className="flex items-center gap-1.5">
+            <Users size={16} />
             <span>{members.length} {members.length === 1 ? 'member' : 'members'}</span>
           </div>
         </div>
 
         {/* Join/Leave Button */}
-        <div className="group-detail-actions">
+        <div className="mb-6">
           {isMember ? (
             <Button variant="outline" onClick={handleLeave} loading={leaveGathering.isPending}>
               Leave Group
@@ -174,22 +170,22 @@ export function GroupDetailPage() {
 
       {/* Message Board */}
       {isMember && (
-        <div className="group-detail-board">
-          <h2 className="group-detail-section-title">Message Board</h2>
+        <div className="px-4 pb-8">
+          <h2 className="text-lg font-display text-forest mb-4">Message Board</h2>
 
           {/* New Post Form */}
-          <form onSubmit={handleCreatePost} className="board-post-form">
-            <div className="board-post-form-header">
+          <form onSubmit={handleCreatePost} className="bg-white rounded-lg p-4 shadow-sm mb-6">
+            <div className="flex gap-3 mb-3">
               <Avatar src={user?.photoURL} name={user?.displayName} size="md" />
               <textarea
-                className="form-textarea"
+                className="w-full px-4 py-3 rounded-sm border border-gray-200 text-base resize-y focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
                 placeholder="Share something with the group..."
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
                 rows={3}
               />
             </div>
-            <div className="board-post-form-actions">
+            <div className="flex justify-end">
               <Button
                 type="submit"
                 variant="primary"
@@ -203,7 +199,7 @@ export function GroupDetailPage() {
 
           {/* Posts */}
           {loadingPosts ? (
-            <div className="board-posts-loading">
+            <div className="space-y-4">
               <Skeleton variant="rectangular" height={120} />
               <Skeleton variant="rectangular" height={120} />
             </div>
@@ -214,7 +210,7 @@ export function GroupDetailPage() {
               message="Be the first to share something!"
             />
           ) : (
-            <div className="board-posts">
+            <div className="space-y-4">
               {posts.map(post => (
                 <BoardPost
                   key={post.id}
@@ -229,7 +225,7 @@ export function GroupDetailPage() {
 
       {/* Not a member message */}
       {!isMember && gathering.isPublic && (
-        <div className="group-detail-join-prompt">
+        <div className="px-4 py-8">
           <EmptyState
             icon="users"
             title="Join to participate"

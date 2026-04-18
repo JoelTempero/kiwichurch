@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Avatar, Button, Modal } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { storageService } from '@/services/firebase'
+import { Camera, Pencil, Lock, LogOut, Loader2 } from 'lucide-react'
 
 interface ProfileFormErrors {
   displayName?: string
@@ -192,12 +193,12 @@ export function ProfilePage() {
   if (!user) return null
 
   return (
-    <div className="profile-page">
+    <div className="max-w-[600px] mx-auto p-4">
       {/* Profile Header */}
-      <div className="profile-header">
-        <div className="profile-avatar-wrapper">
+      <div className="text-center mb-8 pt-4">
+        <div className="relative inline-block mb-4">
           <Avatar src={user.photoURL} name={user.displayName} size="xl" />
-          <label className="profile-avatar-upload" aria-label="Upload profile photo">
+          <label className="absolute bottom-0 right-0 cursor-pointer" aria-label="Upload profile photo">
             <input
               type="file"
               accept="image/*"
@@ -206,14 +207,11 @@ export function ProfilePage() {
               hidden
               aria-describedby="photo-upload-hint"
             />
-            <span className="profile-avatar-upload-btn" role="button" aria-label="Upload photo">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-forest text-white shadow-sm hover:bg-forest-light transition-colors" role="button" aria-label="Upload photo">
               {isUploading ? (
-                <div className="loading-spinner" style={{ width: 16, height: 16 }} aria-label="Uploading..." />
+                <Loader2 size={16} className="animate-spin" aria-label="Uploading..." />
               ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" aria-hidden="true">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                  <circle cx="12" cy="13" r="4" />
-                </svg>
+                <Camera size={16} aria-hidden="true" />
               )}
             </span>
           </label>
@@ -221,58 +219,52 @@ export function ProfilePage() {
             Max file size: 5MB. Accepted formats: JPG, PNG, GIF
           </span>
         </div>
-        <h1 className="profile-name">{user.displayName}</h1>
-        <p className="profile-email">{user.email}</p>
+        <h1 className="text-2xl font-display text-forest mb-1">{user.displayName}</h1>
+        <p className="text-text-light text-sm mb-2">{user.email}</p>
         {user.role !== 'member' && (
-          <span className="profile-role-badge">{user.role}</span>
+          <span className="inline-block text-xs font-semibold text-terracotta bg-terracotta/10 px-3 py-1 rounded-full uppercase">{user.role}</span>
         )}
       </div>
 
       {/* Profile Info */}
       {!isEditing ? (
-        <div className="profile-info">
-          <div className="profile-section">
-            <h2 className="profile-section-title">About</h2>
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
+          <div className="mb-6 last:mb-0">
+            <h2 className="text-lg font-display text-forest mb-3">About</h2>
             {user.bio ? (
-              <p className="profile-bio">{user.bio}</p>
+              <p className="text-text-primary leading-relaxed">{user.bio}</p>
             ) : (
-              <p className="profile-bio-empty">No bio added yet</p>
+              <p className="text-text-lighter italic">No bio added yet</p>
             )}
           </div>
 
-          <div className="profile-section">
-            <h2 className="profile-section-title">Contact</h2>
-            <div className="profile-field">
-              <span className="profile-field-label">Email</span>
-              <span className="profile-field-value">{user.email}</span>
+          <div className="mb-6 last:mb-0">
+            <h2 className="text-lg font-display text-forest mb-3">Contact</h2>
+            <div className="flex justify-between py-2 border-b border-cream last:border-none">
+              <span className="text-text-light text-sm">Email</span>
+              <span className="text-text-primary text-sm font-medium">{user.email}</span>
             </div>
             {user.phone && (
-              <div className="profile-field">
-                <span className="profile-field-label">Phone</span>
-                <span className="profile-field-value">{user.phone}</span>
+              <div className="flex justify-between py-2 border-b border-cream last:border-none">
+                <span className="text-text-light text-sm">Phone</span>
+                <span className="text-text-primary text-sm font-medium">{user.phone}</span>
               </div>
             )}
           </div>
 
-          <div className="profile-actions">
+          <div className="flex gap-3 mt-4">
             <Button variant="primary" onClick={() => setIsEditing(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" aria-hidden="true">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
+              <Pencil size={18} aria-hidden="true" />
               Edit Profile
             </Button>
             <Button variant="outline" onClick={() => setIsChangingPassword(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" aria-hidden="true">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
+              <Lock size={18} aria-hidden="true" />
               Change Password
             </Button>
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSaveProfile} className="profile-edit-form" noValidate>
+        <form onSubmit={handleSaveProfile} className="bg-white rounded-lg shadow-sm p-6 mb-4 space-y-4" noValidate>
           <div className="form-group">
             <label className="form-label" htmlFor="profile-name">
               Display Name <span className="form-required">*</span>
@@ -339,7 +331,7 @@ export function ProfilePage() {
             <span id="bio-hint" className="form-hint">Optional - share a little about yourself</span>
           </div>
 
-          <div className="profile-edit-actions">
+          <div className="flex gap-3 pt-2">
             <Button type="submit" variant="primary" loading={isSaving}>
               Save Changes
             </Button>
@@ -351,13 +343,9 @@ export function ProfilePage() {
       )}
 
       {/* Sign Out */}
-      <div className="profile-sign-out">
+      <div className="text-center py-8">
         <Button variant="ghost" onClick={handleSignOut}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" aria-hidden="true">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
+          <LogOut size={18} aria-hidden="true" />
           Sign Out
         </Button>
       </div>
@@ -446,7 +434,7 @@ export function ProfilePage() {
             )}
           </div>
 
-          <div className="modal-actions">
+          <div className="flex gap-3 pt-4">
             <Button type="submit" variant="primary" loading={isSaving}>
               Update Password
             </Button>

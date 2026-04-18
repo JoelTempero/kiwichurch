@@ -11,27 +11,27 @@ export function KetePage() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="kete-page">
-      <div className="kete-page-header">
-        <h1 className="kete-page-title">Kete</h1>
-        <p className="kete-page-subtitle">
+      <div className="max-w-3xl mx-auto p-4">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-display text-forest mb-2">Kete</h1>
+        <p className="text-text-light text-lg">
           Stories, reflections, and resources from our community
         </p>
       </div>
 
       {isLoading ? (
-        <div className="kete-grid">
-          <div className="kete-card-skeleton">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg overflow-hidden shadow-sm">
             <Skeleton variant="rectangular" height={200} />
-            <div style={{ padding: '1rem' }}>
+            <div className="p-4">
               <Skeleton variant="text" width="40%" />
               <Skeleton variant="text" width="80%" />
               <Skeleton variant="text" width="60%" />
             </div>
           </div>
-          <div className="kete-card-skeleton">
+          <div className="bg-white rounded-lg overflow-hidden shadow-sm">
             <Skeleton variant="rectangular" height={200} />
-            <div style={{ padding: '1rem' }}>
+            <div className="p-4">
               <Skeleton variant="text" width="40%" />
               <Skeleton variant="text" width="80%" />
               <Skeleton variant="text" width="60%" />
@@ -45,7 +45,7 @@ export function KetePage() {
           message="Stories, reflections, and resources from our community will appear here. Check back soon!"
         />
       ) : (
-        <div className="kete-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {posts.map(post => (
             <KeteCard key={post.id} post={post} />
           ))}

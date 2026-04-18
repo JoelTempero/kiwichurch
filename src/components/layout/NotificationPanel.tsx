@@ -8,6 +8,8 @@ import {
   useMarkNotificationRead,
   useMarkAllNotificationsRead
 } from '@/hooks/useNotifications'
+import { Calendar, FileText, MessageCircle, AtSign, Users, Info, Bell, X } from 'lucide-react'
+import { cn } from '@/utils/cn'
 import type { Notification } from '@/types'
 
 interface NotificationPanelProps {
@@ -35,53 +37,17 @@ function getNotificationIcon(type: Notification['type']): JSX.Element {
   switch (type) {
     case 'event_reminder':
     case 'event_update':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      )
+      return <Calendar size={18} />
     case 'new_post':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-        </svg>
-      )
+      return <FileText size={18} />
     case 'new_comment':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-        </svg>
-      )
+      return <MessageCircle size={18} />
     case 'mention':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
-        </svg>
-      )
+      return <AtSign size={18} />
     case 'group_invite':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      )
+      return <Users size={18} />
     default:
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-      )
+      return <Info size={18} />
   }
 }
 
@@ -131,16 +97,16 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
 
   return createPortal(
     <div
-      className="notification-panel-overlay"
+      className="fixed inset-0 z-50 bg-overlay flex justify-end"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Notifications"
     >
-      <div className="notification-panel" tabIndex={-1}>
-        <div className="notification-panel-header">
-          <h3 className="notification-panel-title">Notifications</h3>
-          <div className="notification-panel-actions">
+      <div className="w-full max-w-sm bg-white h-full flex flex-col shadow-xl" tabIndex={-1}>
+        <div className="flex items-center justify-between p-4 border-b border-cream-dark">
+          <h3 className="text-lg font-display text-forest">Notifications</h3>
+          <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <Button
                 variant="ghost"
@@ -152,56 +118,53 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
               </Button>
             )}
             <button
-              className="notification-panel-close"
+              className="p-1 rounded-full hover:bg-cream transition-colors"
               onClick={onClose}
               aria-label="Close notifications"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <X size={20} />
             </button>
           </div>
         </div>
 
-        <div className="notification-panel-body">
+        <div className="flex-1 overflow-y-auto">
           {isLoading ? (
-            <div className="notification-panel-loading">
+            <div className="p-4 space-y-3">
               <Skeleton variant="rectangular" height={60} />
               <Skeleton variant="rectangular" height={60} />
               <Skeleton variant="rectangular" height={60} />
             </div>
           ) : notifications.length === 0 ? (
-            <div className="notification-panel-empty">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="48" height="48">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
+            <div className="flex flex-col items-center justify-center text-center py-12 px-6 text-text-lighter">
+              <Bell size={48} />
               <p>No notifications yet</p>
-              <span className="notification-panel-empty-hint">
+              <span className="text-sm text-text-lighter mt-2">
                 You'll be notified about events, messages, and updates here
               </span>
             </div>
           ) : (
-            <ul className="notification-list" role="list">
+            <ul className="list-none m-0 p-0" role="list">
               {notifications.map((notification) => (
                 <li key={notification.id}>
                   <button
-                    className={`notification-item ${!notification.read ? 'notification-unread' : ''}`}
+                    className={cn(
+                      'flex items-start gap-3 w-full text-left px-4 py-3 hover:bg-cream transition-colors border-b border-cream bg-transparent cursor-pointer',
+                      !notification.read && 'bg-cream/50'
+                    )}
                     onClick={() => handleNotificationClick(notification)}
                   >
-                    <div className="notification-icon">
+                    <div className="flex-shrink-0 text-forest mt-0.5">
                       {getNotificationIcon(notification.type)}
                     </div>
-                    <div className="notification-content">
-                      <p className="notification-title">{notification.title}</p>
-                      <p className="notification-message">{notification.message}</p>
-                      <span className="notification-time">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-text-primary m-0">{notification.title}</p>
+                      <p className="text-sm text-text-light m-0 mt-0.5">{notification.message}</p>
+                      <span className="text-xs text-text-lighter mt-1 block">
                         {formatNotificationTime(notification.createdAt as Date)}
                       </span>
                     </div>
                     {!notification.read && (
-                      <span className="notification-unread-dot" aria-hidden="true" />
+                      <span className="w-2 h-2 rounded-full bg-terracotta flex-shrink-0 mt-2" aria-hidden="true" />
                     )}
                   </button>
                 </li>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { ChevronLeft, Trash2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useKetePost, useKeteComments, useAddKeteComment, useDeleteKeteComment } from '@/hooks/useKete'
 import { Avatar, Button, EmptyState, Skeleton } from '@/components/common'
@@ -79,9 +80,9 @@ export function KetePostPage() {
 
   if (loadingPost) {
     return (
-      <div className="kete-post-page">
+      <div className="max-w-[700px] mx-auto">
         <Skeleton variant="rectangular" height={300} />
-        <div style={{ padding: '2rem' }}>
+        <div className="p-8">
           <Skeleton variant="text" width="60%" height={40} />
           <Skeleton variant="text" width="30%" />
           <Skeleton variant="text" count={5} />
@@ -92,7 +93,7 @@ export function KetePostPage() {
 
   if (!post) {
     return (
-      <div className="kete-post-page">
+      <div className="max-w-[700px] mx-auto">
         <EmptyState
           icon="book"
           title="Post not found"
@@ -108,53 +109,54 @@ export function KetePostPage() {
   }
 
   return (
-    <div className="kete-post-page">
+    <div className="max-w-[700px] mx-auto">
       {/* Back button */}
-      <button className="kete-post-back" onClick={() => navigate('/kete')}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
+      <button
+        className="flex items-center gap-1 text-text-light hover:text-forest transition-colors px-4 py-3 bg-transparent border-none cursor-pointer text-sm"
+        onClick={() => navigate('/kete')}
+      >
+        <ChevronLeft size={20} />
         Back to Kete
       </button>
 
       {/* Featured image */}
       {post.featuredImage && (
-        <div className="kete-post-image">
-          <img src={post.featuredImage} alt={post.title} />
+        <div className="w-full aspect-video overflow-hidden">
+          <img src={post.featuredImage} alt={post.title} className="w-full h-full object-cover" />
         </div>
       )}
 
       {/* Header */}
-      <header className="kete-post-header">
-        <h1 className="kete-post-title">{post.title}</h1>
-        <div className="kete-post-meta">
+      <header className="px-6 py-4">
+        <h1 className="text-2xl font-display text-forest mb-3">{post.title}</h1>
+        <div className="flex items-center gap-3">
           <Avatar src={post.authorPhotoURL} name={post.authorName} size="md" />
-          <div className="kete-post-author-info">
-            <span className="kete-post-author-name">{post.authorName}</span>
-            <span className="kete-post-date">{formatDate(post.publishedAt as Date)}</span>
+          <div className="flex flex-col">
+            <span className="font-semibold text-text-primary text-sm">{post.authorName}</span>
+            <span className="text-xs text-text-light">{formatDate(post.publishedAt as Date)}</span>
           </div>
         </div>
       </header>
 
       {/* Content */}
       <article
-        className="kete-post-content"
+        className="px-6 py-2 prose prose-forest max-w-none"
         dangerouslySetInnerHTML={{ __html: post.content }}
       />
 
       {/* Comments */}
-      <section className="kete-post-comments">
-        <h2 className="kete-post-comments-title">
+      <section className="px-6 py-6 border-t border-cream-dark">
+        <h2 className="text-lg font-display text-forest mb-4">
           Comments ({comments.length})
         </h2>
 
         {/* Comment form */}
         {user && (
-          <form onSubmit={handleSubmitComment} className="kete-comment-form">
+          <form onSubmit={handleSubmitComment} className="flex gap-3 mb-6">
             <Avatar src={user.photoURL} name={user.displayName} size="md" />
-            <div className="kete-comment-form-input">
+            <div className="flex-1 space-y-2">
               <textarea
-                className="form-textarea"
+                className="w-full px-4 py-2.5 rounded-sm border border-gray-200 text-base focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest resize-y"
                 placeholder="Write a comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
@@ -175,37 +177,34 @@ export function KetePostPage() {
 
         {/* Comments list */}
         {loadingComments ? (
-          <div className="kete-comments-loading">
+          <div className="space-y-3">
             <Skeleton variant="rectangular" height={80} />
             <Skeleton variant="rectangular" height={80} />
           </div>
         ) : comments.length === 0 ? (
-          <p className="kete-comments-empty">No comments yet. Be the first to share your thoughts!</p>
+          <p className="text-center text-text-light py-4">No comments yet. Be the first to share your thoughts!</p>
         ) : (
-          <div className="kete-comments-list">
+          <div className="space-y-4">
             {comments.map(comment => (
-              <div key={comment.id} className="kete-comment">
+              <div key={comment.id} className="flex gap-3">
                 <Avatar src={comment.authorPhotoURL} name={comment.authorName} size="md" />
-                <div className="kete-comment-content">
-                  <div className="kete-comment-header">
-                    <span className="kete-comment-author">{comment.authorName}</span>
-                    <span className="kete-comment-time">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-text-primary">{comment.authorName}</span>
+                    <span className="text-xs text-text-lighter">
                       {formatTimeAgo(comment.createdAt as Date)}
                     </span>
                     {(user?.id === comment.authorId || isAdminOrHost) && (
                       <button
-                        className="kete-comment-delete"
+                        className="p-0.5 text-text-lighter hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer ml-auto"
                         onClick={() => handleDeleteComment(comment.id)}
                         title="Delete comment"
                       >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </div>
-                  <p className="kete-comment-text">{comment.content}</p>
+                  <p className="text-text-primary text-sm leading-relaxed m-0">{comment.content}</p>
                 </div>
               </div>
             ))}

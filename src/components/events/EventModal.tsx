@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Edit, Calendar, Clock, MapPin, Users } from 'lucide-react'
 import { Modal, Button, Badge, Avatar } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
 import { useEventRSVPs, useUserRSVP, useRSVP, useCancelRSVP } from '@/hooks/useEvents'
@@ -108,92 +109,73 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
   return (
     <>
       <Modal isOpen={isOpen && !showEditForm} onClose={onClose} title={event.title} size="lg">
-        <div className="event-modal-content">
+        <div className="space-y-4">
           {/* Edit Button for authorized users */}
           {canEdit && (
-            <div className="event-modal-admin-actions">
+            <div className="flex justify-end">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowEditForm(true)}
                 aria-label="Edit this event"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
+                <Edit size={16} />
                 Edit Event
               </Button>
             </div>
           )}
 
           {event.imageURL && (
-            <div className="event-modal-image">
-              <img src={event.imageURL} alt={event.title} />
+            <div className="rounded-md overflow-hidden -mx-2">
+              <img src={event.imageURL} alt={event.title} className="w-full h-48 object-cover" />
             </div>
           )}
 
-          <div className="event-modal-details">
-            <div className="event-modal-detail">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 text-text-primary">
+              <Calendar size={20} aria-hidden="true" />
               <span>{formatDate(event.date)}</span>
             </div>
 
-            <div className="event-modal-detail">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
+            <div className="flex items-center gap-3 text-text-primary">
+              <Clock size={20} aria-hidden="true" />
               <span>{formatTime(event.time)}{event.endTime && ` - ${formatTime(event.endTime)}`}</span>
             </div>
 
             {event.location && (
-              <div className="event-modal-detail">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20" aria-hidden="true">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
+              <div className="flex items-center gap-3 text-text-primary">
+                <MapPin size={20} aria-hidden="true" />
                 <span>{event.location}</span>
               </div>
             )}
 
             {event.gatheringName && (
-              <div className="event-modal-detail">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20" aria-hidden="true">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
+              <div className="flex items-center gap-3 text-text-primary">
+                <Users size={20} aria-hidden="true" />
                 <span>{event.gatheringName}</span>
               </div>
             )}
           </div>
 
           {event.description && (
-            <div className="event-modal-description">
+            <div className="text-text-primary leading-relaxed pt-2 border-t border-cream-dark">
               <p>{event.description}</p>
             </div>
           )}
 
           {/* RSVP Status with Attendee List */}
-          <div className="event-modal-rsvp-section">
-            <div className="event-modal-rsvp-stats">
+          <div className="pt-4 border-t border-cream-dark">
+            <div className="flex items-center gap-3 mb-3">
               <button
-                className="rsvp-stat-button"
+                className="flex items-center gap-2 cursor-pointer bg-transparent border-none"
                 onClick={() => setShowAttendees(!showAttendees)}
                 aria-expanded={showAttendees}
               >
                 <Badge variant="success">{goingCount} going</Badge>
-                {totalGuests > 0 && <span className="rsvp-guests">+{totalGuests} guests</span>}
+                {totalGuests > 0 && <span className="text-sm text-text-light">+{totalGuests} guests</span>}
               </button>
               {maybeCount > 0 && (
-                <span className="rsvp-stat">
+                <span>
                   <Badge variant="warning">{maybeCount} maybe</Badge>
                 </span>
               )}
@@ -201,18 +183,18 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
 
             {/* Attendee List */}
             {showAttendees && goingRsvps.length > 0 && (
-              <div className="event-modal-attendees">
-                <h4 className="event-modal-attendees-title">Who's going</h4>
-                <ul className="event-modal-attendees-list">
+              <div className="bg-cream rounded-md p-3 mb-3">
+                <h4 className="text-sm font-semibold text-text-light mb-2">Who's going</h4>
+                <ul className="space-y-2 list-none p-0 m-0">
                   {goingRsvps.map(rsvp => (
-                    <li key={rsvp.userId} className="event-modal-attendee">
+                    <li key={rsvp.userId} className="flex items-center gap-2 text-sm">
                       <Avatar size="sm" name={rsvp.userId} />
-                      <span className="event-modal-attendee-name">
+                      <span className="font-medium text-text-primary">
                         {rsvp.userId === user?.id ? 'You' : rsvp.userId}
                         {rsvp.guestCount ? ` (+${rsvp.guestCount})` : ''}
                       </span>
                       {rsvp.notes && (
-                        <span className="event-modal-attendee-notes">{rsvp.notes}</span>
+                        <span className="text-text-light ml-auto text-xs italic">{rsvp.notes}</span>
                       )}
                     </li>
                   ))}
@@ -223,7 +205,7 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
 
           {/* Current User RSVP */}
           {userRsvp ? (
-            <div className="event-modal-user-rsvp">
+            <div className="bg-cream rounded-md p-3">
               <p>
                 Your RSVP:{' '}
                 <Badge variant={userRsvp.status === 'yes' ? 'success' : userRsvp.status === 'maybe' ? 'warning' : 'default'}>
@@ -231,7 +213,7 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
                 </Badge>
                 {userRsvp.guestCount ? ` with ${userRsvp.guestCount} guest${userRsvp.guestCount > 1 ? 's' : ''}` : ''}
               </p>
-              <div className="event-modal-rsvp-actions">
+              <div className="flex gap-2 mt-2">
                 <Button variant="outline" size="sm" onClick={() => setShowRsvpForm(true)}>
                   Change RSVP
                 </Button>
@@ -241,7 +223,7 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
               </div>
             </div>
           ) : (
-            <div className="event-modal-rsvp-buttons">
+            <div className="flex flex-wrap gap-2">
               <Button variant="primary" onClick={() => handleRsvp('yes')} loading={isRsvping}>
                 I'm going
               </Button>
@@ -256,7 +238,7 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
 
           {/* RSVP Form with Guest Count */}
           {showRsvpForm && (
-            <div className="event-modal-rsvp-form">
+            <div className="space-y-3 bg-cream rounded-md p-3">
               <div className="form-group">
                 <label className="form-label" htmlFor="rsvp-guests">
                   Bringing guests?
@@ -281,14 +263,14 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
                 </label>
                 <textarea
                   id="rsvp-notes"
-                  className="form-textarea"
+                  className="w-full px-4 py-3 rounded-sm border border-gray-200 text-base resize-y focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
                   value={rsvpNotes}
                   onChange={(e) => setRsvpNotes(e.target.value)}
                   placeholder="Any notes or dietary requirements?"
                   rows={2}
                 />
               </div>
-              <div className="event-modal-rsvp-buttons">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="primary" onClick={() => handleRsvp('yes')} loading={isRsvping}>
                   Going
                 </Button>

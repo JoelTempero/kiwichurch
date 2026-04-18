@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/common/Toast'
+import { Button } from '@/components/common'
+import { CheckCircle } from 'lucide-react'
 
 type AuthView = 'login' | 'register' | 'forgot-password' | 'reset-sent'
 
@@ -78,22 +80,22 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-container">
-      <div className="auth-header">
-        <Link to="/" className="auth-logo">
-          <img src="/Images/KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church" />
+    <div className="min-h-screen bg-forest flex flex-col items-center justify-center px-4 py-12">
+      <div className="text-center mb-8">
+        <Link to="/" className="inline-block mb-4">
+          <img src="/Images/KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church" className="h-16 w-auto" />
         </Link>
-        <h1 className="auth-title">Member Portal</h1>
-        <p className="auth-subtitle">Welcome to the table</p>
+        <h1 className="text-2xl font-display text-white mb-1">Member Portal</h1>
+        <p className="text-sage-light text-sm">Welcome to the table</p>
       </div>
 
       {view === 'login' && (
-        <div className="auth-card">
-          <h2 className="auth-card-title">Sign In</h2>
+        <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg">
+          <h2 className="text-xl font-display text-forest mb-4 text-center">Sign In</h2>
 
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="bg-red-50 text-red-700 px-4 py-2 rounded-sm text-sm mb-4">{error}</div>}
 
-          <form onSubmit={handleLogin} className="auth-form">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="form-group">
               <label htmlFor="login-identifier" className="form-label">
                 Email or Username
@@ -126,26 +128,26 @@ export function LoginPage() {
               />
             </div>
 
-            <button
+            <Button
               type="submit"
-              className="btn btn-primary btn-block"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
-            </button>
+            </Button>
           </form>
 
-          <div className="auth-links">
+          <div className="flex flex-col items-center gap-2 mt-4">
             <button
               type="button"
-              className="auth-link"
+              className="text-sm text-terracotta hover:text-terracotta-dark bg-transparent border-none cursor-pointer transition-colors"
               onClick={() => setView('forgot-password')}
             >
               Forgot password?
             </button>
             <button
               type="button"
-              className="auth-link"
+              className="text-sm text-terracotta hover:text-terracotta-dark bg-transparent border-none cursor-pointer transition-colors"
               onClick={() => setView('register')}
             >
               Request an account
@@ -155,12 +157,12 @@ export function LoginPage() {
       )}
 
       {view === 'register' && (
-        <div className="auth-card">
-          <h2 className="auth-card-title">Request Account</h2>
+        <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg">
+          <h2 className="text-xl font-display text-forest mb-4 text-center">Request Account</h2>
 
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="bg-red-50 text-red-700 px-4 py-2 rounded-sm text-sm mb-4">{error}</div>}
 
-          <form onSubmit={handleRegister} className="auth-form">
+          <form onSubmit={handleRegister} className="space-y-4">
             <div className="form-group">
               <label htmlFor="register-name" className="form-label">
                 Full Name
@@ -225,19 +227,19 @@ export function LoginPage() {
               />
             </div>
 
-            <button
+            <Button
               type="submit"
-              className="btn btn-primary btn-block"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? 'Creating account...' : 'Create Account'}
-            </button>
+            </Button>
           </form>
 
-          <div className="auth-links">
+          <div className="flex flex-col items-center gap-2 mt-4">
             <button
               type="button"
-              className="auth-link"
+              className="text-sm text-terracotta hover:text-terracotta-dark bg-transparent border-none cursor-pointer transition-colors"
               onClick={() => setView('login')}
             >
               Already have an account? Sign in
@@ -247,15 +249,15 @@ export function LoginPage() {
       )}
 
       {view === 'forgot-password' && (
-        <div className="auth-card">
-          <h2 className="auth-card-title">Reset Password</h2>
-          <p className="auth-card-description">
+        <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg">
+          <h2 className="text-xl font-display text-forest mb-4 text-center">Reset Password</h2>
+          <p className="text-text-light text-sm text-center mb-4">
             Enter your email address and we'll send you a link to reset your password.
           </p>
 
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="bg-red-50 text-red-700 px-4 py-2 rounded-sm text-sm mb-4">{error}</div>}
 
-          <form onSubmit={handleForgotPassword} className="auth-form">
+          <form onSubmit={handleForgotPassword} className="space-y-4">
             <div className="form-group">
               <label htmlFor="reset-email" className="form-label">
                 Email
@@ -272,19 +274,19 @@ export function LoginPage() {
               />
             </div>
 
-            <button
+            <Button
               type="submit"
-              className="btn btn-primary btn-block"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? 'Sending...' : 'Send Reset Link'}
-            </button>
+            </Button>
           </form>
 
-          <div className="auth-links">
+          <div className="flex flex-col items-center gap-2 mt-4">
             <button
               type="button"
-              className="auth-link"
+              className="text-sm text-terracotta hover:text-terracotta-dark bg-transparent border-none cursor-pointer transition-colors"
               onClick={() => setView('login')}
             >
               Back to sign in
@@ -294,26 +296,23 @@ export function LoginPage() {
       )}
 
       {view === 'reset-sent' && (
-        <div className="auth-card">
-          <div className="auth-success-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
+        <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg">
+          <div className="flex justify-center text-forest mb-4">
+            <CheckCircle size={48} />
           </div>
-          <h2 className="auth-card-title">Check Your Email</h2>
-          <p className="auth-card-description">
+          <h2 className="text-xl font-display text-forest mb-4 text-center">Check Your Email</h2>
+          <p className="text-text-light text-sm text-center mb-4">
             We've sent a password reset link to <strong>{email}</strong>.
             Please check your inbox and follow the instructions.
           </p>
 
-          <button
-            type="button"
-            className="btn btn-secondary btn-block"
+          <Button
+            variant="secondary"
+            className="w-full"
             onClick={() => setView('login')}
           >
             Back to Sign In
-          </button>
+          </Button>
         </div>
       )}
     </div>
