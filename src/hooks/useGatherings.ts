@@ -88,6 +88,21 @@ export function usePostComments(gatheringId: string | null, postId: string | nul
   })
 }
 
+// Subscribe to real-time post comments
+export function usePostCommentsSubscription(gatheringId: string | null, postId: string | null) {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!gatheringId || !postId) return
+
+    const unsubscribe = dbService.subscribeToPostComments(gatheringId, postId, (comments) => {
+      queryClient.setQueryData(gatheringKeys.postComments(gatheringId, postId), comments)
+    })
+
+    return unsubscribe
+  }, [gatheringId, postId, queryClient])
+}
+
 // Join gathering mutation
 export function useJoinGathering() {
   const queryClient = useQueryClient()

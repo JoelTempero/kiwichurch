@@ -519,6 +519,21 @@ export const dbService = {
     })
   },
 
+  subscribeToPostComments(
+    gatheringId: string,
+    postId: string,
+    callback: (comments: BoardComment[]) => void
+  ): Unsubscribe {
+    const q = query(
+      collection(db, 'messageBoards', gatheringId, 'posts', postId, 'comments'),
+      orderBy('createdAt', 'asc')
+    )
+    return onSnapshot(q, snapshot => {
+      const comments = snapshot.docs.map(doc => docToObject<BoardComment>(doc))
+      callback(comments)
+    })
+  },
+
   subscribeToNotifications(userId: string, callback: (notifications: Notification[]) => void): Unsubscribe {
     const q = query(
       collection(db, 'notifications'),
