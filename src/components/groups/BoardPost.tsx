@@ -1,21 +1,26 @@
-import { useState, useRef, useEffect } from 'react'
-import { Pin, MoreVertical, Edit, Trash2, MessageCircle, X } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Pin, MoreVertical, Edit, Trash2, MessageCircle, X, Reply } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { Avatar, Button } from '@/components/common'
+import { Avatar, Button, MentionInput } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
 import {
   usePostComments,
+  usePostCommentsSubscription,
   useAddPostComment,
   useUpdateBoardPost,
   useDeleteBoardPost,
   useDeletePostComment
 } from '@/hooks/useGatherings'
 import { useToast } from '@/components/common/Toast'
+import { parseMentions, encodeMention, extractMentionIds } from '@/utils/mentions'
 import type { BoardPost as BoardPostType, BoardComment } from '@/types'
+import type { MentionMember } from '@/components/common/MentionInput'
 
 interface BoardPostProps {
   post: BoardPostType
   gatheringId: string
+  gatheringName: string
+  members: MentionMember[]
   onDelete?: () => void
 }
 
@@ -34,17 +39,47 @@ function formatTimeAgo(date: Date | { toDate: () => Date }): string {
   return d.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })
 }
 
-export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
+function RichContent({ content }: { content: string }) {
+  const segments = parseMentions(content)
+  return (
+    <p className="text-text-primary leading-relaxed">
+      {segments.map((seg, i) =>
+        seg.type === 'mention' ? (
+          <span key={i} className="font-semibold text-forest">@{seg.content}</span>
+        ) : (
+          <span key={i}>{seg.content}</span>
+        )
+      )}
+    </p>
+  )
+}
+
+function ReplyQuote({ comment }: { comment: BoardComment | undefined }) {
+  if (!comment) return null
+  const preview = comment.content.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1')
+  return (
+    <div className="flex items-start gap-1.5 text-xs text-text-light mb-1 pl-1 border-l-2 border-sage-light">
+      <Reply size={12} className="flex-shrink-0 mt-0.5 rotate-180" />
+      <span>
+        <span className="font-semibold">{comment.authorName}</span>
+        {': '}
+        {preview.length > 60 ? preview.slice(0, 60) + '...' : preview}
+      </span>
+    </div>
+  )
+}
+
+export function BoardPost({ post, gatheringId, gatheringName, members, onDelete }: BoardPostProps) {
   const { user, isAdminOrHost } = useAuth()
   const { showToast } = useToast()
   const [showComments, setShowComments] = useState(false)
   const [newComment, setNewComment] = useState('')
+  const [commentMentions, setCommentMentions] = useState<Map<string, string>>(new Map())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(post.content)
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
-  const [editCommentContent, setEditCommentContent] = useState('')
+  const [replyTo, setReplyTo] = useState<BoardComment | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const editInputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -52,6 +87,11 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
     showComments ? gatheringId : null,
     showComments ? post.id : null
   )
+  usePostCommentsSubscription(
+    showComments ? gatheringId : null,
+    showComments ? post.id : null
+  )
+
   const addComment = useAddPostComment()
   const updatePost = useUpdateBoardPost()
   const deletePost = useDeleteBoardPost()
@@ -60,7 +100,6 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
   const canEdit = user?.id === post.authorId
   const canDelete = user?.id === post.authorId || isAdminOrHost
 
-  // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -71,7 +110,6 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Focus edit input when editing
   useEffect(() => {
     if (isEditing && editInputRef.current) {
       editInputRef.current.focus()
@@ -79,24 +117,44 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
     }
   }, [isEditing])
 
+  const handleMentionsChange = useCallback((mentions: Map<string, string>) => {
+    setCommentMentions(mentions)
+  }, [])
+
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newComment.trim() || !user) return
 
     setIsSubmitting(true)
     try {
+      let content = newComment.trim()
+      for (const [displayName, userId] of commentMentions) {
+        content = content.replace(
+          new RegExp(`@${displayName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\])`, 'g'),
+          encodeMention(displayName, userId)
+        )
+      }
+
+      const mentionIds = extractMentionIds(content)
+
       await addComment.mutateAsync({
         gatheringId,
+        gatheringName,
         postId: post.id,
         commentData: {
           authorId: user.id,
           authorName: user.displayName,
           authorPhotoURL: user.photoURL,
-          content: newComment.trim()
+          content,
+          mentions: mentionIds.length > 0 ? mentionIds : undefined,
+          replyToId: replyTo?.id,
+          replyToAuthorName: replyTo?.authorName,
         }
       })
       setNewComment('')
-    } catch (error) {
+      setCommentMentions(new Map())
+      setReplyTo(null)
+    } catch {
       showToast('Failed to add comment', 'error')
     } finally {
       setIsSubmitting(false)
@@ -123,7 +181,7 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
       })
       setIsEditing(false)
       showToast('Post updated', 'success')
-    } catch (error) {
+    } catch {
       showToast('Failed to update post', 'error')
     }
   }
@@ -141,31 +199,9 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
       await deletePost.mutateAsync({ gatheringId, postId: post.id })
       showToast('Post deleted', 'success')
       onDelete?.()
-    } catch (error) {
+    } catch {
       showToast('Failed to delete post', 'error')
     }
-  }
-
-  const handleEditComment = (comment: BoardComment) => {
-    setEditingCommentId(comment.id)
-    setEditCommentContent(comment.content)
-  }
-
-  const handleSaveCommentEdit = async () => {
-    if (!editCommentContent.trim()) {
-      showToast('Comment cannot be empty', 'error')
-      return
-    }
-
-    // Note: Would need to add updatePostComment to db service and hook
-    // For now, we'll just close the edit mode
-    setEditingCommentId(null)
-    showToast('Comment editing coming soon', 'warning')
-  }
-
-  const handleCancelCommentEdit = () => {
-    setEditingCommentId(null)
-    setEditCommentContent('')
   }
 
   const handleDeleteComment = async (commentId: string) => {
@@ -174,9 +210,14 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
     try {
       await deleteComment.mutateAsync({ gatheringId, postId: post.id, commentId })
       showToast('Comment deleted', 'success')
-    } catch (error) {
+    } catch {
       showToast('Failed to delete comment', 'error')
     }
+  }
+
+  const handleReply = (comment: BoardComment) => {
+    setReplyTo(comment)
+    setShowComments(true)
   }
 
   return (
@@ -250,27 +291,17 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
               aria-label="Edit post content"
             />
             <div className="flex gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleSaveEdit}
-                loading={updatePost.isPending}
-              >
+              <Button variant="primary" size="sm" onClick={handleSaveEdit} loading={updatePost.isPending}>
                 Save
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelEdit}
-                disabled={updatePost.isPending}
-              >
+              <Button variant="ghost" size="sm" onClick={handleCancelEdit} disabled={updatePost.isPending}>
                 Cancel
               </Button>
             </div>
           </div>
         ) : (
           <>
-            <p className="text-text-primary leading-relaxed">{post.content}</p>
+            <RichContent content={post.content} />
             {post.attachmentURL && (
               <div className="rounded-md overflow-hidden mt-2">
                 {post.attachmentType?.startsWith('image/') ? (
@@ -308,17 +339,16 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
                   <span className="text-xs text-text-lighter">
                     {formatTimeAgo(comment.createdAt as Date)}
                   </span>
-                  {(user?.id === comment.authorId || isAdminOrHost) && (
-                    <div className="flex items-center gap-1 ml-auto">
-                      {user?.id === comment.authorId && (
-                        <button
-                          className="p-0.5 text-text-lighter hover:text-text-light transition-colors bg-transparent border-none cursor-pointer"
-                          onClick={() => handleEditComment(comment)}
-                          aria-label="Edit comment"
-                        >
-                          <Edit size={12} />
-                        </button>
-                      )}
+                  <div className="flex items-center gap-1 ml-auto">
+                    <button
+                      className="p-0.5 text-text-lighter hover:text-forest transition-colors bg-transparent border-none cursor-pointer"
+                      onClick={() => handleReply(comment)}
+                      aria-label={`Reply to ${comment.authorName}`}
+                      title="Reply"
+                    >
+                      <Reply size={12} />
+                    </button>
+                    {(user?.id === comment.authorId || isAdminOrHost) && (
                       <button
                         className="p-0.5 text-text-lighter hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
                         onClick={() => handleDeleteComment(comment.id)}
@@ -326,51 +356,44 @@ export function BoardPost({ post, gatheringId, onDelete }: BoardPostProps) {
                       >
                         <X size={12} />
                       </button>
-                    </div>
-                  )}
-                </div>
-                {editingCommentId === comment.id ? (
-                  <div className="mt-1 space-y-2">
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={editCommentContent}
-                      onChange={(e) => setEditCommentContent(e.target.value)}
-                      aria-label="Edit comment"
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={handleSaveCommentEdit}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCancelCommentEdit}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
+                    )}
                   </div>
-                ) : (
-                  <p>{comment.content}</p>
+                </div>
+                {comment.replyToId && (
+                  <ReplyQuote comment={comments.find(c => c.id === comment.replyToId)} />
                 )}
+                <RichContent content={comment.content} />
               </div>
             </div>
           ))}
 
-          <form onSubmit={handleSubmitComment} className="flex gap-2 items-center pt-2">
-            <input
-              type="text"
-              className="form-input flex-1"
-              placeholder="Write a comment..."
+          {/* Reply indicator */}
+          {replyTo && (
+            <div className="flex items-center gap-2 px-2 py-1.5 bg-cream rounded-md text-sm">
+              <Reply size={14} className="text-forest" />
+              <span className="text-text-light">
+                Replying to <span className="font-semibold text-text-primary">{replyTo.authorName}</span>
+              </span>
+              <button
+                className="ml-auto p-0.5 text-text-lighter hover:text-text-primary transition-colors bg-transparent border-none cursor-none cursor-pointer"
+                onClick={() => setReplyTo(null)}
+                aria-label="Cancel reply"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmitComment} className="flex gap-2 items-start pt-2">
+            <MentionInput
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
+              onChange={setNewComment}
+              onMentionsChange={handleMentionsChange}
+              members={members}
+              placeholder={replyTo ? `Reply to ${replyTo.authorName}...` : 'Write a comment...'}
               disabled={isSubmitting}
-              aria-label="Write a comment"
+              singleLine
+              ariaLabel="Write a comment"
             />
             <Button type="submit" variant="primary" size="sm" loading={isSubmitting} disabled={!newComment.trim()}>
               Post
