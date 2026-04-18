@@ -32,6 +32,7 @@ export interface BoardPost {
   attachmentName?: string
   pinned?: boolean
   reactions?: Record<string, string[]> // emoji -> userIds
+  mentions?: string[]
   createdAt: Timestamp | Date
   updatedAt?: Timestamp | Date
 }
@@ -42,5 +43,8 @@ export interface BoardComment {
   authorName: string
   authorPhotoURL?: string
   content: string
+  mentions?: string[]
+  replyToId?: string
+  replyToAuthorName?: string
   createdAt: Timestamp | Date
 }
