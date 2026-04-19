@@ -3,7 +3,7 @@
 ## Overview
 - **Client**: Kiwi Church
 - **Type**: Community Platform / Portal / PWA
-- **Status**: Planning complete, ready to build Phase 1
+- **Status**: Workstream A complete, Workstream B in progress (static site redesign)
 
 ## Playbooks In Use
 Read these from the Brain folder at session start. Do not copy into this project.
@@ -18,6 +18,9 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - `playbooks/ErrorHandling.md` — error boundaries, try/catch, offline handling
 - `playbooks/Accessibility.md` — WCAG 2.1 AA
 - `playbooks/Deployment.md` — Firebase Hosting deployment
+
+## Design
+Read and obey `DESIGN.md` before writing any UI code. It defines the full visual contract: palette, typography, components, layout principles, and do's/don'ts. Update DESIGN.md first when Joel gives design feedback, then change components.
 
 ## Tech Stack
 - **Frontend**: React 18 + TypeScript + Vite 6
