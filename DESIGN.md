@@ -225,7 +225,57 @@ All shadows use warm forest-tinted rgba — never pure black.
 6. Never use more than two typefaces (Cormorant Garamond + Source Sans 3).
 7. Never make the site feel like a megachurch — this is small, intentional, human-scale.
 
-## 8. Responsive Behavior
+## 8. Creative Direction
+
+**Journey archetype:** Editorial Flow
+**Intensity:** 2–3 (Community / Church default)
+
+The site should feel like turning pages in a thoughtfully designed magazine — not a performance, but a story that unfolds as you scroll. Creativity serves intimacy here: subtle touches that make the experience feel handcrafted, not templated.
+
+### Unlocked Techniques (Intensity 2–3)
+
+| Technique | How to Apply |
+|-----------|-------------|
+| **Scroll-triggered fade-ups** | Sections fade up gently on first view. `triggerOnce: true`, 20–30px travel distance, `easeOut`. Wrap entire sections, not individual items. |
+| **Staggered card reveals** | Card grids stagger in with max 0.1s delay between items, capped at 0.3s total. One staggered group per page, no more. |
+| **Sticky header transition** | Nav starts transparent on homepage hero, gains parchment background + subtle shadow on scroll past 50px. Interior pages start scrolled. |
+| **Image scale on hover** | Community/gathering cards: photo scales to 1.05 on hover with `duration-500`. Contained by `overflow-hidden`. |
+| **Dark/light section alternation** | Parchment → warm sand → dark forest sections create mood shifts. Each transition is a deliberate change in atmosphere. |
+| **Pull quotes** | Large Cormorant Garamond italic quotes in narrow centred containers, used as breathing room between dense sections. |
+| **Mixed-weight headings** | Occasional light/regular weight contrast within a heading: "More than just" (light, muted) / "a Sunday service" (regular, forest). Sparingly — one per page max. |
+| **Gentle parallax on homepage hero** | Hero background image shifts at 0.3x scroll speed. CSS-only (`background-attachment: fixed` or transform). No parallax on interior page heroes. |
+
+### Section Rhythm (Editorial Flow)
+
+Each page should feel like chapters in a book. Vary between:
+- **Centred narrow prose** (720px) — for story sections, mission statements
+- **Two-column asymmetric** (60/40) — image + text pairs
+- **Full-bleed photography** — visual breakers between content sections
+- **Dark forest interludes** — quotes, CTAs, emphasis moments
+- **Card grids** — communities, events, resources
+- **Staggered offset layouts** — for values or feature sections, breaking the centred grid
+
+**The "No Two Sections Alike" rule:** Audit consecutive section pairs. If they share the same layout pattern, background colour, AND visual weight — redesign one.
+
+### Anti-Patterns (Never Do These)
+
+- No animated number counters
+- No bounce animations (`animate-bounce`)
+- No "scroll down" indicators or arrows
+- No generic gradient backgrounds on sections
+- No parallax on anything except the homepage hero
+- No popcorn fade-ins (individual list items animating separately)
+- No cursor followers or magnetic buttons (too high intensity for a church)
+- Content must be readable by the time it's visible — no waiting for animations to finish
+
+### Motion Defaults
+
+- **Easing:** `easeOut` for everything unless there's a reason to deviate
+- **Duration:** 0.5–0.6s for scroll reveals, 0.3s for hover transitions, 0.2s for interactive states
+- **Distance:** 20–30px max for reveal travel
+- **Reduced motion:** Respect `prefers-reduced-motion: reduce` — disable all scroll reveals and parallax, keep hover colour changes only
+
+## 9. Responsive Behavior
 
 ### Breakpoints
 - Mobile: < 768px
@@ -253,7 +303,8 @@ All shadows use warm forest-tinted rgba — never pure black.
 
 ## 9. Agent Prompt Guide
 
-This is a small network of Christian house churches in Christchurch, New Zealand. The aesthetic is intimate, grounded, and warm-editorial. Use the colour and type tokens in DESIGN.md verbatim. Page background is always Parchment (`#f5f1eb`). Cormorant Garamond for all headings at weight 400 — never bold. Source Sans 3 for body and UI text. Forest green (`#1c3d31`) for primary actions and dark sections. Terracotta (`#c17f59`) for CTAs and section labels. Every gray and neutral must have a warm undertone — no cool blues or pure blacks. Alternate section backgrounds (parchment / warm sand / dark forest) to create rhythm. Real photography only — no stock photos, no placeholder gradients. Each page must have layout variety: no two sections can share the same pattern. The site should feel like an invitation into someone's home, not a corporate church website. Think literary magazine, not billboard. Generous whitespace, magazine pacing, sections that breathe.
+This is a small network of Christian house churches in Christchurch, New Zealand. The aesthetic is intimate, grounded, and warm-editorial. Creative direction is Editorial Flow at intensity 2–3. Use the colour and type tokens in DESIGN.md verbatim. Page background is always Parchment (`#f5f1eb`). Cormorant Garamond for all headings at weight 400 — never bold. Source Sans 3 for body and UI text. Forest green (`#1c3d31`) for primary actions and dark sections. Terracotta (`#c17f59`) for CTAs and section labels. Every gray and neutral must have a warm undertone — no cool blues or pure blacks. Alternate section backgrounds (parchment / warm sand / dark forest) to create rhythm. Real photography only — no stock photos, no placeholder gradients. Each page must have layout variety: no two sections can share the same pattern. Use subtle scroll-triggered fade-ups (triggerOnce, 20-30px, easeOut) and image-scale-on-hover for cards. Gentle parallax on homepage hero only. No animated counters, no bounce animations, no popcorn fade-ins. Respect prefers-reduced-motion. The site should feel like an invitation into someone's home, not a corporate church website. Think literary magazine, not billboard. Generous whitespace, magazine pacing, sections that breathe.
 
 ## Changelog
+- 2026-04-19: Added Section 8 — Creative Direction (Editorial Flow, intensity 2–3) with unlocked techniques, section rhythm guidance, anti-patterns, and motion defaults.
 - 2026-04-19: Initial version — remixed from Claude/Anthropic (warmth, editorial pacing) + Airbnb (photography-forward, tactile warmth). Personality: intimate, grounded, natural, intentionally small.
