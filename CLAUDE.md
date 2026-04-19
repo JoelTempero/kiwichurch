@@ -136,11 +136,15 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
   - [x] styles.css audited: 3,133 → 2,775 lines, dead CSS removed, deduped, section markers added
   - [x] Unread message count badge on BottomNav + DesktopSidebar (real-time via conversations subscription)
 - [ ] **Workstream B: Static website redesign**
-  - [ ] Creative direction: Editorial Flow archetype, intensity 2-3 (per Creativity playbook)
-  - [ ] Design spec for static pages (about, communities, calendar, kete, resources, giving)
-  - [ ] Layout variety — no two sections alike on any page
-  - [ ] Content updates where needed
-  - [ ] Kete rich text editor integration (DOMPurify + react-quill or similar)
+  - [x] Creative direction: Editorial Flow archetype, intensity 2-3 (per Creativity playbook)
+  - [x] Design spec: DESIGN.md at project root (palette, typography, components, layout, creative direction)
+  - [ ] Create implementation plan (invoke writing-plans skill)
+  - [ ] Rewrite css/styles.css to match DESIGN.md tokens (Source Sans 3, warm palette, new shadows)
+  - [ ] Revitalise homepage (index-old.html → new homepage with editorial layout variety)
+  - [ ] Redesign about.html, communities.html, calendar.html, kete.html, resources.html, giving.html
+  - [ ] Shared header/footer matching DESIGN.md across all static pages
+  - [ ] Scroll reveal animations (fade-up, staggered cards, image hover zoom)
+  - [ ] Kete rich text editor integration (DOMPurify + Quill) — portal-side fix
   - [ ] Login button on static site links to portal login page
 
 ## Session Log
@@ -271,6 +275,22 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - Rich text: Quill installed but unused, KeteForm uses plain textarea
 - Dead fields: `category`, `series`, `tags` in KetePost type but absent from form
 - Query filters: `authorId`/`category`/`series` options defined but never applied in getKetePosts()
+
+### 2026-04-19 — Session 6: Workstream B Design Phase
+**Status:** Design spec complete, ready for implementation planning
+
+**Completed:**
+- Brainstormed 3 design approaches (Warm Editorial, Nature Journal, Modern Restrained) — Joel chose A: Warm Editorial
+- Created DESIGN.md at project root with full 10-section visual contract
+- Palette: evolved earth tones (Forest, Sage, Terracotta, Parchment, Ivory, Warm Sand, Bark, Stone, Clay, Gold)
+- Typography: keeping Cormorant Garamond (display), switching Nunito Sans → Source Sans 3 (body)
+- Creative direction: Editorial Flow, intensity 2–3 (scroll reveals, staggered cards, image hover zoom, gentle parallax)
+- Design references: Claude/Anthropic (warmth, editorial pacing) + Airbnb (photography-forward, tactile)
+- Scope confirmed: 7 static pages + Kete rich text editor (DOMPurify + Quill)
+
+**Next session:**
+- Create implementation plan (writing-plans skill)
+- Begin building — rewrite CSS, then pages one by one
 
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
