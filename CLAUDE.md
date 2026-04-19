@@ -118,20 +118,27 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
   - [x] 6 emoji reactions (❤️ 🙏 👍 😂 🎉 😢) with toggle and counts
   - [x] Service methods: `votePoll`, `addReaction` (toggle)
   - [x] `BoardPoll` type added to gathering.ts
-- [x] **Phase 7: Moderation & admin tools** (PARTIAL)
+- [x] **Phase 7: Moderation & admin tools** (COMPLETE)
   - [x] Report type with reason, status, target tracking
   - [x] `ModerationPage` for admins/hosts with Pending/Reviewed/All tabs
   - [x] Report service methods and TanStack Query hooks
   - [x] Firestore security rules for reports collection
   - [x] Moderation nav item in admin sidebar
-  - [ ] Report button on BoardPost/comments (deferred — needs UI integration)
+  - [x] Report button + ReportModal on BoardPost menu (any user can report others' posts)
   - [ ] Member blocking (deferred)
-- [x] **Phase 8: Polish & launch prep** (PARTIAL)
+- [x] **Phase 8: Polish & launch prep** (COMPLETE)
   - [x] Fixed manifest.json start_url (./portal.html → /)
   - [x] Fixed manifest shortcut URLs
-  - [ ] Accessibility audit (deferred)
-  - [ ] styles.css unused CSS audit (deferred)
-  - [ ] Unread badge on Messages nav item (deferred)
+  - [x] Accessibility: skip-to-main link, h1 on all pages, focus:ring on Button, aria-current on nav
+  - [x] styles.css audited: 3,133 → 2,775 lines, dead CSS removed, deduped, section markers added
+  - [x] Unread message count badge on BottomNav + DesktopSidebar (real-time via conversations subscription)
+- [ ] **Workstream B: Static website redesign**
+  - [ ] Creative direction: Editorial Flow archetype, intensity 2-3 (per Creativity playbook)
+  - [ ] Design spec for static pages (about, communities, calendar, kete, resources, giving)
+  - [ ] Layout variety — no two sections alike on any page
+  - [ ] Content updates where needed
+  - [ ] Kete rich text editor integration (DOMPurify + react-quill or similar)
+  - [ ] Login button on static site links to portal login page
 
 ## Session Log
 ### 2026-04-17
@@ -242,12 +249,25 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Phase 8: Fixed manifest.json start_url and shortcut URLs
 
 **Deferred (needs next session):**
-- Report button UI on BoardPost/comments/KetePost (moderation backend is ready, just needs the trigger button)
 - Member blocking feature
-- Accessibility audit (heading hierarchy, focus states, keyboard nav)
-- styles.css unused CSS audit
-- Unread badge on Messages nav item
 - Dark mode sync to Firestore
+
+### 2026-04-19 — Session 5: Workstream A Portal Polish
+**Status:** All 5 tasks complete
+**Build:** Clean
+
+**Completed:**
+- Report button + ReportModal on BoardPost (ReportModal.tsx created, menu condition widened to `user &&`)
+- Unread message badge on BottomNav + DesktopSidebar (useUnreadMessages hook, conversations subscription in AppLayout)
+- Accessibility: skip-to-main link, h1 on 5 pages, focus:ring on Button component
+- styles.css audit: 3,133 → 2,775 lines (dead CSS removed, duplicates merged, section markers added)
+- Kete system audit (code review only): CRUD correct, but found XSS risk (dangerouslySetInnerHTML without DOMPurify), no rich text editor (plain textarea), dead type fields (category/series/tags)
+
+**Kete audit findings (for Workstream B):**
+- XSS: `dangerouslySetInnerHTML` in KetePostPage.tsx with no sanitization — needs DOMPurify
+- Rich text: Quill installed but unused, KeteForm uses plain textarea
+- Dead fields: `category`, `series`, `tags` in KetePost type but absent from form
+- Query filters: `authorId`/`category`/`series` options defined but never applied in getKetePosts()
 
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
@@ -264,8 +284,7 @@ Brain playbooks: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - **No budget/timeline constraints** from client
 
 ## Known Issues
-- styles.css (3,133 lines) still has structural layout + possibly unused page-specific CSS — could be audited in a future session
-- NotificationPanel and SearchPanel components are stubbed but not functional
-- manifest.json start_url points to ./portal.html instead of / (needs fixing)
-- Message board reactions data model exists but UI not built
+- Kete content XSS risk: `dangerouslySetInnerHTML` without DOMPurify — fix when integrating rich text editor
+- Kete has no rich text editor (plain textarea, users must write raw HTML)
+- Member blocking feature not implemented
 - Dark mode preference stored in localStorage only, not synced to Firestore
