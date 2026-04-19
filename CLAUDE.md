@@ -138,13 +138,18 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] **Workstream B: Static website redesign**
   - [x] Creative direction: Editorial Flow archetype, intensity 2-3 (per Creativity playbook)
   - [x] Design spec: DESIGN.md at project root (palette, typography, components, layout, creative direction)
-  - [ ] Create implementation plan (invoke writing-plans skill)
-  - [ ] Rewrite css/styles.css to match DESIGN.md tokens (Source Sans 3, warm palette, new shadows)
-  - [ ] Revitalise homepage (index-old.html → new homepage with editorial layout variety)
-  - [ ] Redesign about.html, communities.html, calendar.html, kete.html, resources.html, giving.html
-  - [ ] Shared header/footer matching DESIGN.md across all static pages
-  - [ ] Scroll reveal animations (fade-up, staggered cards, image hover zoom)
-  - [ ] Kete rich text editor integration (DOMPurify + Quill) — portal-side fix
+  - [x] Create implementation plan (docs/superpowers/plans/2026-04-19-workstream-b-static-site-redesign.md)
+  - [x] Rewrite css/styles.css to match DESIGN.md tokens (Source Sans 3, warm palette, new shadows)
+  - [x] Revitalise homepage (homepage.html — new editorial homepage with hero, pull quote, CTAs)
+  - [x] Redesign about.html, communities.html, calendar.html, kete.html, resources.html, giving.html
+  - [x] Shared header/footer matching DESIGN.md across all static pages
+  - [x] Scroll reveal animations (fade-up, staggered cards, image hover zoom, reduced motion support)
+  - [x] Kete rich text editor integration (DOMPurify + Quill) — portal-side fix
+  - [x] Firebase hosting rewrite for homepage.html at root URL
+  - [ ] **BLOCKER: Static files not in dist/ — Vite build only outputs React portal**
+  - [ ] Configure Vite to copy static HTML pages + css/ + js/ into dist/ on build
+  - [ ] Deploy to Firebase Hosting
+  - [ ] Add hero background image (images/hero-community.jpg) — real community photo
   - [ ] Login button on static site links to portal login page
 
 ## Session Log
@@ -292,6 +297,40 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - Create implementation plan (writing-plans skill)
 - Begin building — rewrite CSS, then pages one by one
 
+### 2026-04-19 — Session 7: Workstream B Implementation
+**Status:** 12/12 tasks complete, NOT YET DEPLOYED
+**Build:** Clean (`npm run build` passes)
+
+**Completed (9 commits, 15 files changed):**
+- Created 12-task implementation plan (docs/superpowers/plans/2026-04-19-workstream-b-static-site-redesign.md)
+- CSS token rewrite: Source Sans 3, warm palette (#f5f1eb parchment, #faf8f4 ivory, #ebe6dc warm sand), editorial shadows, new radius scale
+- Backwards-compat aliases for old tokens (--color-cream → --color-parchment etc.) so portal CSS doesn't break
+- Button restyling: 6px radius (not pill), new variants (.btn-accent terracotta, .btn-on-dark for forest sections)
+- New card system (.card, .card-img-hover with 1.05 scale zoom)
+- Header: solid parchment on scroll (no backdrop-filter), uppercase nav with terracotta active underline
+- Mobile nav: parchment fullscreen with large serif links (not forest overlay)
+- Footer: forest green bg, gold section titles, forest-dark bottom bar
+- New .page-hero for interior pages (replaces .about-hero)
+- Pull quote component (.pull-quote with italic Cormorant Garamond)
+- Scroll reveal CSS + JS with prefers-reduced-motion support and triggerOnce
+- Created homepage.html — editorial homepage with hero, intro prose, community preview, pull quote, kete preview, CTA
+- Standardized header/footer HTML across all 6 static pages (homepage.html nav links, Portal button)
+- Redesigned about.html with editorial layout variety (removed photo placeholder section per DESIGN.md)
+- Updated communities, calendar, kete, resources, giving pages with scroll reveals + alternating sections
+- DOMPurify XSS fix on KetePostPage.tsx
+- Quill rich text editor integrated into KeteForm.tsx (replaces plain textarea)
+- Removed dead .about-hero CSS
+- Firebase hosting rewrite: / → homepage.html (before SPA catch-all)
+
+**BLOCKER for deploy:**
+- Vite build only outputs React portal to dist/. Static HTML pages (homepage.html, about.html, etc.) and their assets (css/styles.css, js/main.js) are NOT copied to dist/
+- Need to configure Vite's `public` dir or add a copy plugin to include static files in dist/
+- Then run `firebase deploy`
+
+**Still needed:**
+- Hero background image (images/hero-community.jpg) — needs real community photo
+- Login button on static site → portal login page
+
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
 - **Firestore for chat, RTDB for presence only** — hybrid approach
@@ -307,7 +346,8 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - **No budget/timeline constraints** from client
 
 ## Known Issues
-- Kete content XSS risk: `dangerouslySetInnerHTML` without DOMPurify — fix when integrating rich text editor
+- ~~Kete content XSS risk: `dangerouslySetInnerHTML` without DOMPurify~~ — FIXED (Session 7)
+- Static HTML pages not included in Vite build output (dist/) — need copy config before deploy
 - Kete has no rich text editor (plain textarea, users must write raw HTML)
 - Member blocking feature not implemented
 - Dark mode preference stored in localStorage only, not synced to Firestore
