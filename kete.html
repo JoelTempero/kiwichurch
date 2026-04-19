@@ -117,7 +117,7 @@
 
         <!-- What is the Kete? -->
         <section class="section section-sm" aria-labelledby="about-kete">
-            <div class="container-sm" style="text-align: center;">
+            <div class="container-sm reveal" style="text-align: center;">
                 <p style="font-size: 1.125rem; color: var(--color-text-light);" id="about-kete">
                     In Te Reo Maori, a <em>kete</em> is a woven basket used to carry treasures. This is our kete - a collection of writings, reflections, and updates we want to share with you.
                 </p>
@@ -125,8 +125,8 @@
         </section>
 
         <!-- Search and Filter -->
-        <section class="section section-sm" style="padding-bottom: 0;">
-            <div class="container">
+        <section class="section section-muted section-sm" style="padding-bottom: 0;">
+            <div class="container reveal">
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
                     <div style="flex: 1; min-width: 250px;">
                         <input type="text" id="kete-search" placeholder="Search posts..." style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-cream-dark); border-radius: var(--radius-md); font-size: 1rem;" oninput="filterPosts()">
@@ -143,7 +143,7 @@
             <div class="container">
                 <h2 class="sr-only" id="posts-heading">All Posts</h2>
                 <p id="posts-count" style="color: var(--color-text-light); margin-bottom: 1.5rem;"></p>
-                <div class="blog-grid" id="kete-posts">
+                <div class="blog-grid reveal-stagger" id="kete-posts">
                     <!-- Populated by JavaScript -->
                 </div>
             </div>
