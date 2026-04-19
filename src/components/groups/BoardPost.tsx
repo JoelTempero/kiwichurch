@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Pin, MoreVertical, Edit, Trash2, MessageCircle, X, Reply, BarChart3, SmilePlus } from 'lucide-react'
+import { Pin, MoreVertical, Edit, Trash2, MessageCircle, X, Reply, BarChart3, SmilePlus, Flag } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Avatar, Button, MentionInput } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
@@ -17,6 +17,7 @@ import { useToast } from '@/components/common/Toast'
 import { parseMentions, encodeMention, extractMentionIds } from '@/utils/mentions'
 import type { BoardPost as BoardPostType, BoardComment } from '@/types'
 import type { MentionMember } from '@/components/common/MentionInput'
+import { ReportModal } from './ReportModal'
 
 interface BoardPostProps {
   post: BoardPostType
@@ -85,6 +86,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
   const [editContent, setEditContent] = useState(post.content)
   const [replyTo, setReplyTo] = useState<BoardComment | null>(null)
   const [showReactionPicker, setShowReactionPicker] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const editInputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -248,7 +250,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
             {post.updatedAt && post.updatedAt !== post.createdAt && ' (edited)'}
           </span>
         </div>
-        {(canEdit || canDelete) && (
+        {user && (
           <div className="relative" ref={menuRef}>
             <button
               className="p-1 rounded-full hover:bg-cream transition-colors"
@@ -278,6 +280,19 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
                   >
                     <Trash2 size={16} />
                     Delete
+                  </button>
+                )}
+                {user.id !== post.authorId && (
+                  <button
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-text-secondary hover:bg-cream transition-colors text-left"
+                    onClick={() => {
+                      setShowMenu(false)
+                      setShowReportModal(true)
+                    }}
+                    role="menuitem"
+                  >
+                    <Flag size={16} />
+                    Report
                   </button>
                 )}
               </div>
@@ -502,6 +517,18 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
           </form>
         </div>
       )}
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="post"
+        targetId={post.id}
+        targetAuthorId={post.authorId}
+        targetAuthorName={post.authorName}
+        targetContent={post.content}
+        contextId={gatheringId}
+        contextName={gatheringName}
+      />
     </div>
   )
 }
