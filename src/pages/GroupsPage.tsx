@@ -27,6 +27,7 @@ export function GroupsPage() {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="max-w-3xl mx-auto p-4">
+        <h1 className="text-2xl font-display text-forest mb-4">Groups</h1>
         {/* My Groups */}
         <section className="mb-8">
           <h2 className="text-xl font-display text-forest mb-4">My Groups</h2>

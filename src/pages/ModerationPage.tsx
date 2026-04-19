@@ -63,7 +63,7 @@ export function ModerationPage() {
     <div className="max-w-[800px] mx-auto p-6">
       <div className="flex items-center gap-3 mb-6">
         <Shield size={24} className="text-forest" />
-        <h2 className="text-2xl font-semibold text-text-dark">Moderation</h2>
+        <h1 className="text-2xl font-semibold text-text-dark">Moderation</h1>
       </div>
 
       <div className="flex gap-2 mb-6">

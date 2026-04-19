@@ -28,6 +28,7 @@ export function HomePage() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
+      <h1 className="sr-only">Home</h1>
       {/* Hero greeting */}
       <div className="bg-gradient-to-br from-forest to-forest-light px-6 py-8 text-white">
         <p className="opacity-80 mb-1 text-[0.9375rem]">{greeting}</p>

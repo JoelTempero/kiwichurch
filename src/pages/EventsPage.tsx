@@ -75,6 +75,7 @@ export function EventsPage() {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="max-w-3xl mx-auto p-4">
+        <h1 className="text-2xl font-display text-forest mb-4">Events</h1>
         {/* View Toggle */}
         <div className="flex gap-1 p-1 bg-cream rounded-md mb-4">
           <button

@@ -128,6 +128,9 @@ export function ConversationPage() {
 
   return (
     <div className="flex flex-col h-full max-w-[800px] mx-auto">
+      {otherParticipant && (
+        <h1 className="sr-only">Conversation with {otherParticipant.displayName}</h1>
+      )}
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-cream shadow-sm shrink-0">
         <button

@@ -40,7 +40,7 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-md font-body font-medium transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 rounded-md font-body font-medium transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2',
         variantClasses[variant],
         sizeClasses[size],
         className
