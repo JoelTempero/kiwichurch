@@ -3,37 +3,72 @@
    ============================================ */
 
 :root {
-    --color-forest: #1a3a2f;
+    /* Primary */
+    --color-forest: #1c3d31;
     --color-forest-light: #2d5a4a;
     --color-forest-dark: #0f251e;
+    /* Secondary */
     --color-sage: #7d9a87;
     --color-sage-light: #a8c4b0;
-    --color-cream: #faf8f5;
-    --color-cream-dark: #f0ebe3;
+    /* Accent */
     --color-terracotta: #c17f59;
     --color-terracotta-light: #d4a07d;
     --color-gold: #d4a574;
-    --color-text: #2c3e36;
-    --color-text-light: #5a6b62;
+    /* Surfaces */
+    --color-parchment: #f5f1eb;
+    --color-ivory: #faf8f4;
+    --color-warm-sand: #ebe6dc;
+    /* Text */
+    --color-bark: #2c3530;
+    --color-stone: #6b7c72;
+    /* Borders */
+    --color-clay: #e0dbd2;
+    /* Semantic */
+    --color-error: #b53333;
+    --color-overlay: rgba(28, 61, 49, 0.85);
+
+    /* Backwards-compat aliases — used throughout existing CSS, do not remove until Task 11 */
+    --color-cream: var(--color-parchment);
+    --color-cream-dark: var(--color-warm-sand);
+    --color-text: var(--color-bark);
+    --color-text-light: var(--color-stone);
     --color-white: #ffffff;
-    --color-overlay: rgba(26, 58, 47, 0.85);
 
+    /* Fonts — Source Sans 3 replaces Nunito Sans */
     --font-display: 'Cormorant Garamond', Georgia, serif;
-    --font-body: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Source Sans 3', system-ui, -apple-system, sans-serif;
 
-    --shadow-sm: 0 2px 8px rgba(26, 58, 47, 0.08);
-    --shadow-md: 0 4px 20px rgba(26, 58, 47, 0.12);
-    --shadow-lg: 0 8px 40px rgba(26, 58, 47, 0.16);
-    --shadow-xl: 0 20px 60px rgba(26, 58, 47, 0.2);
+    /* Shadows — warm forest-tinted, never pure black */
+    --shadow-whisper: 0 1px 3px rgba(44, 53, 48, 0.04);
+    --shadow-card: 0 2px 8px rgba(44, 53, 48, 0.06);
+    --shadow-raised: 0 4px 20px rgba(44, 53, 48, 0.10);
+    --shadow-floating: 0 8px 40px rgba(44, 53, 48, 0.14);
 
-    --radius-sm: 8px;
-    --radius-md: 16px;
-    --radius-lg: 24px;
+    /* Backwards-compat shadow aliases */
+    --shadow-sm: var(--shadow-card);
+    --shadow-md: var(--shadow-raised);
+    --shadow-lg: var(--shadow-floating);
+    --shadow-xl: 0 20px 60px rgba(44, 53, 48, 0.18);
+
+    /* Radii — per DESIGN.md scale */
+    --radius-subtle: 4px;
+    --radius-standard: 6px;
+    --radius-comfortable: 8px;
+    --radius-card: 12px;
+    --radius-large: 16px;
+    --radius-section: 24px;
+
+    /* Backwards-compat radius aliases */
+    --radius-sm: var(--radius-comfortable);
+    --radius-md: var(--radius-large);
+    --radius-lg: var(--radius-section);
     --radius-xl: 32px;
 
-    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Transitions */
+    --transition-fast: 0.2s ease-out;
+    --transition-base: 0.3s ease-out;
+    --transition-slow: 0.5s ease-out;
+    --transition-reveal: 0.6s ease-out;
     --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -49,10 +84,10 @@ html {
 
 body {
     font-family: var(--font-body);
-    font-size: 16px;
-    line-height: 1.7;
-    color: var(--color-text);
-    background: var(--color-cream);
+    font-size: 1rem;
+    line-height: 1.70;
+    color: var(--color-bark);
+    background: var(--color-parchment);
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -67,7 +102,7 @@ body::before {
     width: 100%;
     height: 100%;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.02;
+    opacity: 0.015;
     pointer-events: none;
     z-index: 9999;
 }
@@ -78,15 +113,15 @@ body::before {
 
 h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    font-weight: 500;
-    line-height: 1.2;
+    font-weight: 400;
+    line-height: 1.15;
     color: var(--color-forest);
 }
 
-h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 400; letter-spacing: -0.02em; }
-h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 400; }
-h3 { font-size: clamp(1.5rem, 3vw, 2rem); }
-h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+h1 { font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -0.01em; line-height: 1.15; }
+h2 { font-size: clamp(1.75rem, 4vw, 2.25rem); line-height: 1.20; }
+h3 { font-size: clamp(1.5rem, 3vw, 1.75rem); font-weight: 500; line-height: 1.25; }
+h4 { font-size: clamp(1.25rem, 2vw, 1.375rem); font-weight: 500; line-height: 1.30; }
 
 p {
     margin-bottom: 1rem;
@@ -676,12 +711,14 @@ a:hover {
 
 .section-label {
     display: inline-block;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.12em;
     color: var(--color-terracotta);
     margin-bottom: 1rem;
+    line-height: 1.25;
 }
 
 .section-title {
