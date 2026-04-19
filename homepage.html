@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Kiwi Church — Welcome to the Table</title>
+    <meta name="description" content="Kiwi Church is a network of small group Christian communities in Christchurch, New Zealand. Faith lived around tables, not in rows.">
+    <meta name="keywords" content="Kiwi Church, Christchurch church, house church NZ, small group church, Christian community">
+    <meta name="author" content="Kiwi Church">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://kiwichurch.org.nz/">
+
+    <meta name="theme-color" content="#1c3d31">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kiwi Church">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kiwichurch.org.nz/">
+    <meta property="og:title" content="Kiwi Church — Welcome to the Table">
+    <meta property="og:description" content="A network of small group Christian communities in Christchurch, New Zealand.">
+    <meta property="og:image" content="https://kiwichurch.org.nz/images/og-image.jpg">
+    <meta property="og:locale" content="en_NZ">
+    <meta property="og:site_name" content="Kiwi Church">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Kiwi Church — Welcome to the Table">
+    <meta name="twitter:description" content="A network of small group Christian communities in Christchurch, New Zealand.">
+
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Church",
+        "name": "Kiwi Church",
+        "description": "A network of small group Christian communities in Christchurch, New Zealand",
+        "url": "https://kiwichurch.org.nz",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Christchurch",
+            "addressCountry": "NZ"
+        }
+    }
+    </script>
+</head>
+<body>
+    <header class="header" id="header">
+        <div class="header-inner">
+            <a href="homepage.html" class="header-logo">
+                <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church Logo" id="header-logo-img">
+            </a>
+
+            <nav class="nav-desktop" id="nav-desktop" aria-label="Main navigation">
+                <a href="homepage.html" class="nav-link active">Home</a>
+                <a href="about.html" class="nav-link">About</a>
+                <a href="communities.html" class="nav-link">Communities</a>
+                <a href="calendar.html" class="nav-link">Calendar</a>
+                <a href="kete.html" class="nav-link">Kete</a>
+                <a href="resources.html" class="nav-link">Resources</a>
+
+                <a href="portal.html" class="btn btn-primary" style="margin-left: 0.5rem;">Portal</a>
+            </nav>
+
+            <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+        <a href="homepage.html" class="mobile-nav-link active">Home</a>
+        <a href="about.html" class="mobile-nav-link">About</a>
+        <a href="communities.html" class="mobile-nav-link">Communities</a>
+        <a href="calendar.html" class="mobile-nav-link">Calendar</a>
+        <a href="kete.html" class="mobile-nav-link">Kete</a>
+        <a href="resources.html" class="mobile-nav-link">Resources</a>
+        <a href="portal.html" class="mobile-nav-link">Portal</a>
+    </nav>
+
+    <main id="main">
+        <!-- Hero -->
+        <section class="hero" aria-labelledby="hero-heading">
+            <div class="hero-bg hero-parallax" style="background: linear-gradient(180deg, rgba(15, 37, 30, 0.5) 0%, rgba(28, 61, 49, 0.7) 50%, rgba(28, 61, 49, 0.85) 100%); background-attachment: fixed;"></div>
+            <div class="hero-content">
+                <img src="KiwiChurch_Old_White_Shadow.png" alt="" class="hero-logo" aria-hidden="true">
+                <h1 id="hero-heading" class="hero-title" style="font-size: clamp(2.5rem, 6vw, 4rem);">Welcome to the Table</h1>
+                <p class="hero-subtitle">Faith lived in community, around tables, sharing life together</p>
+                <div class="hero-actions">
+                    <a href="communities.html" class="btn btn-accent">Find a Community</a>
+                    <a href="about.html" class="btn btn-on-dark">Our Story</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Intro -->
+        <section class="section" aria-labelledby="intro-heading">
+            <div class="container-sm reveal">
+                <div class="section-header">
+                    <span class="section-label">Who We Are</span>
+                    <h2 class="section-title" id="intro-heading">More than a Sunday service</h2>
+                </div>
+                <div style="font-size: 1.125rem; line-height: 1.75;">
+                    <p>Kiwi Church is a network of intentionally small communities meeting in homes across Christchurch. We share meals, wrestle with honest questions, and walk through life together.</p>
+                    <p>We're not trying to be the biggest church in town. We're trying to be a community where everyone is known, everyone belongs, and everyone has a seat at the table.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Communities Preview -->
+        <section class="section section-muted" aria-labelledby="communities-heading">
+            <div class="container">
+                <div class="section-header reveal">
+                    <span class="section-label">Our Communities</span>
+                    <h2 class="section-title" id="communities-heading">Find your people</h2>
+                    <p class="section-desc">Each community has its own personality and rhythm, but we're united by shared values.</p>
+                </div>
+                <div class="features-grid reveal-stagger" id="home-communities-grid">
+                </div>
+                <div style="text-align: center; margin-top: 3rem;" class="reveal">
+                    <a href="communities.html" class="btn btn-secondary">Explore All Communities</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pull Quote -->
+        <section class="section section-forest" aria-label="Quote">
+            <div class="pull-quote reveal">
+                <blockquote>"For where two or three gather in my name, there am I with them."</blockquote>
+                <cite>— Matthew 18:20</cite>
+            </div>
+        </section>
+
+        <!-- Kete Preview -->
+        <section class="section" aria-labelledby="kete-heading">
+            <div class="container">
+                <div class="section-header reveal">
+                    <span class="section-label">From the Kete</span>
+                    <h2 class="section-title" id="kete-heading">Stories, reflections & resources</h2>
+                    <p class="section-desc">Thoughts and reflections from our community — a basket of things worth sharing.</p>
+                </div>
+                <div class="features-grid reveal-stagger" id="home-kete-grid">
+                </div>
+                <div style="text-align: center; margin-top: 3rem;" class="reveal">
+                    <a href="kete.html" class="btn btn-secondary">Read the Kete</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="section section-muted" aria-labelledby="cta-heading">
+            <div class="container-sm" style="text-align: center;">
+                <div class="reveal">
+                    <span class="section-label">Join Us</span>
+                    <h2 class="section-title" id="cta-heading">There's a seat at the table for you</h2>
+                    <p class="section-desc" style="margin-bottom: 2.5rem;">Whether you're exploring faith for the first time or looking for a new spiritual home, you're welcome here.</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <a href="communities.html" class="btn btn-primary">Find a Community</a>
+                        <a href="about.html" class="btn btn-secondary">Learn More</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church">
+                <p>A network of small group Christian communities in Christchurch, New Zealand.</p>
+            </div>
+            <div class="footer-nav">
+                <h4 class="footer-title">Explore</h4>
+                <ul class="footer-links">
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="communities.html">Communities</a></li>
+                    <li><a href="calendar.html">Calendar</a></li>
+                    <li><a href="kete.html">Kete</a></li>
+                </ul>
+            </div>
+            <div class="footer-nav">
+                <h4 class="footer-title">Connect</h4>
+                <ul class="footer-links">
+                    <li><a href="resources.html">Resources</a></li>
+                    <li><a href="giving.html">Giving</a></li>
+                    <li><a href="portal.html">Member Portal</a></li>
+                </ul>
+            </div>
+            <div class="footer-contact-section">
+                <h4 class="footer-title">Contact</h4>
+                <div class="footer-contact">
+                    <p>Christchurch, New Zealand</p>
+                    <p><a href="mailto:hello@kiwichurch.org.nz">hello@kiwichurch.org.nz</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Kiwi Church. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
+    <script src="js/main.js"></script>
+</body>
+</html>
