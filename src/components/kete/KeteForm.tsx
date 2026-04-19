@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button, Modal } from '@/components/common'
+import { QuillEditor } from '@/components/common/QuillEditor'
 import { useCreateKetePost, useUpdateKetePost, useDeleteKetePost } from '@/hooks/useKete'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/hooks/useAuth'
@@ -153,20 +154,19 @@ export function KeteForm({ post, isOpen, onClose, onSuccess }: KeteFormProps) {
           </div>
 
           <div>
-            <label className="block font-medium mb-2" htmlFor="kete-content">
+            <label className="block font-medium mb-2">
               Content <span className="text-red-600">*</span>
             </label>
-            <textarea
-              id="kete-content"
-              className={cn(inputBase, 'resize-y min-h-[200px]', errors.content && inputError)}
-              placeholder="Write your post content here... HTML is supported."
-              rows={12}
-              {...form.register('content')}
-            />
+            <div className={cn('rounded-md overflow-hidden', errors.content && 'ring-1 ring-red-600')}>
+              <QuillEditor
+                value={form.watch('content') || ''}
+                onChange={(val) => form.setValue('content', val, { shouldValidate: true })}
+                placeholder="Write your post content here..."
+              />
+            </div>
             {errors.content && (
               <span className="text-sm text-red-600 mt-1 block" role="alert">{errors.content.message}</span>
             )}
-            <span className="text-sm text-text-light mt-1 block">HTML formatting is supported (bold, italic, links, etc.)</span>
           </div>
 
           <div>

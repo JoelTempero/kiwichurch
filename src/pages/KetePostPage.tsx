@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Trash2 } from 'lucide-react'
+import DOMPurify from 'dompurify'
 import { useAuth } from '@/hooks/useAuth'
 import { useKetePost, useKeteComments, useAddKeteComment, useDeleteKeteComment } from '@/hooks/useKete'
 import { Avatar, Button, EmptyState, Skeleton } from '@/components/common'
@@ -141,7 +142,7 @@ export function KetePostPage() {
       {/* Content */}
       <article
         className="px-6 py-2 prose prose-forest max-w-none"
-        dangerouslySetInnerHTML={{ __html: post.content }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
       />
 
       {/* Comments */}
