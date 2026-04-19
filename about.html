@@ -69,22 +69,21 @@
     </script>
 </head>
 <body>
-    <!-- Header -->
     <header class="header scrolled" id="header">
         <div class="header-inner">
-            <a href="index.html" class="header-logo">
+            <a href="homepage.html" class="header-logo">
                 <img src="KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church Logo" id="header-logo-img">
             </a>
 
             <nav class="nav-desktop" id="nav-desktop" aria-label="Main navigation">
-                <a href="index.html" class="nav-link">Home</a>
+                <a href="homepage.html" class="nav-link">Home</a>
                 <a href="about.html" class="nav-link active">About</a>
                 <a href="communities.html" class="nav-link">Communities</a>
                 <a href="calendar.html" class="nav-link">Calendar</a>
                 <a href="kete.html" class="nav-link">Kete</a>
                 <a href="resources.html" class="nav-link">Resources</a>
-                
-                <a href="portal.html" class="btn btn-outline">Portal</a>
+
+                <a href="portal.html" class="btn btn-primary" style="margin-left: 0.5rem;">Portal</a>
             </nav>
 
             <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle mobile menu">
@@ -97,59 +96,48 @@
         </div>
     </header>
 
-    <!-- Mobile Navigation -->
     <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
-        <a href="index.html" class="mobile-nav-link">Home</a>
-        <a href="about.html" class="mobile-nav-link">About</a>
+        <a href="homepage.html" class="mobile-nav-link">Home</a>
+        <a href="about.html" class="mobile-nav-link active">About</a>
         <a href="communities.html" class="mobile-nav-link">Communities</a>
         <a href="calendar.html" class="mobile-nav-link">Calendar</a>
         <a href="kete.html" class="mobile-nav-link">Kete</a>
         <a href="resources.html" class="mobile-nav-link">Resources</a>
-        
-        <a href="portal.html" class="mobile-nav-link">Member Portal</a>
+        <a href="portal.html" class="mobile-nav-link">Portal</a>
     </nav>
 
-    <!-- Main Content -->
     <main id="main">
-        <!-- Hero Section -->
-        <section class="about-hero" aria-labelledby="about-heading">
-            <div class="about-hero-content">
+        <section class="page-hero" aria-labelledby="about-heading">
+            <div class="page-hero-content">
                 <h1 id="about-heading">About Kiwi Church</h1>
                 <p>A desire for faith, meaning, community and authentic relationship</p>
             </div>
         </section>
 
-        <!-- Our Story -->
         <section class="section" aria-labelledby="story-heading">
-            <div class="container-sm">
+            <div class="container-sm reveal">
                 <div class="section-header">
                     <span class="section-label">Our Story</span>
                     <h2 class="section-title" id="story-heading">How We Began</h2>
                 </div>
-
-                <div style="font-size: 1.125rem; line-height: 1.8;">
+                <div style="font-size: 1.125rem; line-height: 1.75;">
                     <p>Kiwi Church grew out of a simple conviction: that faith is best lived in community, around tables, sharing life together.</p>
-
                     <p>We started as a small group of people who wanted something different from the typical Sunday service. We wanted authentic relationships, honest conversations about faith and doubt, and a community that felt more like family than institution.</p>
-
                     <p>Today, we're a network of small gatherings meeting in homes across Christchurch. Each community has its own personality and rhythm, but we're united by shared values and a commitment to following Jesus together in real, everyday life.</p>
-
                     <p>We're not trying to be the biggest church in town. We're trying to be a community where everyone is known, everyone belongs, and everyone has a seat at the table.</p>
                 </div>
             </div>
         </section>
 
-        <!-- Our Values -->
-        <section class="section section-sage" aria-labelledby="values-heading">
+        <section class="section section-muted" aria-labelledby="values-heading">
             <div class="container">
-                <div class="section-header">
+                <div class="section-header reveal">
                     <span class="section-label">What We Value</span>
                     <h2 class="section-title" id="values-heading">Our Core Values</h2>
                     <p class="section-desc">These values shape how we gather, how we relate, and how we live out our faith.</p>
                 </div>
-
-                <div class="values-grid">
-                    <article class="value-card">
+                <div class="values-grid reveal-stagger">
+                    <article class="value-card reveal">
                         <div class="value-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -159,10 +147,9 @@
                             </svg>
                         </div>
                         <h3>Authentic Community</h3>
-                        <p>We believe in being real with each other - sharing our struggles, celebrating our joys, and walking through life together.</p>
+                        <p>We believe in being real with each other — sharing our struggles, celebrating our joys, and walking through life together.</p>
                     </article>
-
-                    <article class="value-card">
+                    <article class="value-card reveal">
                         <div class="value-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
@@ -173,10 +160,9 @@
                             </svg>
                         </div>
                         <h3>Table Fellowship</h3>
-                        <p>Sharing meals isn't just hospitality - it's how we practice communion. Around the table, we remember Jesus and nourish each other.</p>
+                        <p>Sharing meals isn't just hospitality — it's how we practice communion. Around the table, we remember Jesus and nourish each other.</p>
                     </article>
-
-                    <article class="value-card">
+                    <article class="value-card reveal">
                         <div class="value-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <circle cx="12" cy="12" r="10"></circle>
@@ -187,8 +173,7 @@
                         <h3>Honest Questions</h3>
                         <p>We welcome doubt, hard questions, and wrestling with faith. We believe God is big enough for our questions.</p>
                     </article>
-
-                    <article class="value-card">
+                    <article class="value-card reveal">
                         <div class="value-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -197,8 +182,7 @@
                         <h3>Safe Space</h3>
                         <p>Everyone is welcome at our table. We're committed to creating environments where people can be themselves without judgment.</p>
                     </article>
-
-                    <article class="value-card">
+                    <article class="value-card reveal">
                         <div class="value-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -206,69 +190,45 @@
                             </svg>
                         </div>
                         <h3>Living Faith</h3>
-                        <p>We're interested in faith that transforms everyday life - not just Sunday beliefs, but Monday through Saturday practice.</p>
+                        <p>We're interested in faith that transforms everyday life — not just Sunday beliefs, but Monday through Saturday practice.</p>
                     </article>
-
-                    <article class="value-card">
+                    <article class="value-card reveal">
                         <div class="value-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                             </svg>
                         </div>
                         <h3>Generous Love</h3>
-                        <p>We practice radical hospitality and generosity - with our homes, our resources, and our hearts.</p>
+                        <p>We practice radical hospitality and generosity — with our homes, our resources, and our hearts.</p>
                     </article>
                 </div>
             </div>
         </section>
 
-        <!-- What to Expect -->
         <section class="section" aria-labelledby="expect-heading">
-            <div class="container-sm">
+            <div class="container-sm reveal">
                 <div class="section-header">
                     <span class="section-label">First Visit</span>
                     <h2 class="section-title" id="expect-heading">What to Expect</h2>
                 </div>
-
-                <div style="font-size: 1.125rem; line-height: 1.8;">
+                <div style="font-size: 1.125rem; line-height: 1.75;">
                     <p><strong>Our gatherings are informal and welcoming.</strong> There's no dress code, no pressure to participate in ways you're not comfortable with, and no expectation that you'll agree with everything.</p>
-
-                    <p><strong>Most of our communities share a meal together.</strong> This might be a potluck dinner, a simple shared lunch, or morning tea. The food isn't fancy - it's about the fellowship.</p>
-
+                    <p><strong>Most of our communities share a meal together.</strong> This might be a potluck dinner, a simple shared lunch, or morning tea. The food isn't fancy — it's about the fellowship.</p>
                     <p><strong>We make space for conversation.</strong> Rather than passive listening, we engage with scripture, ideas, and each other through discussion. Your voice matters.</p>
-
                     <p><strong>Kids are welcome.</strong> Many of our gatherings are family-friendly. We believe children are part of the community, not separate from it.</p>
-
-                    <p><strong>You can come as you are.</strong> Wherever you're at on your faith journey - curious, skeptical, committed, or confused - there's a place for you.</p>
+                    <p><strong>You can come as you are.</strong> Wherever you're at on your faith journey — curious, skeptical, committed, or confused — there's a place for you.</p>
                 </div>
-
             </div>
         </section>
 
-        <!-- Photo Gallery Placeholder -->
-        <section class="section section-dark" aria-labelledby="gallery-heading">
-            <div class="container">
-                <div class="section-header">
-                    <span class="section-label" style="color: var(--color-gold);">Our Community</span>
-                    <h2 class="section-title" id="gallery-heading">Life Together</h2>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
-                    <div style="aspect-ratio: 4/3; background: linear-gradient(135deg, var(--color-sage) 0%, var(--color-forest) 100%); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
-                        <span style="color: rgba(255,255,255,0.5); font-size: 0.875rem;">Community photo placeholder</span>
-                    </div>
-                    <div style="aspect-ratio: 4/3; background: linear-gradient(135deg, var(--color-terracotta) 0%, var(--color-gold) 100%); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
-                        <span style="color: rgba(255,255,255,0.5); font-size: 0.875rem;">Community photo placeholder</span>
-                    </div>
-                    <div style="aspect-ratio: 4/3; background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-sage) 100%); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
-                        <span style="color: rgba(255,255,255,0.5); font-size: 0.875rem;">Community photo placeholder</span>
-                    </div>
-                </div>
+        <section class="section section-forest" aria-label="Quote">
+            <div class="pull-quote reveal">
+                <blockquote>"They broke bread in their homes and ate together with glad and sincere hearts."</blockquote>
+                <cite>— Acts 2:46</cite>
             </div>
         </section>
     </main>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-brand">
@@ -288,7 +248,7 @@
                 <h4 class="footer-title">Connect</h4>
                 <ul class="footer-links">
                     <li><a href="resources.html">Resources</a></li>
-                    
+                    <li><a href="giving.html">Giving</a></li>
                     <li><a href="portal.html">Member Portal</a></li>
                 </ul>
             </div>
@@ -301,7 +261,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2024 Kiwi Church. All rights reserved.</p>
+            <p>&copy; 2025 Kiwi Church. All rights reserved.</p>
         </div>
     </footer>
 
