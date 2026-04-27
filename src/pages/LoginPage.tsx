@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuth } from '@/hooks/useAuth'
@@ -83,9 +83,9 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-forest flex flex-col items-center justify-center px-4 py-12">
       <div className="text-center mb-8">
-        <Link to="/" className="inline-block mb-4">
+        <a href="/homepage.html" className="inline-block mb-4">
           <img src="/Images/KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church" className="h-16 w-auto" />
-        </Link>
+        </a>
         <h1 className="text-2xl font-display text-white mb-1">Member Portal</h1>
         <p className="text-sage-light text-sm">Welcome to the table</p>
       </div>
@@ -320,6 +320,13 @@ export function LoginPage() {
           </Button>
         </div>
       )}
+
+      <a
+        href="/homepage.html"
+        className="mt-6 text-sm text-sage-light hover:text-white transition-colors"
+      >
+        &larr; Back to website
+      </a>
     </div>
   )
 }

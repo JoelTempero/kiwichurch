@@ -2,16 +2,54 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
 import path from 'path'
+import fs from 'fs'
+
+function renameSpaEntry(): import('vite').Plugin {
+  return {
+    name: 'rename-spa-entry',
+    apply: 'build',
+    closeBundle() {
+      const dist = path.resolve(__dirname, 'dist')
+      const src = path.join(dist, 'index.html')
+      const dest = path.join(dist, 'app.html')
+      if (fs.existsSync(src)) {
+        fs.renameSync(src, dest)
+      }
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    viteStaticCopy({
+      targets: [
+        { src: 'homepage.html', dest: '' },
+        { src: 'about.html', dest: '' },
+        { src: 'communities.html', dest: '' },
+        { src: 'calendar.html', dest: '' },
+        { src: 'kete.html', dest: '' },
+        { src: 'resources.html', dest: '' },
+        { src: 'giving.html', dest: '' },
+        { src: 'portal.html', dest: '' },
+        { src: 'css', dest: '' },
+        { src: 'js', dest: '' },
+        { src: 'KiwiChurch_Old_White.png', dest: '' },
+        { src: 'KiwiChurch_Old_White_Shadow.png', dest: '' },
+        { src: 'HansonsLaneOpening-*.jpg', dest: '' },
+      ],
+    }),
+    renameSpaEntry(),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['assets/**/*.{js,css}', 'app.html', 'icons/**/*.png'],
+        globIgnores: ['js/**', 'css/**'],
+        navigateFallback: '/app.html',
+        navigateFallbackDenylist: [/^\/$/, /\.html$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
@@ -45,7 +83,7 @@ export default defineConfig({
         name: 'Kiwi Church',
         short_name: 'Kiwi Church',
         description: 'Welcome to the table - A network of small group Christian communities',
-        start_url: '/',
+        start_url: '/home',
         display: 'standalone',
         background_color: '#1a3a2f',
         theme_color: '#1a3a2f',

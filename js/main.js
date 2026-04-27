@@ -421,7 +421,6 @@ function initApp() {
     initLazyLoading();
     initScrollReveal();
     initPWAInstall();
-    registerServiceWorker();
 
     // Close mobile menu when clicking outside
     document.addEventListener('click', (e) => {

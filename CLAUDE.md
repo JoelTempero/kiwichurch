@@ -3,7 +3,7 @@
 ## Overview
 - **Client**: Kiwi Church
 - **Type**: Community Platform / Portal / PWA
-- **Status**: Workstream A complete, Workstream B in progress (static site redesign)
+- **Status**: Workstream A complete, Workstream B complete (deployed, pending hero image)
 
 ## Playbooks In Use
 Read these from the Brain folder at session start. Do not copy into this project.
@@ -146,11 +146,15 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
   - [x] Scroll reveal animations (fade-up, staggered cards, image hover zoom, reduced motion support)
   - [x] Kete rich text editor integration (DOMPurify + Quill) — portal-side fix
   - [x] Firebase hosting rewrite for homepage.html at root URL
-  - [ ] **BLOCKER: Static files not in dist/ — Vite build only outputs React portal**
-  - [ ] Configure Vite to copy static HTML pages + css/ + js/ into dist/ on build
-  - [ ] Deploy to Firebase Hosting
+  - [x] ~~BLOCKER: Static files not in dist/~~ — resolved with vite-plugin-static-copy
+  - [x] Configure Vite to copy static HTML pages + css/ + js/ + images into dist/ on build
+  - [x] Deploy to Firebase Hosting (https://kiwichurch-1ef0f.web.app)
+  - [x] ~~BLOCKER: Root URL served React SPA instead of homepage~~ — renamed SPA entry to app.html via Vite plugin
+  - [x] Login button on static site links to portal login page (/login)
+  - [x] "Back to website" link on React LoginPage
+  - [x] Fixed login page zero padding (CSS cascade: unlayered `*` reset was overriding Tailwind utilities)
+  - [x] Service worker fixes: removed SW registration from static pages, added navigateFallbackDenylist
   - [ ] Add hero background image (images/hero-community.jpg) — real community photo
-  - [ ] Login button on static site links to portal login page
 
 ## Session Log
 ### 2026-04-17
@@ -329,7 +333,22 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 **Still needed:**
 - Hero background image (images/hero-community.jpg) — needs real community photo
-- Login button on static site → portal login page
+
+### 2026-04-27: Routing, Login & CSS Fixes
+**Status:** All fixes deployed to Firebase Hosting
+**Build:** Clean
+
+**Fixed:**
+- Root URL serving React SPA login instead of homepage — Firebase auto-serves `index.html` for `/`, bypassing rewrites. Added Vite plugin (`renameSpaEntry`) to rename `index.html` → `app.html` post-build. Updated firebase.json `**` rewrite to `/app.html`
+- Login button on static site — changed all `portal.html` links to `/login` across 8 HTML pages, nav text "Portal" → "Login"
+- "Back to website" link on React LoginPage (links to `/homepage.html`)
+- Login page zero padding — `* { margin: 0; padding: 0; }` in `src/styles/styles.css` was unlayered CSS overriding Tailwind utilities. Removed from SPA stylesheet (static pages' `css/styles.css` keeps its own copy)
+- Service worker: removed registration from static `main.js`, added `navigateFallbackDenylist`, changed precache/fallback to `app.html`
+- PWA `start_url` changed from `/` to `/home`
+
+**Files changed:** vite.config.ts, firebase.json, js/main.js, src/pages/LoginPage.tsx, src/styles/styles.css, 8 static HTML pages
+
+**Note:** Users with old SW cached need to clear site data or visit in incognito to see the fix. New SW auto-updates via `skipWaiting()` but first visit still uses old cached SW.
 
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
@@ -346,8 +365,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - **No budget/timeline constraints** from client
 
 ## Known Issues
-- ~~Kete content XSS risk: `dangerouslySetInnerHTML` without DOMPurify~~ — FIXED (Session 7)
-- Static HTML pages not included in Vite build output (dist/) — need copy config before deploy
-- Kete has no rich text editor (plain textarea, users must write raw HTML)
+- `kiwichurch.sidequest.nz` DNS updated in Cloudflare to point to Firebase Hosting — may need propagation time
 - Member blocking feature not implemented
 - Dark mode preference stored in localStorage only, not synced to Firestore
+- Hero background image still placeholder — needs real community photo
