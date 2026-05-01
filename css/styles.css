@@ -330,7 +330,7 @@ a:hover {
 }
 
 .header-logo img {
-    height: 50px;
+    height: 70px;
     width: auto;
     transition: filter var(--transition-base);
 }
@@ -563,12 +563,25 @@ a:hover {
    ============================================ */
 
 .hero {
-    position: relative;
-    min-height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    z-index: 0;
+}
+
+.hero ~ * {
+    position: relative;
+    z-index: 1;
+}
+
+.hero + .section {
+    margin-top: 100vh;
 }
 
 .hero-bg {
@@ -608,7 +621,7 @@ a:hover {
 }
 
 .hero-logo {
-    width: 140px;
+    width: 280px;
     height: auto;
     margin-bottom: 2rem;
     opacity: 0;
@@ -711,6 +724,7 @@ a:hover {
 /* Sections */
 .section {
     padding: 6rem 2rem;
+    background: var(--color-ivory);
 }
 
 .section-sm {
@@ -869,9 +883,9 @@ a:hover {
 .event-card {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 1.5rem;
+    gap: 1rem;
     align-items: center;
-    padding: 1.5rem;
+    padding: 0.875rem 1.25rem;
     background: var(--color-white);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
@@ -889,22 +903,22 @@ a:hover {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 70px;
-    height: 70px;
+    width: 52px;
+    height: 52px;
     background: var(--color-forest);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     color: var(--color-white);
 }
 
 .event-date-day {
     font-family: var(--font-display);
-    font-size: 1.75rem;
+    font-size: 1.35rem;
     font-weight: 600;
     line-height: 1;
 }
 
 .event-date-month {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     opacity: 0.8;
@@ -1662,13 +1676,15 @@ a:hover {
    ============================================ */
 
 .footer {
+    position: relative;
+    z-index: 1;
     background: var(--color-forest);
     color: var(--color-ivory);
     padding: 5rem 2rem 0;
 }
 .footer-content {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 2fr;
     gap: 3rem;
     max-width: 1200px;
     margin: 0 auto;
@@ -1717,6 +1733,43 @@ a:hover {
 }
 .footer-contact a:hover {
     color: var(--color-gold);
+}
+.footer-form h4 {
+    color: var(--color-gold);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    margin-bottom: 1rem;
+}
+.footer-form form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.footer-form input,
+.footer-form textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: rgba(250, 248, 244, 0.1);
+    border: 1px solid rgba(250, 248, 244, 0.2);
+    border-radius: 6px;
+    color: var(--color-ivory);
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+}
+.footer-form input::placeholder,
+.footer-form textarea::placeholder {
+    color: rgba(250, 248, 244, 0.4);
+}
+.footer-form input:focus,
+.footer-form textarea:focus {
+    outline: none;
+    border-color: var(--color-gold);
+}
+.footer-form textarea {
+    resize: vertical;
+    min-height: 60px;
 }
 .footer-bottom {
     background: var(--color-forest-dark);

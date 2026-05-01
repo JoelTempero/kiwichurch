@@ -356,5 +356,13 @@ service cloud.firestore {
       allow delete: if isAuthenticated() &&
         resource.data.uid == request.auth.uid;
     }
+
+    // ============================================
+    // CONTACT MESSAGES (public website form)
+    // ============================================
+    match /contactMessages/{messageId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthenticated() && isAdmin();
+    }
   }
 }

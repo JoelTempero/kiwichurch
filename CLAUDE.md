@@ -3,7 +3,7 @@
 ## Overview
 - **Client**: Kiwi Church
 - **Type**: Community Platform / Portal / PWA
-- **Status**: Workstream A complete, Workstream B complete (deployed, pending hero image)
+- **Status**: Workstream A complete, Workstream B complete (deployed with hero image)
 
 ## Playbooks In Use
 Read these from the Brain folder at session start. Do not copy into this project.
@@ -154,201 +154,49 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
   - [x] "Back to website" link on React LoginPage
   - [x] Fixed login page zero padding (CSS cascade: unlayered `*` reset was overriding Tailwind utilities)
   - [x] Service worker fixes: removed SW registration from static pages, added navigateFallbackDenylist
-  - [ ] Add hero background image (images/hero-community.jpg) — real community photo
+  - [x] Add hero background image (HansonsLaneOpening-2131a.jpg) with gradient overlay
+  - [x] Sticky hero (fixed behind content, sections scroll over)
+  - [x] Hero logo doubled (140px → 280px), header logo enlarged (50px → 70px)
+  - [x] Homepage: replaced quote + communities sections with upcoming events widget (Firebase-powered)
+  - [x] Homepage: "Who We Are" heading updated, compact event cards, dark green events section
+  - [x] Merged about.html into communities.html (values cards, no header text)
+  - [x] Removed About from nav across all static pages
+  - [x] Footer: contact form (Firestore-backed), Darryl + Julie contact details, removed Giving link
+  - [x] Resources: removed "Getting Started" section
+  - [x] Stop-slop pass on communities page prose
+  - [x] Firestore rules for contactMessages collection
+  - [x] Removed dead _redirects file from public/
 
 ## Session Log
-### 2026-04-17
-- First Claude Code session — scanned project, created CLAUDE.md
-- Deep codebase audit: existing app is ~70% complete vs client requirements
-- Client requirements analysed (ref/Kiwi Church Client Requirements.docx)
-- Brainstorm written as HTML doc (`docs/brainstorm.html`) with 3 approaches
-- Full design spec written (`docs/superpowers/specs/2026-04-17-kiwichurch-community-platform-design.md`)
-- Joel approved: Approach B (modernise + extend), all architecture recommendations
-- Joel added to scope: guest access, Google Calendar integration, small video uploads, design refresh
-- Cloud Functions not yet initialised (no functions/ dir). RTDB status unknown. Neither blocks Phase 1
-- Ready to build Phase 1 next session
 
-### 2026-04-17 — Autopilot Session (overnight)
-**Status:** Completed 5 of 8 tasks, context limit reached during page migration
-**Build:** Clean (`npm run build` passes)
-
-**Completed:**
-- Installed all Phase 1 deps: tailwindcss v4 (@tailwindcss/vite), clsx, tailwind-merge, lucide-react, react-hook-form, zod
-- Configured Tailwind v4 in Vite — `@theme` block in `src/styles/app.css` maps all existing CSS custom properties (colors, fonts, shadows, radii) to Tailwind utilities
-- Created `src/utils/cn.ts` — clsx + tailwind-merge utility
-- Migrated layout components: AppHeader, BottomNav, DesktopSidebar — all inline SVGs replaced with Lucide React icons. Kept structural CSS class names (app-header, bottom-nav, desktop-sidebar, etc.) because they're referenced by the responsive grid layout in styles.css
-- Migrated all 8 common components to Tailwind: Button (cn() variants), Modal (Lucide X), Toast (Lucide X, variant classes), Badge (rounded-full pills), Avatar (size classes), EmptyState (Lucide icon map), Skeleton (animate-pulse), PullToRefresh (Lucide ArrowDown/Loader2)
-- Migrated 3 page components: HomePage (gradient hero, Lucide quick actions), GivingPage (full Tailwind layout), DirectoryPage (Tailwind search/cards)
-- 3 atomic git commits
-
-**Not completed (continue next session):**
-- Remaining 10 page components need Tailwind migration
-- Event/group/kete sub-components (EventCard, KeteCard, etc.) still use CSS classes
-- Forms not yet migrated to react-hook-form + zod
-- CSS cleanup of index.css (migrated sections still present but unused)
-- DESIGN.md not created yet
-- NotificationPanel/SearchPanel SVGs not migrated
-
-**Architecture notes for next session:**
-- `src/styles/app.css` is the new entry point (imported in main.tsx). It imports tailwindcss, defines @theme, then imports styles.css and index.css for legacy compatibility
-- Layout CSS in styles.css (grid, sidebar, bottom-nav positioning) is STRUCTURAL and must be kept. The class names `app-header`, `bottom-nav`, `desktop-sidebar`, `#app-view`, `#app-main` are load-bearing for responsive layout
-- Common components now use Tailwind classes exclusively — their CSS blocks in index.css can be safely removed
-- Page CSS blocks in index.css for GivingPage, DirectoryPage can be removed. HomePage still uses some app-dashboard/app-quick-action CSS classes from styles.css
-
-### 2026-04-18
-- Migrated all 10 remaining pages to Tailwind + Lucide (Events, Groups, GroupDetail, Kete, KetePost, Login, Profile, Settings, Hosting, Users)
-- Migrated all 8 sub-components to Tailwind + Lucide (EventCard, EventModal, CalendarView, GatheringCard, BoardPost, KeteCard, NotificationPanel, SearchPanel)
-- 18 files changed, net -125 lines (CSS classes → Tailwind utilities, inline SVGs → Lucide icons)
-- Build clean. Phase 1 now ~90% done
-- Remaining Phase 1: react-hook-form + zod for forms, CSS cleanup of index.css, DESIGN.md
-
-### 2026-04-18 — Session 2: Phase 1 completion
-- Migrated all forms to react-hook-form + zod: LoginPage (3 sub-forms), ProfilePage (profile + password), EventForm, KeteForm, GroupForm
-- Created `src/utils/schemas.ts` with 8 zod schemas + inferred types
-- Installed `@hookform/resolvers` for zodResolver integration
-- Replaced all form-* CSS classes with Tailwind utilities in 8 files (BoardPost, EventModal, UsersPage included)
-- Cleaned up index.css: 3,386 → 35 lines (kept only loading-screen, loading-spinner, page-loader)
-- styles.css (3,133 lines) untouched — contains structural layout CSS
-- Build + typecheck clean
-- Phase 1 complete (DESIGN.md deferred — creative task, not a code blocker)
-
-### 2026-04-19: Phase 2 — Real-time group chat
-- Designed and planned Phase 2: enhanced group message boards (spec + 10-task plan)
-- Implemented all 10 tasks via subagent-driven development
-- Real-time comments: `subscribeToPostComments` onSnapshot listener, lazy subscription (only when expanded)
-- @mentions: `MentionInput` component with @autocomplete dropdown, `@[Name](userId)` markup, client-side notifications
-- Inline replies: flat display with visual quote references (ReplyQuote component), reply-to indicator
-- Member enrichment: `getGatheringMembersWithProfiles` fetches displayName from users collection
-- New files: `src/utils/mentions.ts`, `src/components/common/MentionInput.tsx`
-- Modified: `gathering.ts` types, `db.ts` service (3 new methods), `useGatherings.ts` hooks (3 new), `BoardPost.tsx` (full rewrite), `GroupDetailPage.tsx` (MentionInput + mention encoding)
-- Build + typecheck clean, 11 atomic commits
-- Code review caught and fixed: stateful regex bug, unbounded batch write, cursor typo, @-trigger regex
-- **Deferred to later:** N+1 profile fetches could be batched, `useGatheringMemberProfiles` could be conditional on membership, comment schema in `schemas.ts` not updated with reply/mention fields
-
-### 2026-04-19 — Autopilot Session: Phase 3 — Direct Messaging
-**Status:** Completed 8 of 8 tasks
-**Build:** Clean
-
-**Completed:**
-- Defined `Conversation` and `DirectMessage` types with denormalized `lastMessage` and `lastReadAt` for unread tracking
-- Added 10 DM service methods to `db.ts`: CRUD, real-time subscriptions, `getOrCreateConversation` with deterministic IDs
-- Created `useDirectMessages.ts` hook file with full TanStack Query integration (6 hooks)
-- Built `DirectMessagesPage` with conversation list, unread badges, new conversation member picker
-- Built `ConversationPage` with chat bubble UI, @mentions, date separators, auto-scroll
-- Added lazy-loaded routes and Messages nav item to BottomNav + DesktopSidebar
-- Added Firestore security rules for conversations collection (participant-only access)
-- Fixed existing notification rule bug (`allow create: if false` → allows client-side notification creation)
-- Committed Phase 1/2 uncommitted form migrations and Phase 3 as separate commits
-
-**Architecture decisions:**
-- Deterministic conversation IDs (`sorted_ids.join('_')`) prevent duplicate conversations
-- `lastMessage` denormalized on conversation doc for fast inbox rendering without reading messages subcollection
-- `lastReadAt` per-participant timestamps for unread tracking (compare vs lastMessage.createdAt)
-- Removed Profile from BottomNav to keep 5 items; Profile still accessible via DesktopSidebar
-- Notification create rule fixed — was blocking all client-side notification writes from Phase 2
-
-**Deferred:**
-- Unread count badge on Messages nav item (needs subscription at app level)
-- Message deletion UI
-- Typing indicators (would need RTDB or presence system)
-- Message pagination (currently loads up to 50 messages)
-
-### 2026-04-19 — Autopilot Session: Phases 4-8
-**Status:** Completed Phases 4-6 fully, Phase 7 partially, Phase 8 partially. Context limit reached.
-**Build:** Clean
-
-**Completed:**
-- Phase 4: Real-time notification subscription activated, Web Notifications API with browser permission management, DM notification type added
-- Phase 5: Verified SearchPanel already fully functional (no changes needed)
-- Phase 6: Polls (2-5 options, vote tracking, percentage bars) + emoji reactions (6 presets, toggle) on BoardPost
-- Phase 7: Report type, ModerationPage (admin tabs), Firestore rules, service methods + hooks
-- Phase 8: Fixed manifest.json start_url and shortcut URLs
-
-**Deferred (needs next session):**
-- Member blocking feature
-- Dark mode sync to Firestore
-
-### 2026-04-19 — Session 5: Workstream A Portal Polish
-**Status:** All 5 tasks complete
-**Build:** Clean
-
-**Completed:**
-- Report button + ReportModal on BoardPost (ReportModal.tsx created, menu condition widened to `user &&`)
-- Unread message badge on BottomNav + DesktopSidebar (useUnreadMessages hook, conversations subscription in AppLayout)
-- Accessibility: skip-to-main link, h1 on 5 pages, focus:ring on Button component
-- styles.css audit: 3,133 → 2,775 lines (dead CSS removed, duplicates merged, section markers added)
-- Kete system audit (code review only): CRUD correct, but found XSS risk (dangerouslySetInnerHTML without DOMPurify), no rich text editor (plain textarea), dead type fields (category/series/tags)
-
-**Kete audit findings (for Workstream B):**
-- XSS: `dangerouslySetInnerHTML` in KetePostPage.tsx with no sanitization — needs DOMPurify
-- Rich text: Quill installed but unused, KeteForm uses plain textarea
-- Dead fields: `category`, `series`, `tags` in KetePost type but absent from form
-- Query filters: `authorId`/`category`/`series` options defined but never applied in getKetePosts()
-
-### 2026-04-19 — Session 6: Workstream B Design Phase
-**Status:** Design spec complete, ready for implementation planning
-
-**Completed:**
-- Brainstormed 3 design approaches (Warm Editorial, Nature Journal, Modern Restrained) — Joel chose A: Warm Editorial
-- Created DESIGN.md at project root with full 10-section visual contract
-- Palette: evolved earth tones (Forest, Sage, Terracotta, Parchment, Ivory, Warm Sand, Bark, Stone, Clay, Gold)
-- Typography: keeping Cormorant Garamond (display), switching Nunito Sans → Source Sans 3 (body)
-- Creative direction: Editorial Flow, intensity 2–3 (scroll reveals, staggered cards, image hover zoom, gentle parallax)
-- Design references: Claude/Anthropic (warmth, editorial pacing) + Airbnb (photography-forward, tactile)
-- Scope confirmed: 7 static pages + Kete rich text editor (DOMPurify + Quill)
-
-**Next session:**
-- Create implementation plan (writing-plans skill)
-- Begin building — rewrite CSS, then pages one by one
-
-### 2026-04-19 — Session 7: Workstream B Implementation
-**Status:** 12/12 tasks complete, NOT YET DEPLOYED
-**Build:** Clean (`npm run build` passes)
-
-**Completed (9 commits, 15 files changed):**
-- Created 12-task implementation plan (docs/superpowers/plans/2026-04-19-workstream-b-static-site-redesign.md)
-- CSS token rewrite: Source Sans 3, warm palette (#f5f1eb parchment, #faf8f4 ivory, #ebe6dc warm sand), editorial shadows, new radius scale
-- Backwards-compat aliases for old tokens (--color-cream → --color-parchment etc.) so portal CSS doesn't break
-- Button restyling: 6px radius (not pill), new variants (.btn-accent terracotta, .btn-on-dark for forest sections)
-- New card system (.card, .card-img-hover with 1.05 scale zoom)
-- Header: solid parchment on scroll (no backdrop-filter), uppercase nav with terracotta active underline
-- Mobile nav: parchment fullscreen with large serif links (not forest overlay)
-- Footer: forest green bg, gold section titles, forest-dark bottom bar
-- New .page-hero for interior pages (replaces .about-hero)
-- Pull quote component (.pull-quote with italic Cormorant Garamond)
-- Scroll reveal CSS + JS with prefers-reduced-motion support and triggerOnce
-- Created homepage.html — editorial homepage with hero, intro prose, community preview, pull quote, kete preview, CTA
-- Standardized header/footer HTML across all 6 static pages (homepage.html nav links, Portal button)
-- Redesigned about.html with editorial layout variety (removed photo placeholder section per DESIGN.md)
-- Updated communities, calendar, kete, resources, giving pages with scroll reveals + alternating sections
-- DOMPurify XSS fix on KetePostPage.tsx
-- Quill rich text editor integrated into KeteForm.tsx (replaces plain textarea)
-- Removed dead .about-hero CSS
-- Firebase hosting rewrite: / → homepage.html (before SPA catch-all)
-
-**BLOCKER for deploy:**
-- Vite build only outputs React portal to dist/. Static HTML pages (homepage.html, about.html, etc.) and their assets (css/styles.css, js/main.js) are NOT copied to dist/
-- Need to configure Vite's `public` dir or add a copy plugin to include static files in dist/
-- Then run `firebase deploy`
-
-**Still needed:**
-- Hero background image (images/hero-community.jpg) — needs real community photo
+### 2026-05-02: Homepage Hero, Events Widget & Page Cleanup
+- Hero image added (HansonsLaneOpening-2131a.jpg), sticky hero with content scrolling over
+- Hero + header logos enlarged (280px / 70px)
+- Upcoming events calendar widget (Firebase-powered, fallback data, event modal)
+- Removed Matthew 18:20 quote + "Our Communities" section from homepage
+- Merged about.html into communities.html with value cards
+- Footer redesigned: contact form (Firestore + mailto fallback), Darryl + Julie details, compact grid
+- Removed Giving from footer, About from nav across all pages
+- Resources: removed "Getting Started" section
+- Stop-slop pass on communities.html prose
+- Firestore rules for contactMessages collection (public create, admin read)
 
 ### 2026-04-27: Routing, Login & CSS Fixes
-**Status:** All fixes deployed to Firebase Hosting
-**Build:** Clean
+- Fixed root URL serving React SPA instead of homepage (renamed SPA entry to app.html)
+- Login button links, "Back to website" link, login page CSS cascade fix
+- Service worker denylist for static pages, PWA start_url → /home
 
-**Fixed:**
-- Root URL serving React SPA login instead of homepage — Firebase auto-serves `index.html` for `/`, bypassing rewrites. Added Vite plugin (`renameSpaEntry`) to rename `index.html` → `app.html` post-build. Updated firebase.json `**` rewrite to `/app.html`
-- Login button on static site — changed all `portal.html` links to `/login` across 8 HTML pages, nav text "Portal" → "Login"
-- "Back to website" link on React LoginPage (links to `/homepage.html`)
-- Login page zero padding — `* { margin: 0; padding: 0; }` in `src/styles/styles.css` was unlayered CSS overriding Tailwind utilities. Removed from SPA stylesheet (static pages' `css/styles.css` keeps its own copy)
-- Service worker: removed registration from static `main.js`, added `navigateFallbackDenylist`, changed precache/fallback to `app.html`
-- PWA `start_url` changed from `/` to `/home`
+### 2026-04-19: Phases 2-8 + Workstream B
+- Phases 2-8 of portal complete (real-time chat, DMs, notifications, polls, moderation)
+- Workstream B static site redesign: DESIGN.md, CSS rewrite, all 7 pages redesigned
+- DOMPurify + Quill for Kete, Firebase hosting configured
 
-**Files changed:** vite.config.ts, firebase.json, js/main.js, src/pages/LoginPage.tsx, src/styles/styles.css, 8 static HTML pages
+### 2026-04-18: Phase 1 Foundation
+- Tailwind v4 migration, Lucide icons, react-hook-form + zod, CSS cleanup
+- All 13 pages + 8 sub-components migrated
 
-**Note:** Users with old SW cached need to clear site data or visit in incognito to see the fix. New SW auto-updates via `skipWaiting()` but first visit still uses old cached SW.
+### 2026-04-17: Project Setup
+- Codebase audit, brainstorm, design spec, Joel approved Approach B (modernise + extend)
 
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
@@ -368,4 +216,4 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - `kiwichurch.sidequest.nz` DNS updated in Cloudflare to point to Firebase Hosting — may need propagation time
 - Member blocking feature not implemented
 - Dark mode preference stored in localStorage only, not synced to Firestore
-- Hero background image still placeholder — needs real community photo
+- about.html still exists in repo but no longer deployed or linked (can delete)

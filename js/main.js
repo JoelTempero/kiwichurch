@@ -411,6 +411,49 @@ function registerServiceWorker() {
 }
 
 // ============================================
+// Contact Form
+// ============================================
+
+function initContactForm() {
+    var form = document.getElementById('contact-form');
+    if (!form) return;
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var name = form.querySelector('[name="name"]').value.trim();
+        var email = form.querySelector('[name="email"]').value.trim();
+        var message = form.querySelector('[name="message"]').value.trim();
+
+        if (!name || !email || !message) return;
+
+        var submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+
+        if (typeof db !== 'undefined') {
+            db.collection('contactMessages').add({
+                name: name,
+                email: email,
+                message: message,
+                createdAt: new Date().toISOString(),
+                read: false
+            }).then(function() {
+                form.reset();
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send';
+                KiwiChurch.showToast('Message sent!', 'success');
+            }).catch(function() {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send';
+                window.location.href = 'mailto:kiwichurchcomms@gmail.com?subject=Contact from ' + encodeURIComponent(name) + '&body=' + encodeURIComponent(message + '\n\nFrom: ' + name + ' (' + email + ')');
+            });
+        } else {
+            window.location.href = 'mailto:kiwichurchcomms@gmail.com?subject=Contact from ' + encodeURIComponent(name) + '&body=' + encodeURIComponent(message + '\n\nFrom: ' + name + ' (' + email + ')');
+        }
+    });
+}
+
+// ============================================
 // Initialization
 // ============================================
 
@@ -421,6 +464,7 @@ function initApp() {
     initLazyLoading();
     initScrollReveal();
     initPWAInstall();
+    initContactForm();
 
     // Close mobile menu when clicking outside
     document.addEventListener('click', (e) => {

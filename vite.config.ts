@@ -28,7 +28,6 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         { src: 'homepage.html', dest: '' },
-        { src: 'about.html', dest: '' },
         { src: 'communities.html', dest: '' },
         { src: 'calendar.html', dest: '' },
         { src: 'kete.html', dest: '' },
@@ -39,7 +38,6 @@ export default defineConfig({
         { src: 'js', dest: '' },
         { src: 'KiwiChurch_Old_White.png', dest: '' },
         { src: 'KiwiChurch_Old_White_Shadow.png', dest: '' },
-        { src: 'HansonsLaneOpening-*.jpg', dest: '' },
       ],
     }),
     renameSpaEntry(),

@@ -137,56 +137,6 @@
             box-shadow: 0 0 0 3px rgba(26, 58, 47, 0.1);
         }
 
-        /* Getting Started Section */
-        .getting-started {
-            background: linear-gradient(135deg, var(--color-forest) 0%, var(--color-sage) 100%);
-            color: white;
-            padding: 3rem 2rem;
-            border-radius: var(--radius-xl);
-            margin-bottom: 3rem;
-        }
-        .getting-started h2 {
-            color: white;
-            margin-bottom: 1rem;
-        }
-        .getting-started p {
-            opacity: 0.9;
-            margin-bottom: 1.5rem;
-            max-width: 600px;
-        }
-        .getting-started-steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-        .getting-started-step {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            text-align: center;
-        }
-        .step-number {
-            width: 40px;
-            height: 40px;
-            background: white;
-            color: var(--color-forest);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.125rem;
-            margin: 0 auto 1rem;
-        }
-        .getting-started-step h4 {
-            color: white;
-            margin-bottom: 0.5rem;
-        }
-        .getting-started-step p {
-            font-size: 0.875rem;
-            margin-bottom: 0;
-        }
 
         /* Empty State */
         .empty-state {
@@ -228,7 +178,6 @@
 
             <nav class="nav-desktop" id="nav-desktop" aria-label="Main navigation">
                 <a href="homepage.html" class="nav-link">Home</a>
-                <a href="about.html" class="nav-link">About</a>
                 <a href="communities.html" class="nav-link">Communities</a>
                 <a href="calendar.html" class="nav-link">Calendar</a>
                 <a href="kete.html" class="nav-link">Kete</a>
@@ -249,7 +198,6 @@
 
     <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
         <a href="homepage.html" class="mobile-nav-link">Home</a>
-        <a href="about.html" class="mobile-nav-link">About</a>
         <a href="communities.html" class="mobile-nav-link">Communities</a>
         <a href="calendar.html" class="mobile-nav-link">Calendar</a>
         <a href="kete.html" class="mobile-nav-link">Kete</a>
@@ -264,40 +212,6 @@
             <div class="page-hero-content">
                 <h1 id="resources-heading">Resources</h1>
                 <p>Helpful links and documents for our community</p>
-            </div>
-        </section>
-
-        <!-- Getting Started Section -->
-        <section class="section" aria-labelledby="getting-started-heading">
-            <div class="container reveal">
-                <div class="getting-started">
-                    <span class="section-label" style="color: rgba(255,255,255,0.8);">New Here?</span>
-                    <h2 id="getting-started-heading">Getting Started with Kiwi Church</h2>
-                    <p>Welcome! We're so glad you're exploring our community. Here's how to take your first steps with us.</p>
-
-                    <div class="getting-started-steps">
-                        <div class="getting-started-step">
-                            <div class="step-number">1</div>
-                            <h4>Visit a Gathering</h4>
-                            <p>Join one of our open gatherings to meet the community and see what we're about.</p>
-                        </div>
-                        <div class="getting-started-step">
-                            <div class="step-number">2</div>
-                            <h4>Connect Online</h4>
-                            <p>Join our online prayer meetings or check out our Kete for resources and reflections.</p>
-                        </div>
-                        <div class="getting-started-step">
-                            <div class="step-number">3</div>
-                            <h4>Find Your Community</h4>
-                            <p>Explore our different communities and find one that fits your rhythm of life.</p>
-                        </div>
-                        <div class="getting-started-step">
-                            <div class="step-number">4</div>
-                            <h4>Get Involved</h4>
-                            <p>Once you're settled, there are many ways to contribute and grow with us.</p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </section>
 
@@ -350,7 +264,7 @@
             <div class="footer-nav">
                 <h4 class="footer-title">Explore</h4>
                 <ul class="footer-links">
-                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="communities.html">About Us</a></li>
                     <li><a href="communities.html">Communities</a></li>
                     <li><a href="calendar.html">Calendar</a></li>
                     <li><a href="kete.html">Kete</a></li>
@@ -360,16 +274,26 @@
                 <h4 class="footer-title">Connect</h4>
                 <ul class="footer-links">
                     <li><a href="resources.html">Resources</a></li>
-                    <li><a href="giving.html">Giving</a></li>
                     <li><a href="/login">Member Portal</a></li>
                 </ul>
             </div>
             <div class="footer-contact-section">
                 <h4 class="footer-title">Contact</h4>
                 <div class="footer-contact">
-                    <p>Christchurch, New Zealand</p>
-                    <p><a href="mailto:hello@kiwichurch.org.nz">hello@kiwichurch.org.nz</a></p>
+                    <p><strong>Darryl Tempero</strong>, Minister</p>
+                    <p><a href="mailto:d.tempero@xtra.co.nz">d.tempero@xtra.co.nz</a></p>
+                    <p style="margin-top: 0.75rem;"><strong>Julie</strong></p>
+                    <p><a href="mailto:kiwichurchcomms@gmail.com">kiwichurchcomms@gmail.com</a></p>
                 </div>
+            </div>
+            <div class="footer-form">
+                <h4>Send a Message</h4>
+                <form id="contact-form">
+                    <input type="text" name="name" placeholder="Your name" required>
+                    <input type="email" name="email" placeholder="Your email" required>
+                    <textarea name="message" placeholder="Your message" rows="3" required></textarea>
+                    <button type="submit" class="btn btn-on-dark">Send</button>
+                </form>
             </div>
         </div>
         <div class="footer-bottom">
