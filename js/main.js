@@ -423,8 +423,10 @@ function initContactForm() {
         var name = form.querySelector('[name="name"]').value.trim();
         var email = form.querySelector('[name="email"]').value.trim();
         var message = form.querySelector('[name="message"]').value.trim();
+        var website = form.querySelector('[name="website"]').value;
 
         if (!name || !email || !message) return;
+        if (website) return;
 
         var submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
@@ -435,6 +437,7 @@ function initContactForm() {
                 name: name,
                 email: email,
                 message: message,
+                website: '',
                 createdAt: new Date().toISOString(),
                 read: false
             }).then(function() {

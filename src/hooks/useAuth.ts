@@ -17,8 +17,15 @@ export function useAuth() {
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        // Fetch full user data from Firestore
-        const userData = await dbService.getUser(firebaseUser.uid)
+        let userData = await dbService.getUser(firebaseUser.uid)
+        if (!userData) {
+          userData = await dbService.createUser(firebaseUser.uid, {
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Member',
+            role: 'member',
+            preferences: { emailNotifications: true }
+          })
+        }
         setUser(userData)
       } else {
         setUser(null)

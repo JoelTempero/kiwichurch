@@ -153,7 +153,7 @@ export function LoginPage() {
               className="text-sm text-terracotta hover:text-terracotta-dark bg-transparent border-none cursor-pointer transition-colors"
               onClick={() => setView('register')}
             >
-              Request an account
+              Create an account
             </button>
           </div>
         </div>
@@ -161,7 +161,7 @@ export function LoginPage() {
 
       {view === 'register' && (
         <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg">
-          <h2 className="text-xl font-display text-forest mb-4 text-center">Request Account</h2>
+          <h2 className="text-xl font-display text-forest mb-4 text-center">Create Account</h2>
 
           {error && <div className="bg-red-50 text-red-700 px-4 py-2 rounded-sm text-sm mb-4">{error}</div>}
 

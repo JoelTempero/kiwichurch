@@ -51,76 +51,65 @@ service firebase.storage {
     // KETE (BLOG) IMAGES
     // ============================================
     match /kete/{postId}/{fileName} {
-      // Anyone can read kete images (public blog)
       allow read: if true;
 
-      // Only authenticated users can upload (will be validated as admin/host in app)
       allow write: if isAuthenticated() &&
         isImage() &&
-        isValidSize(10); // Max 10MB
+        isValidSize(10);
 
-      // Allow delete by uploader or admin
-      allow delete: if isAuthenticated();
+      allow delete: if false;
     }
 
     // ============================================
     // EVENT IMAGES
     // ============================================
     match /events/{eventId}/{fileName} {
-      // Anyone authenticated can view event images
       allow read: if isAuthenticated();
 
-      // Only authenticated users can upload (validated as admin/host in app)
       allow write: if isAuthenticated() &&
         isImage() &&
-        isValidSize(10); // Max 10MB
+        isValidSize(10);
 
-      allow delete: if isAuthenticated();
+      allow delete: if false;
     }
 
     // ============================================
     // GATHERING IMAGES
     // ============================================
     match /gatherings/{gatheringId}/{fileName} {
-      // Anyone authenticated can view gathering images
       allow read: if isAuthenticated();
 
-      // Only authenticated users can upload
       allow write: if isAuthenticated() &&
         isImage() &&
-        isValidSize(10); // Max 10MB
+        isValidSize(10);
 
-      allow delete: if isAuthenticated();
+      allow delete: if false;
     }
 
     // ============================================
     // MESSAGE BOARD ATTACHMENTS
     // ============================================
     match /messageBoards/{boardId}/posts/{postId}/{fileName} {
-      // Authenticated users can read (access control via Firestore)
       allow read: if isAuthenticated();
 
-      // Authenticated users can upload
       allow write: if isAuthenticated() &&
         isAllowedType() &&
-        isValidSize(25); // Max 25MB for documents
+        isValidSize(25);
 
-      allow delete: if isAuthenticated();
+      allow delete: if false;
     }
 
     // ============================================
     // SHARED RESOURCES
     // ============================================
     match /resources/{fileName} {
-      // Anyone can read shared resources
       allow read: if true;
 
-      // Only admins can upload (validated in app)
       allow write: if isAuthenticated() &&
         isAllowedType() &&
-        isValidSize(50); // Max 50MB for resources
+        isValidSize(50);
 
-      allow delete: if isAuthenticated();
+      allow delete: if false;
     }
 
     // ============================================
