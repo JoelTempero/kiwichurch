@@ -107,7 +107,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
     >
       <div className="w-full max-w-sm bg-white h-full flex flex-col shadow-xl" tabIndex={-1}>
         <div className="flex items-center justify-between p-4 border-b border-cream-dark">
-          <h3 className="text-lg font-display text-forest">Notifications</h3>
+          <h3 className="text-lg font-semibold text-forest">Notifications</h3>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <Button

@@ -22,9 +22,7 @@
   --font-display: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'Source Sans 3', system-ui, -apple-system, sans-serif;
 
-  /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(26, 58, 47, 0.08);
-  --shadow-md: 0 4px 20px rgba(26, 58, 47, 0.12);
+  /* Shadows — only used by modals/overlays */
   --shadow-lg: 0 8px 40px rgba(26, 58, 47, 0.16);
   --shadow-xl: 0 20px 60px rgba(26, 58, 47, 0.2);
 

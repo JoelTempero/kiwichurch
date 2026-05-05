@@ -121,7 +121,7 @@ export function ProfilePage() {
               hidden
               aria-describedby="photo-upload-hint"
             />
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-forest text-white shadow-sm hover:bg-forest-light transition-colors" role="button" aria-label="Upload photo">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-forest text-white hover:bg-forest-light transition-colors" role="button" aria-label="Upload photo">
               {isUploading ? (
                 <Loader2 size={16} className="animate-spin" aria-label="Uploading..." />
               ) : (

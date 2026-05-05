@@ -263,7 +263,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
               <MoreVertical size={18} />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white rounded-md shadow-md py-1 min-w-[120px] z-10" role="menu">
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-md border border-[#e0dbd2] py-1 min-w-[120px] z-10" role="menu">
                 {canEdit && (
                   <button
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-text-primary hover:bg-cream transition-colors text-left"
