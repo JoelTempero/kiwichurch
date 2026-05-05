@@ -233,8 +233,8 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
 
   return (
     <div className={cn(
-      'bg-white rounded-lg shadow-sm p-4 mb-3',
-      post.pinned && 'ring-1 ring-gold/50 bg-gold/5'
+      'p-4',
+      post.pinned && 'bg-cream/50'
     )}>
       {post.pinned && (
         <div className="flex items-center gap-1 text-xs text-gold font-semibold mb-2">
