@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 type ViewMode = 'list' | 'calendar'
+type CalendarViewMode = 'month' | 'week'
 
 interface UIState {
   // Calendar state
@@ -8,6 +9,8 @@ interface UIState {
   calendarMonth: number
   selectedDate: string | null
   eventsViewMode: ViewMode
+  calendarViewMode: CalendarViewMode
+  calendarWeekOffset: number
 
   // Navigation state
   selectedGroupId: string | null
@@ -22,11 +25,13 @@ interface UIState {
   setCalendarMonth: (month: number) => void
   setSelectedDate: (date: string | null) => void
   setEventsViewMode: (mode: ViewMode) => void
+  setCalendarViewMode: (mode: CalendarViewMode) => void
   setSelectedGroupId: (id: string | null) => void
   setSelectedKetePostId: (id: string | null) => void
   setMobileMenuOpen: (open: boolean) => void
   setSearchOpen: (open: boolean) => void
   changeMonth: (delta: number) => void
+  changeWeek: (delta: number) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -35,6 +40,8 @@ export const useUIStore = create<UIState>((set) => ({
   calendarMonth: new Date().getMonth(),
   selectedDate: null,
   eventsViewMode: 'list',
+  calendarViewMode: 'month',
+  calendarWeekOffset: 0,
   selectedGroupId: null,
   selectedKetePostId: null,
   isMobileMenuOpen: false,
@@ -45,6 +52,7 @@ export const useUIStore = create<UIState>((set) => ({
   setCalendarMonth: (calendarMonth) => set({ calendarMonth }),
   setSelectedDate: (selectedDate) => set({ selectedDate }),
   setEventsViewMode: (eventsViewMode) => set({ eventsViewMode }),
+  setCalendarViewMode: (calendarViewMode) => set({ calendarViewMode }),
   setSelectedGroupId: (selectedGroupId) => set({ selectedGroupId }),
   setSelectedKetePostId: (selectedKetePostId) => set({ selectedKetePostId }),
   setMobileMenuOpen: (isMobileMenuOpen) => set({ isMobileMenuOpen }),
@@ -63,5 +71,9 @@ export const useUIStore = create<UIState>((set) => ({
     }
 
     return { calendarMonth: newMonth, calendarYear: newYear }
-  })
+  }),
+
+  changeWeek: (delta) => set((state) => ({
+    calendarWeekOffset: state.calendarWeekOffset + delta
+  }))
 }))
