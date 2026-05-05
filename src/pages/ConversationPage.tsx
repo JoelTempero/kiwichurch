@@ -132,7 +132,7 @@ export function ConversationPage() {
         <h1 className="sr-only">Conversation with {otherParticipant.displayName}</h1>
       )}
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-cream shadow-sm shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-[#e0dbd2] shrink-0">
         <button
           onClick={() => navigate('/messages')}
           className="p-1 rounded-md hover:bg-cream/50 transition-colors"
@@ -187,7 +187,7 @@ export function ConversationPage() {
                       className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
                         isOwn
                           ? 'bg-forest text-white rounded-br-md'
-                          : 'bg-white shadow-sm border border-cream rounded-bl-md'
+                          : 'bg-white border border-[#e0dbd2] rounded-bl-md'
                       }`}
                     >
                       <p className="m-0 whitespace-pre-wrap break-words">

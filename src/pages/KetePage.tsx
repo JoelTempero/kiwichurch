@@ -20,23 +20,10 @@ export function KetePage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-            <Skeleton variant="rectangular" height={200} />
-            <div className="p-4">
-              <Skeleton variant="text" width="40%" />
-              <Skeleton variant="text" width="80%" />
-              <Skeleton variant="text" width="60%" />
-            </div>
-          </div>
-          <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-            <Skeleton variant="rectangular" height={200} />
-            <div className="p-4">
-              <Skeleton variant="text" width="40%" />
-              <Skeleton variant="text" width="80%" />
-              <Skeleton variant="text" width="60%" />
-            </div>
-          </div>
+        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+          <div className="p-4"><Skeleton variant="text" width="60%" /></div>
+          <div className="p-4"><Skeleton variant="text" width="80%" /></div>
+          <div className="p-4"><Skeleton variant="text" width="50%" /></div>
         </div>
       ) : posts.length === 0 ? (
         <EmptyState
@@ -45,7 +32,7 @@ export function KetePage() {
           message="Stories, reflections, and resources from our community will appear here. Check back soon!"
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
           {posts.map(post => (
             <KeteCard key={post.id} post={post} />
           ))}

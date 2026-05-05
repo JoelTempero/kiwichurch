@@ -147,7 +147,7 @@ export function KetePostPage() {
 
       {/* Comments */}
       <section className="px-6 py-6 border-t border-cream-dark">
-        <h2 className="text-lg font-display text-forest mb-4">
+        <h2 className="text-lg font-semibold text-forest mb-4">
           Comments ({comments.length})
         </h2>
 
@@ -157,7 +157,7 @@ export function KetePostPage() {
             <Avatar src={user.photoURL} name={user.displayName} size="md" />
             <div className="flex-1 space-y-2">
               <textarea
-                className="w-full px-4 py-2.5 rounded-sm border border-gray-200 text-base focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest resize-y"
+                className="w-full px-4 py-2.5 rounded-sm border border-[#e0dbd2] text-base focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest resize-y"
                 placeholder="Write a comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
@@ -178,16 +178,16 @@ export function KetePostPage() {
 
         {/* Comments list */}
         {loadingComments ? (
-          <div className="space-y-3">
-            <Skeleton variant="rectangular" height={80} />
-            <Skeleton variant="rectangular" height={80} />
+          <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+            <div className="p-4"><Skeleton variant="rectangular" height={60} /></div>
+            <div className="p-4"><Skeleton variant="rectangular" height={60} /></div>
           </div>
         ) : comments.length === 0 ? (
           <p className="text-center text-text-light py-4">No comments yet. Be the first to share your thoughts!</p>
         ) : (
-          <div className="space-y-4">
+          <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
             {comments.map(comment => (
-              <div key={comment.id} className="flex gap-3">
+              <div key={comment.id} className="flex gap-3 px-4 py-4">
                 <Avatar src={comment.authorPhotoURL} name={comment.authorName} size="md" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">

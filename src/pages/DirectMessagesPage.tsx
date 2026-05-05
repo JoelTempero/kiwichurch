@@ -84,7 +84,7 @@ export function DirectMessagesPage() {
     <div className="max-w-[800px] mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl mb-1">Messages</h1>
+          <h1 className="font-display text-2xl text-forest mb-1">Messages</h1>
           <p className="text-text-light m-0">{conversations.length} conversation{conversations.length !== 1 ? 's' : ''}</p>
         </div>
         <button
@@ -97,8 +97,8 @@ export function DirectMessagesPage() {
       </div>
 
       {showNewMessage && (
-        <div className="mb-6 bg-white rounded-md shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-cream">
+        <div className="mb-6 bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-[#ebe6dc]">
             <Search size={18} className="text-text-light shrink-0" />
             <input
               type="text"
@@ -109,7 +109,7 @@ export function DirectMessagesPage() {
               autoFocus
             />
           </div>
-          <div className="max-h-[240px] overflow-y-auto">
+          <div className="max-h-[240px] overflow-y-auto divide-y divide-[#ebe6dc]">
             {filteredMembers.length === 0 ? (
               <p className="text-sm text-text-light text-center py-4 m-0">No members found</p>
             ) : (
@@ -141,7 +141,7 @@ export function DirectMessagesPage() {
           message="Start a conversation with a church member"
         />
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
           {conversations.map((conversation) => {
             const other = getOtherParticipant(conversation)
             const unread = user ? isUnread(conversation, user.id) : false
@@ -151,7 +151,7 @@ export function DirectMessagesPage() {
               <button
                 key={conversation.id}
                 onClick={() => navigate(`/messages/${conversation.id}`)}
-                className={`flex items-center gap-3 px-4 py-3 bg-white rounded-md shadow-sm text-left w-full hover:bg-cream/30 transition-colors ${unread ? 'ring-2 ring-forest/20' : ''}`}
+                className={`flex items-center gap-3 px-4 py-3 text-left w-full hover:bg-cream/30 transition-colors ${unread ? 'bg-forest/5' : ''}`}
               >
                 <div className="relative shrink-0">
                   <Avatar src={other.photoURL} name={other.displayName} size="md" />
