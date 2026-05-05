@@ -40,5 +40,5 @@ export function QuillEditor({ value, onChange, placeholder }: QuillEditorProps) 
     quillRef.current = quill;
   }, []);
 
-  return <div ref={containerRef} />;
+  return <div ref={containerRef} className="border border-[#e0dbd2] rounded-md overflow-hidden" />;
 }

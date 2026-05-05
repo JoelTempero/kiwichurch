@@ -26,7 +26,7 @@ export function Skeleton({
     return (
       <>
         {items.map((i) => (
-          <div key={i} className="rounded-lg overflow-hidden bg-white shadow-sm">
+          <div key={i} className="rounded-lg overflow-hidden bg-white">
             <div className={cn('animate-pulse bg-cream-dark', className)} style={{ height: '120px' }} />
             <div className="p-4 space-y-2">
               <div className="animate-pulse bg-cream-dark rounded h-4 w-3/5" />
@@ -59,7 +59,7 @@ export function Skeleton({
 
 export function EventCardSkeleton() {
   return (
-    <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+    <div className="flex items-center gap-4 p-4 bg-white rounded-lg">
       <div className="flex flex-col items-center">
         <div className="animate-pulse bg-cream-dark rounded w-6 h-7" />
         <div className="animate-pulse bg-cream-dark rounded w-8 h-3.5 mt-1" />
@@ -74,7 +74,7 @@ export function EventCardSkeleton() {
 
 export function GatheringCardSkeleton() {
   return (
-    <div className="rounded-lg overflow-hidden bg-white shadow-sm">
+    <div className="rounded-lg overflow-hidden bg-white">
       <div className="animate-pulse bg-cream-dark h-20" />
       <div className="p-4 space-y-2">
         <div className="animate-pulse bg-cream-dark rounded h-4 w-3/5" />

@@ -53,7 +53,7 @@ export function Modal({
     >
       <div
         className={cn(
-          'bg-white rounded-lg w-full max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4',
+          'bg-white rounded-lg w-full max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 border border-[#e0dbd2]',
           sizeClasses[size]
         )}
         tabIndex={-1}
