@@ -13,40 +13,20 @@ export function GatheringCard({ gathering, memberCount = 0, isMember = false }: 
   return (
     <Link
       to={`/groups/${gathering.id}`}
-      className={cn(
-        'block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white no-underline text-inherit',
-        gathering.featured && 'ring-2 ring-gold'
-      )}
+      className="flex items-center gap-3 py-3 px-2 hover:bg-cream/50 transition-colors no-underline text-inherit"
     >
-      <div
-        className="h-32 flex items-center justify-center overflow-hidden"
+      <span
+        className="w-3 h-3 rounded-full flex-shrink-0"
         style={{ backgroundColor: gathering.color || 'var(--color-forest)' }}
-      >
-        {gathering.imageURL ? (
-          <img src={gathering.imageURL} alt={gathering.name} />
-        ) : (
-          <div className="text-white/60">
-            <Users size={40} strokeWidth={1.5} />
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <h3 className="text-base font-semibold text-text-primary mb-1">{gathering.name}</h3>
-        {gathering.rhythm && (
-          <p className="text-sm text-text-light mb-1">{gathering.rhythm}</p>
-        )}
-        {gathering.description && (
-          <p className="text-sm text-text-light line-clamp-2 mb-3">{gathering.description}</p>
-        )}
-        <div className="flex items-center justify-between text-xs text-text-light">
-          <span className="flex items-center gap-1">
-            <Users size={14} />
-            {memberCount} {memberCount === 1 ? 'member' : 'members'}
-          </span>
-          {isMember && (
-            <span className="text-xs font-semibold text-terracotta bg-terracotta/10 px-2 py-0.5 rounded-full">Member</span>
-          )}
-        </div>
+      />
+      <div className="min-w-0 flex-1">
+        <p className={cn('font-semibold text-[15px] text-text-primary truncate', gathering.featured && 'text-gold')}>{gathering.name}</p>
+        <p className="text-sm text-text-light truncate flex items-center gap-1">
+          <Users size={12} className="flex-shrink-0" />
+          {memberCount} {memberCount === 1 ? 'member' : 'members'}
+          {gathering.rhythm ? ` · ${gathering.rhythm}` : ''}
+          {isMember ? ' · Member' : ''}
+        </p>
       </div>
     </Link>
   )

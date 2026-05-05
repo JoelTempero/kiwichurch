@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Avatar, Badge } from '@/components/common'
 import type { KetePost } from '@/types'
 
 interface KeteCardProps {
@@ -21,35 +20,21 @@ export function KeteCard({ post }: KeteCardProps) {
   const [imgError, setImgError] = useState(false)
 
   return (
-    <Link to={`/kete/${post.id}`} className="block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white no-underline text-inherit">
+    <Link to={`/kete/${post.id}`} className="flex items-center gap-3 py-3 px-2 hover:bg-cream/50 transition-colors no-underline text-inherit">
       {post.featuredImage && !imgError && (
-        <div className="aspect-video overflow-hidden">
-          <img
-            src={post.featuredImage}
-            alt={post.title}
-            loading="lazy"
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover"
-          />
-        </div>
+        <img
+          src={post.featuredImage}
+          alt={post.title}
+          loading="lazy"
+          onError={() => setImgError(true)}
+          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+        />
       )}
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          {post.category && (
-            <Badge variant="default">{post.category}</Badge>
-          )}
-          <span className="text-xs text-text-lighter">
-            {formatDate(post.publishedAt as Date)}
-          </span>
-        </div>
-        <h3 className="text-lg font-display text-forest mb-1 line-clamp-2">{post.title}</h3>
-        {post.excerpt && (
-          <p className="text-sm text-text-light line-clamp-3 mb-3">{post.excerpt}</p>
-        )}
-        <div className="flex items-center gap-2">
-          <Avatar src={post.authorPhotoURL} name={post.authorName} size="sm" />
-          <span className="text-xs text-text-light">{post.authorName}</span>
-        </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-[15px] text-text-primary truncate">{post.title}</p>
+        <p className="text-sm text-text-light truncate">
+          {post.authorName}{post.authorName && formatDate(post.publishedAt as Date) ? ' · ' : ''}{formatDate(post.publishedAt as Date)}
+        </p>
       </div>
     </Link>
   )
