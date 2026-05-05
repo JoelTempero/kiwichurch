@@ -142,9 +142,9 @@ export function ProfilePage() {
 
       {/* Profile Info */}
       {!isEditing ? (
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
-          <div className="mb-6 last:mb-0">
-            <h2 className="text-lg font-display text-forest mb-3">About</h2>
+        <div className="mb-4">
+          <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3">About</p>
+          <div className="border-b border-[#e0dbd2] pb-4 mb-4">
             {user.bio ? (
               <p className="text-text-primary leading-relaxed">{user.bio}</p>
             ) : (
@@ -152,21 +152,19 @@ export function ProfilePage() {
             )}
           </div>
 
-          <div className="mb-6 last:mb-0">
-            <h2 className="text-lg font-display text-forest mb-3">Contact</h2>
-            <div className="flex justify-between py-2 border-b border-cream last:border-none">
-              <span className="text-text-light text-sm">Email</span>
-              <span className="text-text-primary text-sm font-medium">{user.email}</span>
-            </div>
-            {user.phone && (
-              <div className="flex justify-between py-2 border-b border-cream last:border-none">
-                <span className="text-text-light text-sm">Phone</span>
-                <span className="text-text-primary text-sm font-medium">{user.phone}</span>
-              </div>
-            )}
+          <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3">Contact</p>
+          <div className="flex justify-between py-2 border-b border-[#e0dbd2]">
+            <span className="text-text-light text-sm">Email</span>
+            <span className="text-text-primary text-sm font-medium">{user.email}</span>
           </div>
+          {user.phone && (
+            <div className="flex justify-between py-2 border-b border-[#e0dbd2]">
+              <span className="text-text-light text-sm">Phone</span>
+              <span className="text-text-primary text-sm font-medium">{user.phone}</span>
+            </div>
+          )}
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-3 mt-6">
             <Button variant="primary" onClick={() => setIsEditing(true)}>
               <Pencil size={18} aria-hidden="true" />
               Edit Profile
@@ -178,7 +176,7 @@ export function ProfilePage() {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSaveProfile} className="bg-white rounded-lg shadow-sm p-6 mb-4 space-y-4" noValidate>
+        <form onSubmit={handleSaveProfile} className="mb-4 space-y-4" noValidate>
           <div>
             <label className="block font-medium mb-2" htmlFor="profile-name">
               Display Name <span className="text-red-600">*</span>

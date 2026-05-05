@@ -91,8 +91,8 @@ export function LoginPage() {
       </div>
 
       {view === 'login' && (
-        <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg">
-          <h2 className="text-xl font-display text-forest mb-4 text-center">Sign In</h2>
+        <div className="w-full max-w-md bg-white rounded-lg p-6 border border-[#e0dbd2]">
+          <h2 className="text-xl font-semibold text-forest mb-4 text-center">Sign In</h2>
 
           {error && <div className="bg-red-50 text-red-700 px-4 py-2 rounded-sm text-sm mb-4">{error}</div>}
 
@@ -160,8 +160,8 @@ export function LoginPage() {
       )}
 
       {view === 'register' && (
-        <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg">
-          <h2 className="text-xl font-display text-forest mb-4 text-center">Create Account</h2>
+        <div className="w-full max-w-md bg-white rounded-lg p-6 border border-[#e0dbd2]">
+          <h2 className="text-xl font-semibold text-forest mb-4 text-center">Create Account</h2>
 
           {error && <div className="bg-red-50 text-red-700 px-4 py-2 rounded-sm text-sm mb-4">{error}</div>}
 
@@ -253,8 +253,8 @@ export function LoginPage() {
       )}
 
       {view === 'forgot-password' && (
-        <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg">
-          <h2 className="text-xl font-display text-forest mb-4 text-center">Reset Password</h2>
+        <div className="w-full max-w-md bg-white rounded-lg p-6 border border-[#e0dbd2]">
+          <h2 className="text-xl font-semibold text-forest mb-4 text-center">Reset Password</h2>
           <p className="text-text-light text-sm text-center mb-4">
             Enter your email address and we'll send you a link to reset your password.
           </p>
@@ -301,11 +301,11 @@ export function LoginPage() {
       )}
 
       {view === 'reset-sent' && (
-        <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-lg">
+        <div className="w-full max-w-md bg-white rounded-lg p-6 border border-[#e0dbd2]">
           <div className="flex justify-center text-forest mb-4">
             <CheckCircle size={48} />
           </div>
-          <h2 className="text-xl font-display text-forest mb-4 text-center">Check Your Email</h2>
+          <h2 className="text-xl font-semibold text-forest mb-4 text-center">Check Your Email</h2>
           <p className="text-text-light text-sm text-center mb-4">
             We've sent a password reset link to <strong>{resetEmail}</strong>.
             Please check your inbox and follow the instructions.

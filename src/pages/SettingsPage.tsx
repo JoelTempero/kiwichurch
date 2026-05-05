@@ -50,10 +50,10 @@ export function SettingsPage() {
       </div>
 
       {/* Preferences */}
-      <section className="bg-white rounded-lg shadow-sm p-6 mb-4">
-        <h2 className="text-lg font-display text-forest mb-3">Preferences</h2>
+      <section className="mb-6">
+        <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3">Preferences</p>
 
-        <div className="flex items-center justify-between py-3 border-b border-cream last:border-none">
+        <div className="flex items-center justify-between py-3 border-b border-[#e0dbd2]">
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-text-primary">Dark Mode</h3>
             <p className="text-xs text-text-light mt-0.5">Use dark theme</p>
@@ -69,7 +69,7 @@ export function SettingsPage() {
           </label>
         </div>
 
-        <div className="flex items-center justify-between py-3 border-b border-cream last:border-none">
+        <div className="flex items-center justify-between py-3 border-b border-[#e0dbd2]">
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-text-primary">Browser Notifications</h3>
             <p className="text-xs text-text-light mt-0.5">
@@ -110,7 +110,7 @@ export function SettingsPage() {
           )}
         </div>
 
-        <div className="flex items-center justify-between py-3 border-b border-cream last:border-none">
+        <div className="flex items-center justify-between py-3 border-b border-[#e0dbd2]">
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-text-primary">Email Updates</h3>
             <p className="text-xs text-text-light mt-0.5">Receive email notifications about events</p>
@@ -126,26 +126,28 @@ export function SettingsPage() {
           </label>
         </div>
 
-        <Button variant="primary" onClick={handleSavePreferences}>
-          Save Preferences
-        </Button>
+        <div className="pt-4">
+          <Button variant="primary" onClick={handleSavePreferences}>
+            Save Preferences
+          </Button>
+        </div>
       </section>
 
       {/* Account */}
-      <section className="bg-white rounded-lg shadow-sm p-6 mb-4">
-        <h2 className="text-lg font-display text-forest mb-3">Account</h2>
+      <section className="mb-6">
+        <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3">Account</p>
 
-        <div className="flex justify-between py-2 border-b border-cream last:border-none">
+        <div className="flex justify-between py-2 border-b border-[#e0dbd2]">
           <span className="text-text-light text-sm">Email</span>
           <span className="text-text-primary text-sm font-medium">{user.email}</span>
         </div>
 
-        <div className="flex justify-between py-2 border-b border-cream last:border-none">
+        <div className="flex justify-between py-2 border-b border-[#e0dbd2]">
           <span className="text-text-light text-sm">Role</span>
           <span className="text-text-primary text-sm font-medium capitalize">{user.role}</span>
         </div>
 
-        <div className="flex justify-between py-2 border-b border-cream last:border-none">
+        <div className="flex justify-between py-2 border-b border-[#e0dbd2]">
           <span className="text-text-light text-sm">Member since</span>
           <span className="text-text-primary text-sm font-medium">
             {user.createdAt instanceof Date
@@ -157,22 +159,19 @@ export function SettingsPage() {
 
       {/* Admin Section */}
       {isAdmin && (
-        <section className="bg-white rounded-lg shadow-sm p-6 mb-4">
-          <h2 className="text-lg font-display text-forest mb-3">Admin</h2>
-          <p className="text-text-light text-sm mb-4">
-            Admin-only settings and tools
-          </p>
+        <section className="mb-6">
+          <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3">Admin</p>
 
-          <div className="space-y-2">
-            <a href="/users" className="flex items-center gap-3 p-3 rounded-md hover:bg-cream transition-colors text-text-primary no-underline">
+          <div className="space-y-1">
+            <a href="/users" className="flex items-center gap-3 py-3 border-b border-[#e0dbd2] hover:bg-cream/50 transition-colors text-text-primary no-underline">
               <Users size={20} />
               Manage Users
             </a>
-            <a href="/hosting" className="flex items-center gap-3 p-3 rounded-md hover:bg-cream transition-colors text-text-primary no-underline">
+            <a href="/hosting" className="flex items-center gap-3 py-3 border-b border-[#e0dbd2] hover:bg-cream/50 transition-colors text-text-primary no-underline">
               <Calendar size={20} />
               Content Hosting
             </a>
-            <a href="/directory" className="flex items-center gap-3 p-3 rounded-md hover:bg-cream transition-colors text-text-primary no-underline">
+            <a href="/directory" className="flex items-center gap-3 py-3 border-b border-[#e0dbd2] hover:bg-cream/50 transition-colors text-text-primary no-underline">
               <BookOpen size={20} />
               Member Directory
             </a>
@@ -181,9 +180,9 @@ export function SettingsPage() {
       )}
 
       {/* About */}
-      <section className="bg-white rounded-lg shadow-sm p-6 mb-4">
-        <h2 className="text-lg font-display text-forest mb-3">About</h2>
-        <div className="text-center py-2">
+      <section className="mb-6">
+        <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3">About</p>
+        <div className="py-2">
           <p className="font-semibold text-text-primary">Kiwi Church Portal</p>
           <p className="text-sm text-text-lighter">Version 2.0.0</p>
           <p className="text-xs text-text-lighter mt-1">
