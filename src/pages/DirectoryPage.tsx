@@ -35,12 +35,13 @@ export function DirectoryPage() {
 
   return (
     <div className="max-w-[800px] mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl mb-1">Directory</h1>
+      <div className="mb-4">
+        <h1 className="font-display text-2xl text-forest mb-1">Directory</h1>
         <p className="text-text-light m-0">{users.length} members</p>
       </div>
 
-      <div className="flex items-center gap-3 px-4 py-3 bg-white rounded-md mb-6 shadow-sm">
+      {/* Search bar — flat, no card wrapper */}
+      <div className="flex items-center gap-3 px-4 py-3 border border-[#e0dbd2] rounded-lg bg-[#faf8f4] mb-4">
         <Search size={20} className="text-text-light shrink-0" />
         <input
           type="text"
@@ -52,7 +53,7 @@ export function DirectoryPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex flex-col gap-2">
+        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
           <Skeleton variant="rectangular" height={60} />
           <Skeleton variant="rectangular" height={60} />
           <Skeleton variant="rectangular" height={60} />
@@ -64,24 +65,33 @@ export function DirectoryPage() {
           message={searchQuery ? 'Try a different search term' : 'No members in the directory'}
         />
       ) : (
-        <div className="flex flex-col gap-2">
-          {sortedLetters.map(letter => (
-            <div key={letter} className="mb-4">
-              <div className="text-sm font-semibold text-forest py-2 border-b border-cream mb-2">{letter}</div>
-              {groupedUsers[letter].map((member: User) => (
-                <div key={member.id} className="flex items-center gap-3 px-4 py-3 bg-white rounded-md shadow-sm">
-                  <Avatar src={member.photoURL} name={member.displayName} size="md" />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base m-0">{member.displayName}</h3>
-                    {member.bio && (
-                      <p className="text-sm text-text-light m-0 truncate">{member.bio}</p>
+        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden">
+          {sortedLetters.map((letter, letterIndex) => (
+            <div key={letter} className={letterIndex > 0 ? 'border-t border-[#e0dbd2]' : ''}>
+              {/* Section header row */}
+              <div className="px-4 py-2 bg-[#f0ece4] border-b border-[#e0dbd2]">
+                <span className="text-xs font-semibold text-text-light uppercase tracking-wide">{letter}</span>
+              </div>
+              {/* Member rows */}
+              <div className="divide-y divide-[#ebe6dc]">
+                {groupedUsers[letter].map((member: User) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-cream/50 transition-colors"
+                  >
+                    <Avatar src={member.photoURL} name={member.displayName} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-[15px] text-text-primary m-0 truncate">{member.displayName}</p>
+                      {member.bio && (
+                        <p className="text-sm text-text-light m-0 truncate">{member.bio}</p>
+                      )}
+                    </div>
+                    {member.role !== 'member' && (
+                      <span className="text-xs px-2 py-1 bg-forest text-white rounded-sm capitalize">{member.role}</span>
                     )}
                   </div>
-                  {member.role !== 'member' && (
-                    <span className="text-xs px-2 py-1 bg-forest text-white rounded-sm capitalize">{member.role}</span>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ))}
         </div>

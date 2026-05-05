@@ -212,10 +212,10 @@ export function GroupDetailPage() {
       {/* Message Board */}
       {isMember && (
         <div className="px-4 pb-8">
-          <h2 className="text-lg font-display text-forest mb-4">Message Board</h2>
+          <h2 className="text-sm font-semibold text-text-light uppercase tracking-wide mb-2">Message Board</h2>
 
           {/* New Post Form */}
-          <form onSubmit={handleCreatePost} className="bg-white rounded-lg p-4 shadow-sm mb-6">
+          <form onSubmit={handleCreatePost} className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg p-4 mb-4">
             <div className="flex gap-3 mb-3">
               <Avatar src={user?.photoURL} name={user?.displayName} size="md" />
               <MentionInput
@@ -309,7 +309,7 @@ export function GroupDetailPage() {
 
           {/* Posts */}
           {loadingPosts ? (
-            <div className="space-y-4">
+            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
               <Skeleton variant="rectangular" height={120} />
               <Skeleton variant="rectangular" height={120} />
             </div>
@@ -320,7 +320,7 @@ export function GroupDetailPage() {
               message="Be the first to share something!"
             />
           ) : (
-            <div className="space-y-4">
+            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
               {posts.map(post => (
                 <BoardPost
                   key={post.id}
