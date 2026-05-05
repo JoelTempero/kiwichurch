@@ -28,7 +28,7 @@
     --color-overlay: rgba(26, 58, 47, 0.85);
 
     --font-display: 'Cormorant Garamond', Georgia, serif;
-    --font-body: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Source Sans 3', system-ui, -apple-system, sans-serif;
 
     --shadow-sm: 0 2px 8px rgba(26, 58, 47, 0.08);
     --shadow-md: 0 4px 20px rgba(26, 58, 47, 0.12);
