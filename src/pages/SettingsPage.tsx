@@ -83,22 +83,27 @@ export function SettingsPage() {
             </p>
           </div>
           {notifPermission === 'default' && isNotificationSupported() && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={async () => {
-                const result = await requestNotificationPermission()
-                setNotifPermission(result)
-                if (result === 'granted') {
-                  showToast('Notifications enabled', 'success')
-                }
-              }}
-            >
-              Enable
-            </Button>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={false}
+                onChange={async () => {
+                  const result = await requestNotificationPermission()
+                  setNotifPermission(result)
+                  if (result === 'granted') {
+                    showToast('Notifications enabled', 'success')
+                  }
+                }}
+              />
+              <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-forest/30 rounded-full peer-checked:bg-forest transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5" />
+            </label>
           )}
           {notifPermission === 'granted' && (
-            <span className="text-xs text-forest font-medium px-2 py-1 bg-forest/10 rounded-full">Enabled</span>
+            <label className="relative inline-flex items-center">
+              <input type="checkbox" className="sr-only peer" checked disabled />
+              <div className="w-10 h-5 bg-forest rounded-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:translate-x-5" />
+            </label>
           )}
           {notifPermission === 'denied' && (
             <span className="text-xs text-red-600 font-medium px-2 py-1 bg-red-50 rounded-full">Blocked</span>

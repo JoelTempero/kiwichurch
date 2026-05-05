@@ -2,13 +2,17 @@ import { useState, useMemo } from 'react'
 import { List, Calendar } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { useUIStore } from '@/store'
+import { useAuth } from '@/hooks/useAuth'
 import { useEvents } from '@/hooks/useEvents'
 import { EventCard, EventModal, CalendarView } from '@/components/events'
 import { EmptyState, EventCardSkeleton, PullToRefresh, Button } from '@/components/common'
-import type { Event } from '@/types'
+import type { Event, RSVP } from '@/types'
+import { dbService } from '@/services/firebase'
+import { useQuery } from '@tanstack/react-query'
 
 export function EventsPage() {
   const { eventsViewMode, setEventsViewMode } = useUIStore()
+  const { user } = useAuth()
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -22,25 +26,43 @@ export function EventsPage() {
     endDate: endDate.toISOString().split('T')[0]
   })
 
+  const { data: userRsvps = {} } = useQuery({
+    queryKey: ['user-rsvps-all', user?.id, events.map(e => e.id).join(',')],
+    queryFn: async () => {
+      if (!user?.id || events.length === 0) return {}
+      const rsvpMap: Record<string, RSVP> = {}
+      await Promise.all(
+        events.map(async (event) => {
+          const rsvp = await dbService.getUserRSVP(event.id, user.id)
+          if (rsvp) rsvpMap[event.id] = rsvp
+        })
+      )
+      return rsvpMap
+    },
+    enabled: !!user?.id && events.length > 0,
+    staleTime: 2 * 60 * 1000,
+  })
+
   const handleRefresh = async () => {
     await refetch()
   }
 
-  // Group events by date for list view
-  const groupedEvents = useMemo(() => {
+  // Group events by month for list view
+  const groupedByMonth = useMemo(() => {
     const groups: Record<string, Event[]> = {}
     events.forEach(event => {
-      if (!groups[event.date]) {
-        groups[event.date] = []
+      const monthKey = event.date.slice(0, 7) // "YYYY-MM"
+      if (!groups[monthKey]) {
+        groups[monthKey] = []
       }
-      groups[event.date].push(event)
+      groups[monthKey].push(event)
     })
     return groups
   }, [events])
 
-  const sortedDates = useMemo(() => {
-    return Object.keys(groupedEvents).sort()
-  }, [groupedEvents])
+  const sortedMonths = useMemo(() => {
+    return Object.keys(groupedByMonth).sort()
+  }, [groupedByMonth])
 
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event)
@@ -52,24 +74,14 @@ export function EventsPage() {
     setSelectedEvent(null)
   }
 
-  const formatDateHeader = (dateStr: string) => {
-    const date = new Date(dateStr)
-    const today = new Date()
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-
-    if (dateStr === today.toISOString().split('T')[0]) {
-      return 'Today'
+  const formatMonthHeader = (monthKey: string) => {
+    const [year, month] = monthKey.split('-').map(Number)
+    const date = new Date(year, month - 1)
+    const now = new Date()
+    if (year === now.getFullYear() && month - 1 === now.getMonth()) {
+      return 'This Month'
     }
-    if (dateStr === tomorrow.toISOString().split('T')[0]) {
-      return 'Tomorrow'
-    }
-
-    return date.toLocaleDateString('en-NZ', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
-    })
+    return date.toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })
   }
 
   return (
@@ -135,15 +147,16 @@ export function EventsPage() {
                 }
               />
             ) : (
-              sortedDates.map(date => (
-                <div key={date}>
-                  <h3 className="text-sm font-semibold text-text-light uppercase tracking-wide mb-3">{formatDateHeader(date)}</h3>
+              sortedMonths.map(month => (
+                <div key={month}>
+                  <h3 className="text-sm font-semibold text-text-light uppercase tracking-wide mb-3">{formatMonthHeader(month)}</h3>
                   <div className="space-y-2">
-                    {groupedEvents[date].map(event => (
+                    {groupedByMonth[month].map(event => (
                       <EventCard
                         key={event.id}
                         event={event}
                         onClick={() => handleEventClick(event)}
+                        rsvpStatus={userRsvps[event.id]?.status || null}
                       />
                     ))}
                   </div>

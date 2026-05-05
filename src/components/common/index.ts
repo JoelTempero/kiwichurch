@@ -1,6 +1,7 @@
 export { ToastProvider, useToast } from './Toast'
 export { Button } from './Button'
 export { Modal } from './Modal'
+export { ConfirmModal } from './ConfirmModal'
 export { EmptyState } from './EmptyState'
 export { Skeleton, EventCardSkeleton, GatheringCardSkeleton } from './Skeleton'
 export { Avatar } from './Avatar'

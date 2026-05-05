@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Pin, MoreVertical, Edit, Trash2, MessageCircle, X, Reply, BarChart3, SmilePlus, Flag } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { Avatar, Button, MentionInput } from '@/components/common'
+import { Avatar, Button, MentionInput, ConfirmModal } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
 import {
   usePostComments,
@@ -27,7 +27,8 @@ interface BoardPostProps {
   onDelete?: () => void
 }
 
-function formatTimeAgo(date: Date | { toDate: () => Date }): string {
+function formatTimeAgo(date: Date | { toDate: () => Date } | null | undefined): string {
+  if (!date) return 'Just now'
   const d = date instanceof Date ? date : date.toDate()
   const now = new Date()
   const diff = now.getTime() - d.getTime()
@@ -87,6 +88,8 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
   const [replyTo, setReplyTo] = useState<BoardComment | null>(null)
   const [showReactionPicker, setShowReactionPicker] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [showDeletePostConfirm, setShowDeletePostConfirm] = useState(false)
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const editInputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -163,7 +166,8 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
       setNewComment('')
       setCommentMentions(new Map())
       setReplyTo(null)
-    } catch {
+    } catch (err) {
+      console.error('Failed to add comment:', err)
       showToast('Failed to add comment', 'error')
     } finally {
       setIsSubmitting(false)
@@ -201,11 +205,9 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
   }
 
   const handleDeletePost = async () => {
-    if (!confirm('Are you sure you want to delete this post?')) return
-    setShowMenu(false)
-
     try {
       await deletePost.mutateAsync({ gatheringId, postId: post.id })
+      setShowDeletePostConfirm(false)
       showToast('Post deleted', 'success')
       onDelete?.()
     } catch {
@@ -213,11 +215,11 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
     }
   }
 
-  const handleDeleteComment = async (commentId: string) => {
-    if (!confirm('Delete this comment?')) return
-
+  const handleDeleteComment = async () => {
+    if (!deleteCommentId) return
     try {
-      await deleteComment.mutateAsync({ gatheringId, postId: post.id, commentId })
+      await deleteComment.mutateAsync({ gatheringId, postId: post.id, commentId: deleteCommentId })
+      setDeleteCommentId(null)
       showToast('Comment deleted', 'success')
     } catch {
       showToast('Failed to delete comment', 'error')
@@ -275,7 +277,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
                 {canDelete && (
                   <button
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
-                    onClick={handleDeletePost}
+                    onClick={() => { setShowMenu(false); setShowDeletePostConfirm(true) }}
                     role="menuitem"
                   >
                     <Trash2 size={16} />
@@ -467,7 +469,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
                     {(user?.id === comment.authorId || isAdminOrHost) && (
                       <button
                         className="p-0.5 text-text-lighter hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
-                        onClick={() => handleDeleteComment(comment.id)}
+                        onClick={() => setDeleteCommentId(comment.id)}
                         aria-label="Delete comment"
                       >
                         <X size={12} />
@@ -528,6 +530,28 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
         targetContent={post.content}
         contextId={gatheringId}
         contextName={gatheringName}
+      />
+
+      <ConfirmModal
+        isOpen={showDeletePostConfirm}
+        onClose={() => setShowDeletePostConfirm(false)}
+        onConfirm={handleDeletePost}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This cannot be undone."
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        loading={deletePost.isPending}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteCommentId}
+        onClose={() => setDeleteCommentId(null)}
+        onConfirm={handleDeleteComment}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment?"
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        loading={deleteComment.isPending}
       />
     </div>
   )

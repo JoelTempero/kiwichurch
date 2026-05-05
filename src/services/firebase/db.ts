@@ -672,10 +672,16 @@ export const dbService = {
   ): Promise<Conversation> {
     const conversationId = this.getConversationId(currentUserId, otherUserId)
     const docRef = doc(db, 'conversations', conversationId)
-    const docSnap = await getDoc(docRef)
 
-    if (docSnap.exists()) {
-      return docToObject<Conversation>(docSnap)
+    // getDoc throws permission error on non-existent docs because the read
+    // rule references resource.data which is null. Catch and treat as "create".
+    try {
+      const docSnap = await getDoc(docRef)
+      if (docSnap.exists()) {
+        return docToObject<Conversation>(docSnap)
+      }
+    } catch {
+      // Permission denied = document doesn't exist yet, proceed to create
     }
 
     const timestamp = serverTimestamp()

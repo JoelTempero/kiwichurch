@@ -111,12 +111,18 @@ service cloud.firestore {
 
       // Gathering members subcollection
       match /members/{memberId} {
-        // Members can be read by gathering hosts or admins
-        allow read: if isHostOfGathering(gatheringId) || isAdmin();
+        // Any authenticated user can see who's in a group
+        allow read: if isAuthenticated();
 
-        // Admins and gathering hosts can manage members
-        // During initial setup, allow adding members
-        allow write: if isHostOfGathering(gatheringId) || isAdmin() || isInitialSetup();
+        // Users can join groups themselves (create own member doc)
+        allow create: if isAuthenticated() && isActive() && request.auth.uid == memberId;
+
+        // Users can leave (delete own doc), hosts/admins can remove anyone
+        allow delete: if isAuthenticated() &&
+          (request.auth.uid == memberId || isHostOfGathering(gatheringId) || isAdminOrHost());
+
+        // Admins and gathering hosts can update member records
+        allow update: if isHostOfGathering(gatheringId) || isAdminOrHost();
       }
 
       // Posts within a gathering's message board

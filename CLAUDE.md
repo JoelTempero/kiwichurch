@@ -3,7 +3,7 @@
 ## Overview
 - **Client**: Kiwi Church
 - **Type**: Community Platform / Portal / PWA
-- **Status**: Workstream A complete, Workstream B complete (deployed with hero image)
+- **Status**: Workstream A complete, Workstream B complete, bug fix pass deployed — design revision pending
 
 ## Playbooks In Use
 Read these from the Brain folder at session start. Do not copy into this project.
@@ -166,8 +166,39 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
   - [x] Stop-slop pass on communities page prose
   - [x] Firestore rules for contactMessages collection
   - [x] Removed dead _redirects file from public/
+- [x] **Council audit fixes** (COMPLETE — deployed 2026-05-02)
+  - [x] Auth resilience: auto-create Firestore user doc when missing for valid auth session
+  - [x] Registration: "Request an Account" → "Create an Account" (honest labelling)
+  - [x] Contact form: honeypot + Firestore rules with field/size validation
+  - [x] Storage: client-side deletes blocked on shared paths
+  - [x] Users collection: reads opened to all authenticated members (fixes DMs/directory/search)
+  - [x] Deactivation: isActive() guard on all content write rules
+  - [x] Copyright 2025 → 2026 across all static pages
 
 ## Session Log
+
+### 2026-05-06: Functionality & Design Review Bug Fixes
+- **Groups can't post/comment** — two root causes: (1) `undefined` values passed to Firestore SDK (no `ignoreUndefinedProperties`), (2) `serverTimestamp()` returning null on local writes crashing `formatTimeAgo`
+- **Messages can't select members** — `getDoc` on non-existent conversations threw permission error; wrapped in try-catch
+- **Gathering member rules too restrictive** — no gatherings had `hostId`, so only admin could read/write members. Opened up self-join/leave for all authenticated users
+- **Website Kete posts redirect** — `post.html` missing from viteStaticCopy targets in vite.config.ts
+- **Events list duplicate date** — changed from per-day headers to monthly grouping
+- **Events RSVP badge** — fetches user RSVPs, passes status to EventCard (shows Going/Maybe badge)
+- **Browser confirm() replaced** — created ConfirmModal component; replaced all `confirm()` calls in GroupDetailPage and BoardPost
+- **Settings UI** — Browser Notifications changed from button to toggle for consistency
+- **Firestore modernised** — replaced deprecated `enableIndexedDbPersistence` with `persistentLocalCache` API
+- post.html nav updated (removed about.html, copyright 2026)
+- 3 deploys to Firebase Hosting
+
+### 2026-05-02b: Council Audit Fixes
+- Ran council audit (8 members, 4 factions) — verdict: "Ship with fixes"
+- Fixed 6 critical/important issues from audit, plus copyright year
+- Auth resilience: orphaned Firebase Auth users now auto-create Firestore docs
+- Contact form spam: honeypot + field validation + size limits in rules
+- Storage delete rules locked down (was open to any authenticated user)
+- Users collection reads opened for all members (getAllUsers permission mismatch)
+- Deactivation enforcement via isActive() on all content write rules
+- Built and deployed to Firebase Hosting
 
 ### 2026-05-02: Homepage Hero, Events Widget & Page Cleanup
 - Hero image added (HansonsLaneOpening-2131a.jpg), sticky hero with content scrolling over
@@ -211,9 +242,34 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - **Static HTML pages:** Keep working, enhance with Creativity playbook later
 - **8-phase delivery plan** aligned with client's prototype > rollout > go live process
 - **No budget/timeline constraints** from client
+- **Storage deletes blocked client-side** — no Cloud Functions yet, so admin deletes via Firebase Console. Revisit when Cloud Functions are added.
 
-## Known Issues
-- `kiwichurch.sidequest.nz` DNS updated in Cloudflare to point to Firebase Hosting — may need propagation time
-- Member blocking feature not implemented
-- Dark mode preference stored in localStorage only, not synced to Firestore
-- about.html still exists in repo but no longer deployed or linked (can delete)
+## Next Steps (from Joel's review — 2026-05-06)
+
+### Design revision (needs brainstorm)
+- [ ] Kill drop-shadow containers across the entire portal — biggest UX killer
+- [ ] Font consistency: reduce serif/display font usage in portal, more sans-serif (header font overused, e.g. every date on events page)
+- [ ] Restructure portal homepage after design revision
+- [ ] Calendar view design overhaul (functional but ugly)
+
+### Feature work (needs brainstorm/planning)
+- [ ] **Kete editor overhaul**: move add/edit from Hosting page to Kete page itself; permission-based access (admin toggles per-user); full-page editor with rich text, inline images, video embeds (replace barebones modal)
+- [ ] **Profile expansion**: family members, connected accounts, hobbies (optional), privacy toggles (show/hide phone/email/groups), personal gallery
+- [ ] **Directory rethink**: make useful for all users — contact info, profile cards, search/filter
+- [ ] **Events admin overhaul**: Hosting page events tab needs full rework — no repetition support, unclear how events system works
+- [ ] **Admin restructure**: Users page → merge into Settings; Groups tab → permission-based like proposed Kete model
+- [ ] **RSVP for families**: one person can RSVP kids/family members for events
+
+### Remaining bugs
+- [ ] No gatherings have `hostId` field — `isHostOfGathering()` always returns false (rules work around it now, but data should be fixed)
+- [ ] onSnapshot subscriptions have no error callbacks (connection loss invisible to user)
+- [ ] Homepage "Learn More" CTA links to dead about.html
+- [ ] Giving page repeats "give" 14 times — subheads need simplifying
+- [ ] Community meeting times say "fortnightly" without specifying which week
+- [ ] Website calendar shows "Thin Place" and "Online Prayer" — correct data but may need review with client
+
+### Deferred
+- Member blocking feature
+- Dark mode sync to Firestore
+- No App Check configured (post-launch hardening)
+- about.html still in repo (can delete)

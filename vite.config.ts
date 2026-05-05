@@ -33,6 +33,7 @@ export default defineConfig({
         { src: 'kete.html', dest: '' },
         { src: 'resources.html', dest: '' },
         { src: 'giving.html', dest: '' },
+        { src: 'post.html', dest: '' },
         { src: 'portal.html', dest: '' },
         { src: 'css', dest: '' },
         { src: 'js', dest: '' },

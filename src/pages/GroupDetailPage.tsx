@@ -13,7 +13,7 @@ import {
   useCreateBoardPost
 } from '@/hooks/useGatherings'
 import { BoardPost } from '@/components/groups'
-import { Button, EmptyState, Avatar, Skeleton, MentionInput } from '@/components/common'
+import { Button, EmptyState, Avatar, Skeleton, MentionInput, ConfirmModal } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { encodeMention, extractMentionIds } from '@/utils/mentions'
 import type { MentionMember } from '@/components/common/MentionInput'
@@ -26,6 +26,7 @@ export function GroupDetailPage() {
   const [newPostContent, setNewPostContent] = useState('')
   const [isPosting, setIsPosting] = useState(false)
   const [postMentions, setPostMentions] = useState<Map<string, string>>(new Map())
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [showPollCreator, setShowPollCreator] = useState(false)
   const [pollQuestion, setPollQuestion] = useState('')
   const [pollOptions, setPollOptions] = useState(['', ''])
@@ -67,9 +68,9 @@ export function GroupDetailPage() {
 
   const handleLeave = async () => {
     if (!user?.id || !groupId) return
-    if (!confirm('Are you sure you want to leave this group?')) return
     try {
       await leaveGathering.mutateAsync({ gatheringId: groupId, userId: user.id })
+      setShowLeaveConfirm(false)
       showToast('Left group', 'success')
     } catch {
       showToast('Failed to leave group', 'error')
@@ -115,7 +116,8 @@ export function GroupDetailPage() {
       setPollQuestion('')
       setPollOptions(['', ''])
       showToast('Post created!', 'success')
-    } catch {
+    } catch (err) {
+      console.error('Failed to create post:', err)
       showToast('Failed to create post', 'error')
     } finally {
       setIsPosting(false)
@@ -196,7 +198,7 @@ export function GroupDetailPage() {
         {/* Join/Leave Button */}
         <div className="mb-6">
           {isMember ? (
-            <Button variant="outline" onClick={handleLeave} loading={leaveGathering.isPending}>
+            <Button variant="outline" onClick={() => setShowLeaveConfirm(true)} loading={leaveGathering.isPending}>
               Leave Group
             </Button>
           ) : (
@@ -343,6 +345,16 @@ export function GroupDetailPage() {
           />
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        onConfirm={handleLeave}
+        title="Leave Group"
+        message={`Are you sure you want to leave ${gathering.name}? You can rejoin anytime.`}
+        confirmLabel="Leave Group"
+        loading={leaveGathering.isPending}
+      />
     </div>
   )
 }
