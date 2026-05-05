@@ -78,7 +78,7 @@ export function UsersPage() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-3 bg-white rounded-lg shadow-sm px-4 py-2 mb-4">
+      <div className="flex items-center gap-3 border border-[#e0dbd2] rounded-lg px-4 py-2 mb-4">
         <Search size={20} className="text-text-lighter flex-shrink-0" />
         <input
           type="text"
@@ -103,9 +103,9 @@ export function UsersPage() {
           message={searchQuery ? 'Try a different search term' : 'No users in the system'}
         />
       ) : (
-        <div className="space-y-2">
+        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
           {filteredUsers.map((user: User) => (
-            <div key={user.id} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+            <div key={user.id} className="flex items-center gap-3 p-3">
               <Avatar src={user.photoURL} name={user.displayName} size="md" />
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-text-primary text-sm">{user.displayName}</h3>

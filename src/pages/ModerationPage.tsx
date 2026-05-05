@@ -63,19 +63,19 @@ export function ModerationPage() {
     <div className="max-w-[800px] mx-auto p-6">
       <div className="flex items-center gap-3 mb-6">
         <Shield size={24} className="text-forest" />
-        <h1 className="text-2xl font-semibold text-text-dark">Moderation</h1>
+        <h1 className="text-2xl font-display text-forest">Moderation</h1>
       </div>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-1 p-1 bg-cream rounded-md mb-6">
         {tabs.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
             className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
               activeTab === tab.value
-                ? 'bg-forest text-white'
-                : 'bg-cream text-text-dark hover:bg-forest/10'
+                ? 'bg-forest text-cream'
+                : 'text-text-light hover:text-text-primary'
             )}
           >
             {tab.label}
@@ -96,9 +96,9 @@ export function ModerationPage() {
           message={activeTab === 'pending' ? 'No pending reports to review' : 'No reports found'}
         />
       ) : (
-        <div className="space-y-4">
+        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
           {reports.map((report: Report) => (
-            <div key={report.id} className="bg-white rounded-lg shadow-sm p-5 space-y-3">
+            <div key={report.id} className="p-5 space-y-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <Flag size={16} className="text-red-500" />

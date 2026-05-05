@@ -134,7 +134,7 @@ export function HostingPage() {
           className={cn(
             'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
             activeTab === 'events'
-              ? 'bg-white text-forest shadow-sm'
+              ? 'bg-forest text-cream'
               : 'text-text-light hover:text-text-primary'
           )}
           onClick={() => setActiveTab('events')}
@@ -147,7 +147,7 @@ export function HostingPage() {
           className={cn(
             'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
             activeTab === 'kete'
-              ? 'bg-white text-forest shadow-sm'
+              ? 'bg-forest text-cream'
               : 'text-text-light hover:text-text-primary'
           )}
           onClick={() => setActiveTab('kete')}
@@ -161,7 +161,7 @@ export function HostingPage() {
             className={cn(
               'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
               activeTab === 'groups'
-                ? 'bg-white text-forest shadow-sm'
+                ? 'bg-forest text-cream'
                 : 'text-text-light hover:text-text-primary'
             )}
             onClick={() => setActiveTab('groups')}
@@ -175,7 +175,7 @@ export function HostingPage() {
       {activeTab === 'events' && (
         <div className="mb-8" role="tabpanel">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display text-forest">Upcoming Events</h2>
+            <h2 className="text-lg font-semibold text-forest">Upcoming Events</h2>
             <Button variant="primary" size="sm" onClick={handleCreateEvent}>
               <Plus size={16} aria-hidden="true" />
               New Event
@@ -199,9 +199,9 @@ export function HostingPage() {
               }
             />
           ) : (
-            <div className="space-y-2">
+            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
               {events.map((event: Event) => (
-                <div key={event.id} className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+                <div key={event.id} className="flex items-center gap-4 p-4">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-text-primary text-sm truncate">{event.title}</h3>
                     <p className="text-xs text-text-light mt-0.5">
@@ -231,7 +231,7 @@ export function HostingPage() {
       {activeTab === 'kete' && (
         <div className="mb-8" role="tabpanel">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display text-forest">Kete Posts</h2>
+            <h2 className="text-lg font-semibold text-forest">Kete Posts</h2>
             <Button variant="primary" size="sm" onClick={handleCreatePost}>
               <Plus size={16} aria-hidden="true" />
               New Post
@@ -255,9 +255,9 @@ export function HostingPage() {
               }
             />
           ) : (
-            <div className="space-y-2">
+            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
               {ketePosts.map((post: KetePost) => (
-                <div key={post.id} className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+                <div key={post.id} className="flex items-center gap-4 p-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-text-primary text-sm truncate">{post.title}</h3>
@@ -291,7 +291,7 @@ export function HostingPage() {
       {activeTab === 'groups' && isAdmin && (
         <div className="mb-8" role="tabpanel">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display text-forest">Groups</h2>
+            <h2 className="text-lg font-semibold text-forest">Groups</h2>
             <Button variant="primary" size="sm" onClick={handleCreateGroup}>
               <Plus size={16} aria-hidden="true" />
               New Group
@@ -315,9 +315,9 @@ export function HostingPage() {
               }
             />
           ) : (
-            <div className="space-y-2">
+            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
               {groups.map((group: Gathering) => (
-                <div key={group.id} className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm">
+                <div key={group.id} className="flex items-center gap-4 p-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <div
