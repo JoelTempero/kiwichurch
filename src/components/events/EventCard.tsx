@@ -39,26 +39,26 @@ export function EventCard({ event, onClick, rsvpStatus, compact = false }: Event
   return (
     <div
       className={cn(
-        'flex items-center gap-4 bg-white rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow',
-        compact ? 'p-2' : 'p-3'
+        'flex items-center gap-3 cursor-pointer hover:bg-cream/50 transition-colors',
+        compact ? 'py-2 px-1' : 'py-3 px-2'
       )}
       onClick={onClick}
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
     >
-      <div className="flex-shrink-0 w-14 text-center">
-        <span className="block text-2xl font-bold text-forest leading-none">{day}</span>
-        <span className="block text-xs text-text-light uppercase tracking-wide">{month}</span>
+      <div className="flex-shrink-0 w-10 h-10 bg-forest rounded-lg flex flex-col items-center justify-center">
+        <span className="text-[9px] uppercase text-cream leading-none">{month}</span>
+        <span className="text-base font-semibold text-cream leading-tight">{day}</span>
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-text-primary truncate">{event.title}</div>
-        <div className="text-sm text-text-light mt-0.5">
+        <div className="font-semibold text-text-primary text-[15px] truncate">{event.title}</div>
+        <div className="text-sm text-text-light">
           {weekday} {formatTime(event.time)}
           {event.location && ` · ${event.location}`}
         </div>
         {event.gatheringName && (
-          <div className="text-xs text-terracotta mt-1">{event.gatheringName}</div>
+          <div className="text-xs text-terracotta mt-0.5">{event.gatheringName}</div>
         )}
       </div>
       {rsvpStatus && (
