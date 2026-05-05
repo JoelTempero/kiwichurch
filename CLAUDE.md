@@ -3,7 +3,7 @@
 ## Overview
 - **Client**: Kiwi Church
 - **Type**: Community Platform / Portal / PWA
-- **Status**: Workstream A complete, Workstream B complete, bug fix pass deployed — design revision pending
+- **Status**: Workstream A complete, Workstream B complete, design revision merged + deployed, functionality bug fix pass deployed
 
 ## Playbooks In Use
 Read these from the Brain folder at session start. Do not copy into this project.
@@ -177,6 +177,29 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
+### 2026-05-06c: Functionality Bug Fixes + Deploy
+- CalendarView fix: fetches events for viewed month/week (was fixed 3-month window from today)
+- DM member selection: error handling with toast, subscription error callbacks, composite Firestore index
+- Settings cleanup: removed non-functional dark mode/email toggles, consistent notification toggle
+- Account info (role, member since) moved from Settings to Profile page
+- Service worker denylist regex fixed for .html with query params (post.html?id=xxx redirect)
+- All remaining browser confirm() replaced with ConfirmModal (KetePostPage, EventForm, GroupForm, KeteForm)
+- Merged design-revision → main, deployed to Firebase Hosting
+
+### 2026-05-06b: Portal Design Revision (design-revision branch)
+- Brainstormed with visual companion: container treatment, font hierarchy, homepage structure, calendar overhaul
+- Design spec: `docs/superpowers/specs/2026-05-06-portal-design-revision.md`
+- Implementation plan: `docs/superpowers/plans/2026-05-06-portal-design-revision.md` (15 tasks)
+- Font swap: Nunito Sans → Source Sans 3 (aligns portal with DESIGN.md)
+- Shadows eliminated portal-wide (kept only on modals/toast overlays)
+- Serif font (Cormorant Garamond) narrowed to page h1 only — everything else Source Sans 3
+- Card components (EventCard, KeteCard, GatheringCard, BoardPost) converted from shadow cards to compact rows
+- CalendarView rewritten: event chips in month grid (color-coded), week view toggle
+- New activity feed: `useActivityFeed` hook + `ActivityFeedItem` component (merges kete posts + group board posts)
+- HomePage redesigned: greeting → featured next event (dark container) → event rows → activity feed → admin links
+- All 16 pages updated: flat+featured treatment (home, profile, settings, giving, login) or grouped sections (events, groups, directory, DMs, kete, admin pages)
+- 14 commits, typecheck + build clean. Awaiting Joel's visual review before merge.
+
 ### 2026-05-06: Functionality & Design Review Bug Fixes
 - **Groups can't post/comment** — two root causes: (1) `undefined` values passed to Firestore SDK (no `ignoreUndefinedProperties`), (2) `serverTimestamp()` returning null on local writes crashing `formatTimeAgo`
 - **Messages can't select members** — `getDoc` on non-existent conversations threw permission error; wrapped in try-catch
@@ -217,18 +240,6 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - Login button links, "Back to website" link, login page CSS cascade fix
 - Service worker denylist for static pages, PWA start_url → /home
 
-### 2026-04-19: Phases 2-8 + Workstream B
-- Phases 2-8 of portal complete (real-time chat, DMs, notifications, polls, moderation)
-- Workstream B static site redesign: DESIGN.md, CSS rewrite, all 7 pages redesigned
-- DOMPurify + Quill for Kete, Firebase hosting configured
-
-### 2026-04-18: Phase 1 Foundation
-- Tailwind v4 migration, Lucide icons, react-hook-form + zod, CSS cleanup
-- All 13 pages + 8 sub-components migrated
-
-### 2026-04-17: Project Setup
-- Codebase audit, brainstorm, design spec, Joel approved Approach B (modernise + extend)
-
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
 - **Firestore for chat, RTDB for presence only** — hybrid approach
@@ -243,14 +254,13 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - **8-phase delivery plan** aligned with client's prototype > rollout > go live process
 - **No budget/timeline constraints** from client
 - **Storage deletes blocked client-side** — no Cloud Functions yet, so admin deletes via Firebase Console. Revisit when Cloud Functions are added.
+- **Portal design revision** — context-driven containers (flat+featured for dashboards, grouped sections for lists), no shadows except floating overlays, serif h1 only, Source Sans 3 body. Portal typography intentionally diverges from DESIGN.md (which defines serif for all headings on the static site).
 
-## Next Steps (from Joel's review — 2026-05-06)
+## Next Steps
 
-### Design revision (needs brainstorm)
-- [ ] Kill drop-shadow containers across the entire portal — biggest UX killer
-- [ ] Font consistency: reduce serif/display font usage in portal, more sans-serif (header font overused, e.g. every date on events page)
-- [ ] Restructure portal homepage after design revision
-- [ ] Calendar view design overhaul (functional but ugly)
+### Design feedback (Joel has more — deferred to next session)
+- [ ] Joel to review deployed design revision at https://kiwichurch-1ef0f.web.app
+- [ ] Apply any spacing/density/feel feedback
 
 ### Feature work (needs brainstorm/planning)
 - [ ] **Kete editor overhaul**: move add/edit from Hosting page to Kete page itself; permission-based access (admin toggles per-user); full-page editor with rich text, inline images, video embeds (replace barebones modal)
@@ -259,10 +269,11 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] **Events admin overhaul**: Hosting page events tab needs full rework — no repetition support, unclear how events system works
 - [ ] **Admin restructure**: Users page → merge into Settings; Groups tab → permission-based like proposed Kete model
 - [ ] **RSVP for families**: one person can RSVP kids/family members for events
+- [ ] **Giving page**: review with client how they want this presented
 
 ### Remaining bugs
 - [ ] No gatherings have `hostId` field — `isHostOfGathering()` always returns false (rules work around it now, but data should be fixed)
-- [ ] onSnapshot subscriptions have no error callbacks (connection loss invisible to user)
+- [ ] DM permission error may persist — now surfaces as toast instead of silent failure; root cause likely Firestore rules interaction, needs testing with live data
 - [ ] Homepage "Learn More" CTA links to dead about.html
 - [ ] Giving page repeats "give" 14 times — subheads need simplifying
 - [ ] Community meeting times say "fortnightly" without specifying which week
@@ -270,6 +281,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ### Deferred
 - Member blocking feature
-- Dark mode sync to Firestore
+- Dark mode (removed toggle — no theme implementation exists)
+- Email notification preferences (removed toggle — no email system exists)
 - No App Check configured (post-launch hardening)
 - about.html still in repo (can delete)
