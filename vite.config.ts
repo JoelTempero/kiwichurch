@@ -48,7 +48,7 @@ export default defineConfig({
         globPatterns: ['assets/**/*.{js,css}', 'app.html', 'icons/**/*.png'],
         globIgnores: ['js/**', 'css/**'],
         navigateFallback: '/app.html',
-        navigateFallbackDenylist: [/^\/$/, /\.html$/],
+        navigateFallbackDenylist: [/^\/$/, /\.html/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,

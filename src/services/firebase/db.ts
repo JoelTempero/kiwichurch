@@ -771,6 +771,8 @@ export const dbService = {
     return onSnapshot(q, snapshot => {
       const conversations = snapshot.docs.map(d => docToObject<Conversation>(d))
       callback(conversations)
+    }, (error) => {
+      console.error('Conversations subscription error:', error)
     })
   },
 
@@ -782,6 +784,8 @@ export const dbService = {
     return onSnapshot(q, snapshot => {
       const messages = snapshot.docs.map(d => docToObject<DirectMessage>(d))
       callback(messages)
+    }, (error) => {
+      console.error('Messages subscription error:', error)
     })
   },
 

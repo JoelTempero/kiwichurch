@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, Modal } from '@/components/common'
+import { Button, ConfirmModal, Modal } from '@/components/common'
 import { useCreateGathering, useUpdateGathering, useDeleteGathering } from '@/hooks/useGatherings'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/hooks/useAuth'
@@ -114,11 +114,11 @@ export function GroupForm({ group, isOpen, onClose, onSuccess }: GroupFormProps)
     }
   }
 
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+
   const handleClose = () => {
     if (form.formState.isDirty) {
-      if (confirm('You have unsaved changes. Are you sure you want to close?')) {
-        onClose()
-      }
+      setShowDiscardConfirm(true)
     } else {
       onClose()
     }
@@ -246,6 +246,15 @@ export function GroupForm({ group, isOpen, onClose, onSuccess }: GroupFormProps)
           </div>
         </div>
       </Modal>
+      <ConfirmModal
+        isOpen={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        onConfirm={() => { setShowDiscardConfirm(false); onClose() }}
+        title="Discard Changes"
+        message="You have unsaved changes. Are you sure you want to close?"
+        confirmLabel="Discard"
+        confirmVariant="danger"
+      />
     </>
   )
 }

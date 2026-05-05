@@ -164,6 +164,22 @@ export function ProfilePage() {
             </div>
           )}
 
+          <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3 mt-6">Account</p>
+          <div className="flex justify-between py-2 border-b border-[#e0dbd2]">
+            <span className="text-text-light text-sm">Role</span>
+            <span className="text-text-primary text-sm font-medium capitalize">{user.role}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-[#e0dbd2]">
+            <span className="text-text-light text-sm">Member since</span>
+            <span className="text-text-primary text-sm font-medium">
+              {user.createdAt && 'toDate' in user.createdAt
+                ? user.createdAt.toDate().toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })
+                : user.createdAt instanceof Date
+                  ? user.createdAt.toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })
+                  : '—'}
+            </span>
+          </div>
+
           <div className="flex gap-3 mt-6">
             <Button variant="primary" onClick={() => setIsEditing(true)}>
               <Pencil size={18} aria-hidden="true" />

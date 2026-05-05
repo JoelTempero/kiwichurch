@@ -6,6 +6,7 @@ import { useConversations, useConversationsSubscription, useCreateConversation }
 import { dbService } from '@/services/firebase'
 import { useQuery } from '@tanstack/react-query'
 import { Avatar, EmptyState, Skeleton } from '@/components/common'
+import { useToast } from '@/components/common/Toast'
 import type { Conversation, User } from '@/types'
 import type { Timestamp } from 'firebase/firestore'
 
@@ -51,6 +52,7 @@ export function DirectMessagesPage() {
     enabled: showNewMessage && !!user,
   })
 
+  const { showToast } = useToast()
   const createConversation = useCreateConversation()
 
   const filteredMembers = useMemo(() => {
@@ -63,15 +65,20 @@ export function DirectMessagesPage() {
 
   const handleSelectMember = async (member: User) => {
     if (!user) return
-    const conversation = await createConversation.mutateAsync({
-      currentUserId: user.id,
-      currentUser: { displayName: user.displayName, photoURL: user.photoURL },
-      otherUserId: member.id,
-      otherUser: { displayName: member.displayName, photoURL: member.photoURL },
-    })
-    setShowNewMessage(false)
-    setMemberSearch('')
-    navigate(`/messages/${conversation.id}`)
+    try {
+      const conversation = await createConversation.mutateAsync({
+        currentUserId: user.id,
+        currentUser: { displayName: user.displayName, photoURL: user.photoURL },
+        otherUserId: member.id,
+        otherUser: { displayName: member.displayName, photoURL: member.photoURL },
+      })
+      setShowNewMessage(false)
+      setMemberSearch('')
+      navigate(`/messages/${conversation.id}`)
+    } catch (error) {
+      console.error('Failed to create conversation:', error)
+      showToast('Failed to start conversation. Please try again.', 'error')
+    }
   }
 
   const getOtherParticipant = (conversation: Conversation) => {

@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Trash2 } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { useAuth } from '@/hooks/useAuth'
 import { useKetePost, useKeteComments, useAddKeteComment, useDeleteKeteComment } from '@/hooks/useKete'
-import { Avatar, Button, EmptyState, Skeleton } from '@/components/common'
+import { Avatar, Button, ConfirmModal, EmptyState, Skeleton } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 
 function formatDate(date: Date | { toDate: () => Date } | null): string {
@@ -37,6 +37,7 @@ export function KetePostPage() {
   const { showToast } = useToast()
   const [newComment, setNewComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null)
 
   const { data: post, isLoading: loadingPost } = useKetePost(postId || null)
   const { data: comments = [], isLoading: loadingComments } = useKeteComments(postId || null)
@@ -68,16 +69,18 @@ export function KetePostPage() {
     }
   }
 
-  const handleDeleteComment = async (commentId: string) => {
-    if (!postId || !confirm('Delete this comment?')) return
+  const handleDeleteComment = useCallback(async () => {
+    if (!postId || !deleteCommentId) return
 
     try {
-      await deleteComment.mutateAsync({ postId, commentId })
+      await deleteComment.mutateAsync({ postId, commentId: deleteCommentId })
       showToast('Comment deleted', 'success')
-    } catch (error) {
+    } catch {
       showToast('Failed to delete comment', 'error')
+    } finally {
+      setDeleteCommentId(null)
     }
-  }
+  }, [postId, deleteCommentId, deleteComment, showToast])
 
   if (loadingPost) {
     return (
@@ -198,7 +201,7 @@ export function KetePostPage() {
                     {(user?.id === comment.authorId || isAdminOrHost) && (
                       <button
                         className="p-0.5 text-text-lighter hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer ml-auto"
-                        onClick={() => handleDeleteComment(comment.id)}
+                        onClick={() => setDeleteCommentId(comment.id)}
                         title="Delete comment"
                       >
                         <Trash2 size={14} />
@@ -212,6 +215,16 @@ export function KetePostPage() {
           </div>
         )}
       </section>
+
+      <ConfirmModal
+        isOpen={!!deleteCommentId}
+        onClose={() => setDeleteCommentId(null)}
+        onConfirm={handleDeleteComment}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment?"
+        confirmLabel="Delete"
+        confirmVariant="danger"
+      />
     </div>
   )
 }

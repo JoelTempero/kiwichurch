@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, Modal } from '@/components/common'
+import { Button, ConfirmModal, Modal } from '@/components/common'
 import { useGatherings } from '@/hooks/useGatherings'
 import { useCreateEvent, useUpdateEvent, useDeleteEvent } from '@/hooks/useEvents'
 import { useToast } from '@/components/common/Toast'
@@ -100,11 +100,11 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
     }
   }
 
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+
   const handleClose = () => {
     if (form.formState.isDirty) {
-      if (confirm('You have unsaved changes. Are you sure you want to close?')) {
-        onClose()
-      }
+      setShowDiscardConfirm(true)
     } else {
       onClose()
     }
@@ -261,6 +261,15 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
           </div>
         </div>
       </Modal>
+      <ConfirmModal
+        isOpen={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        onConfirm={() => { setShowDiscardConfirm(false); onClose() }}
+        title="Discard Changes"
+        message="You have unsaved changes. Are you sure you want to close?"
+        confirmLabel="Discard"
+        confirmVariant="danger"
+      />
     </>
   )
 }

@@ -10,20 +10,48 @@ import { dbService } from '@/services/firebase'
 import { useQuery } from '@tanstack/react-query'
 
 export function EventsPage() {
-  const { eventsViewMode, setEventsViewMode, calendarViewMode, setCalendarViewMode } = useUIStore()
+  const { eventsViewMode, setEventsViewMode, calendarViewMode, setCalendarViewMode, calendarYear, calendarMonth, calendarWeekOffset } = useUIStore()
   const { user } = useAuth()
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Get events for the next 3 months
+  // List view: next 3 months from today
   const today = new Date()
-  const endDate = new Date()
-  endDate.setMonth(endDate.getMonth() + 3)
+  const listEndDate = new Date()
+  listEndDate.setMonth(listEndDate.getMonth() + 3)
 
-  const { data: events = [], isLoading, refetch } = useEvents({
+  const { data: listEvents = [], isLoading: listLoading, refetch } = useEvents({
     startDate: today.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0]
+    endDate: listEndDate.toISOString().split('T')[0]
   })
+
+  // Calendar view: fetch events for the visible period
+  const calendarRange = useMemo(() => {
+    if (calendarViewMode === 'week') {
+      const now = new Date()
+      const dayOfWeek = now.getDay()
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      const monday = new Date(now)
+      monday.setDate(now.getDate() - daysToMonday + calendarWeekOffset * 7)
+      const sunday = new Date(monday)
+      sunday.setDate(monday.getDate() + 6)
+      return {
+        startDate: monday.toISOString().split('T')[0],
+        endDate: sunday.toISOString().split('T')[0],
+      }
+    }
+    const firstDay = new Date(calendarYear, calendarMonth, 1)
+    const lastDay = new Date(calendarYear, calendarMonth + 1, 0)
+    return {
+      startDate: firstDay.toISOString().split('T')[0],
+      endDate: lastDay.toISOString().split('T')[0],
+    }
+  }, [calendarViewMode, calendarYear, calendarMonth, calendarWeekOffset])
+
+  const { data: calendarEvents = [] } = useEvents(calendarRange)
+
+  const events = eventsViewMode === 'calendar' ? calendarEvents : listEvents
+  const isLoading = listLoading
 
   const { data: userRsvps = {} } = useQuery({
     queryKey: ['user-rsvps-all', user?.id, events.map(e => e.id).join(',')],
