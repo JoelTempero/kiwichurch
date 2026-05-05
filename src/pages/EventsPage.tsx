@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react'
-import { List, Calendar } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { useUIStore } from '@/store'
 import { useAuth } from '@/hooks/useAuth'
@@ -11,7 +10,7 @@ import { dbService } from '@/services/firebase'
 import { useQuery } from '@tanstack/react-query'
 
 export function EventsPage() {
-  const { eventsViewMode, setEventsViewMode } = useUIStore()
+  const { eventsViewMode, setEventsViewMode, calendarViewMode, setCalendarViewMode } = useUIStore()
   const { user } = useAuth()
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -89,30 +88,45 @@ export function EventsPage() {
       <div className="max-w-3xl mx-auto p-4">
         <h1 className="text-2xl font-display text-forest mb-4">Events</h1>
         {/* View Toggle */}
-        <div className="flex gap-1 p-1 bg-cream rounded-md mb-4">
+        <div className="inline-flex bg-[#ebe6dc] rounded-md p-1 gap-1 mb-4">
           <button
             className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm font-medium transition-colors',
+              'rounded px-3 py-1.5 text-sm font-medium transition-colors',
               eventsViewMode === 'list'
-                ? 'bg-white text-forest shadow-sm'
-                : 'text-text-light hover:text-text-primary'
+                ? 'bg-forest text-cream'
+                : 'text-text-light hover:text-forest'
             )}
             onClick={() => setEventsViewMode('list')}
           >
-            <List size={18} />
             List
           </button>
           <button
             className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm font-medium transition-colors',
-              eventsViewMode === 'calendar'
-                ? 'bg-white text-forest shadow-sm'
-                : 'text-text-light hover:text-text-primary'
+              'rounded px-3 py-1.5 text-sm font-medium transition-colors',
+              eventsViewMode === 'calendar' && calendarViewMode === 'month'
+                ? 'bg-forest text-cream'
+                : 'text-text-light hover:text-forest'
             )}
-            onClick={() => setEventsViewMode('calendar')}
+            onClick={() => {
+              setCalendarViewMode('month')
+              setEventsViewMode('calendar')
+            }}
           >
-            <Calendar size={18} />
-            Calendar
+            Month
+          </button>
+          <button
+            className={cn(
+              'rounded px-3 py-1.5 text-sm font-medium transition-colors',
+              eventsViewMode === 'calendar' && calendarViewMode === 'week'
+                ? 'bg-forest text-cream'
+                : 'text-text-light hover:text-forest'
+            )}
+            onClick={() => {
+              setCalendarViewMode('week')
+              setEventsViewMode('calendar')
+            }}
+          >
+            Week
           </button>
         </div>
 
@@ -124,7 +138,7 @@ export function EventsPage() {
             onEventClick={handleEventClick}
           />
         ) : (
-          <div className="space-y-6">
+          <div>
             {isLoading ? (
               <div className="space-y-4">
                 <EventCardSkeleton />
@@ -148,9 +162,11 @@ export function EventsPage() {
               />
             ) : (
               sortedMonths.map(month => (
-                <div key={month}>
-                  <h3 className="text-sm font-semibold text-text-light uppercase tracking-wide mb-3">{formatMonthHeader(month)}</h3>
-                  <div className="space-y-2">
+                <div key={month} className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden mb-4">
+                  <div className="px-4 py-2.5 border-b border-[#e0dbd2] bg-[#faf8f4]">
+                    <h3 className="text-sm font-semibold text-text-primary">{formatMonthHeader(month)}</h3>
+                  </div>
+                  <div className="divide-y divide-[#ebe6dc]">
                     {groupedByMonth[month].map(event => (
                       <EventCard
                         key={event.id}
