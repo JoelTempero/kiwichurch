@@ -177,6 +177,18 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
+### 2026-05-06d: Admin, Messages, Groups, Kete Fixes + Deploy
+- Admin user creation fixed: Firestore rules allowed admin to create user docs for others (was blocked by `request.auth.uid == userId` AND gate); secondary auth uses inMemoryPersistence to avoid Edge tracking prevention blocking storage
+- Created orphaned Firestore docs for d.tempero@xtra.co.nz and racheltempero@gmail.com (Auth accounts existed without user docs from prior failed attempts)
+- Users page merged into Settings: full user list with search, add user, edit user modal (name, phone, bio, role); `/users` route redirects to `/settings`; removed from sidebar nav
+- Messages mobile: removed autoFocus on member picker search (keyboard was eating first tap on iOS/Android); conversation input pinned to bottom via viewport height calc
+- Groups: added `getGatheringMemberCounts` method, actual member counts now display per group
+- Kete: restored card format with full-width featured images (h-48 object-cover)
+- Pull-to-refresh: added `window.scrollY > 0` check (mobile scrolls via viewport, not container)
+- Firestore rules: added `bio` to self-update allowed fields (was missing, blocking profile bio saves)
+- New components: FadeIn (animate-fade-in-up wrapper), Spinner (circular loading indicator)
+- Deployed to Firebase Hosting
+
 ### 2026-05-06c: Functionality Bug Fixes + Deploy
 - CalendarView fix: fetches events for viewed month/week (was fixed 3-month window from today)
 - DM member selection: error handling with toast, subscription error callbacks, composite Firestore index
@@ -267,7 +279,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] **Profile expansion**: family members, connected accounts, hobbies (optional), privacy toggles (show/hide phone/email/groups), personal gallery
 - [ ] **Directory rethink**: make useful for all users — contact info, profile cards, search/filter
 - [ ] **Events admin overhaul**: Hosting page events tab needs full rework — no repetition support, unclear how events system works
-- [ ] **Admin restructure**: Users page → merge into Settings; Groups tab → permission-based like proposed Kete model
+- [x] **Admin restructure**: Users page merged into Settings with full edit modal; Groups tab → permission-based like proposed Kete model
 - [ ] **RSVP for families**: one person can RSVP kids/family members for events
 - [ ] **Giving page**: review with client how they want this presented
 
