@@ -172,6 +172,28 @@ export const storageService = {
   },
 
   // ============================================
+  // GROUP RESOURCES
+  // ============================================
+
+  async uploadGroupResource(
+    gatheringId: string,
+    resourceId: string,
+    file: File,
+    onProgress?: ProgressCallback
+  ): Promise<UploadResult> {
+    if (!isValidImage(file) && !isValidDocument(file)) {
+      throw new Error('Please upload an image or document (PDF, DOC, XLS, PPT, TXT, CSV)')
+    }
+    if (!isValidSize(file, 25)) {
+      throw new Error('File must be smaller than 25MB')
+    }
+
+    const fileName = generateFileName(file.name)
+    const path = `gatherings/${gatheringId}/resources/${resourceId}/${fileName}`
+    return this.uploadFile(path, file, onProgress)
+  },
+
+  // ============================================
   // SHARED RESOURCES
   // ============================================
 
