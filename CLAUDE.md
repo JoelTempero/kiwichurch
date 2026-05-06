@@ -295,7 +295,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [x] **Post image attachments**: image button on board posts with preview + upload (deployed 2026-05-06)
 - [ ] **File uploads in DMs**: text-only for now — deferred
 - [ ] **File drag-and-drop**: future enhancement
-- [ ] **Google Calendar integration**: brief says "link to online calendar" — website has own calendar but no external sync
+- [x] **Google Calendar integration**: "Add to Google Calendar" link in EventModal (URL-based, no API key needed)
 - [ ] **Guest/limited access**: brief mentions "external guests (optional/limited access)" — not built
 - [ ] **@group mentions**: only @user exists, brief asks for @group
 - [ ] **Announcements/broadcast**: admin/moderator broadcast feature — no distinct announcement type
