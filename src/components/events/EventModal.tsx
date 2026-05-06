@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Edit, Calendar, Clock, MapPin, Users } from 'lucide-react'
+import { Edit, Calendar, Clock, MapPin, Users, CalendarPlus } from 'lucide-react'
 import { Modal, Button, Badge, Avatar } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
 import { useEventRSVPs, useUserRSVP, useRSVP, useCancelRSVP } from '@/hooks/useEvents'
 import { useToast } from '@/components/common/Toast'
 import { EventForm } from './EventForm'
+import { buildGoogleCalendarUrl } from '@/utils/googleCalendar'
 import type { Event } from '@/types'
 
 interface EventModalProps {
@@ -156,6 +157,16 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
               </div>
             )}
           </div>
+
+          <a
+            href={buildGoogleCalendarUrl(event)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-forest hover:text-forest-light transition-colors"
+          >
+            <CalendarPlus size={16} aria-hidden="true" />
+            Add to Google Calendar
+          </a>
 
           {event.description && (
             <div className="text-text-primary leading-relaxed pt-2 border-t border-cream-dark">
