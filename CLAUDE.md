@@ -177,19 +177,14 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
-### 2026-05-06f: Community Board, @Group Mentions, Search Filters (Autopilot)
+### 2026-05-07: Community Board, @Group Mentions, Search Filters + Deploy
 - **Google Calendar integration**: "Add to Google Calendar" link in EventModal using URL API (no keys needed)
 - **Search filters**: type pills (Events/Kete/Groups/People), date range dropdown, author filter on SearchPanel — collapsible with reset button
 - **Community gathering**: well-known "Kiwi Church" gathering (`kiwi-church-community`) auto-created on first admin login, all users auto-joined on auth
 - **HomePage reworked as community board**: desktop has board at top, 2-column bottom (events left, latest files right); mobile has board (3 posts + expand) then events
 - **@group mentions**: MentionInput shows groups in autocomplete dropdown (Users icon, terracotta "group" label); group markup `#[Name](id)`; notifications sent to all group members; renders in terracotta in post content
 - **GatheringCard** routes "Kiwi Church" group to `/home`; GroupDetailPage redirects community gathering to `/home`
-- Firestore rules verified — existing rules handle community gathering correctly (public gathering + self-join members)
-- New files: `src/utils/community.ts`, `src/utils/googleCalendar.ts`
-- Modified: HomePage, GroupDetailPage, GatheringCard, MentionInput, BoardPost, SearchPanel, mentions.ts, useGatherings.ts, db.ts, useAuth.ts, EventModal.tsx
-- 7 commits, typecheck + build clean
-- **Not deployed** (autopilot safety boundary)
-- **Needs Joel's input**: homepage layout review (board + widgets vs previous dashboard)
+- 8 commits, typecheck + build clean, deployed to Firebase Hosting
 
 ### 2026-05-06e: Group Files, URL Embeds, Bug Fixes + Deploy
 - Reviewed client requirements doc against what's been built — identified 12 gaps, tracked in CLAUDE.md
