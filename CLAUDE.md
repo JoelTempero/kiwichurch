@@ -274,6 +274,20 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] Joel to review deployed design revision at https://kiwichurch-1ef0f.web.app
 - [ ] Apply any spacing/density/feel feedback
 
+### Brief gaps (from client requirements doc review — 2026-05-06)
+- [ ] **File sharing in groups**: brief says "allow those groups to store files" — no file uploads/attachments in groups or DMs
+- [ ] **File uploads in messages**: documents, images, video attachments with drag-and-drop + preview
+- [ ] **Google Calendar integration**: brief says "link to online calendar" — website has own calendar but no external sync
+- [ ] **Guest/limited access**: brief mentions "external guests (optional/limited access)" — not built
+- [ ] **@group mentions**: only @user exists, brief asks for @group
+- [ ] **Announcements/broadcast**: admin/moderator broadcast feature — no distinct announcement type
+- [ ] **Search filters**: date, user, topic filters on global search
+- [ ] **Audit logs**: brief says "audit logs for admin review" — not built
+- [ ] **Surveys**: brief says "polls and surveys" — polls built, no survey feature
+- [ ] **Notification customisation**: per-channel/per-group notification settings
+- [ ] **Admin content deletion**: verify admins can delete/edit others' posts and messages
+- [ ] **Mobile push (FCM)**: brief says "push notifications (mobile)" — Web Notifications only
+
 ### Feature work (needs brainstorm/planning)
 - [ ] **Kete editor overhaul**: move add/edit from Hosting page to Kete page itself; permission-based access (admin toggles per-user); full-page editor with rich text, inline images, video embeds (replace barebones modal)
 - [ ] **Profile expansion**: family members, connected accounts, hobbies (optional), privacy toggles (show/hide phone/email/groups), personal gallery
@@ -286,9 +300,9 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 ### Remaining bugs
 - [ ] No gatherings have `hostId` field — `isHostOfGathering()` always returns false (rules work around it now, but data should be fixed)
 - [ ] DM permission error may persist — now surfaces as toast instead of silent failure; root cause likely Firestore rules interaction, needs testing with live data
-- [ ] Homepage "Learn More" CTA links to dead about.html
-- [ ] Giving page repeats "give" 14 times — subheads need simplifying
-- [ ] Community meeting times say "fortnightly" without specifying which week
+- [x] Homepage "Learn More" CTA links to dead about.html → fixed, now links to communities.html
+- [x] Giving page repeats "give" 14 times → deleted (no public giving page needed, portal only)
+- [ ] Community meeting times say "fortnightly" without specifying which week (Firestore data issue — needs client input)
 - [ ] Website calendar shows "Thin Place" and "Online Prayer" — correct data but may need review with client
 
 ### Deferred
@@ -296,4 +310,3 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - Dark mode (removed toggle — no theme implementation exists)
 - Email notification preferences (removed toggle — no email system exists)
 - No App Check configured (post-launch hardening)
-- about.html still in repo (can delete)

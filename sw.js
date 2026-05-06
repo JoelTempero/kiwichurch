@@ -3,12 +3,10 @@ const CACHE_NAME = 'kiwichurch-v3';
 const STATIC_ASSETS = [
     './',
     './index.html',
-    './about.html',
     './communities.html',
     './calendar.html',
     './kete.html',
     './resources.html',
-    './giving.html',
     './portal.html',
     './css/styles.css',
     './js/main.js',
