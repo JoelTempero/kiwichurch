@@ -39,6 +39,7 @@ import type {
   Report,
   ReportStatus
 } from '@/types'
+import { GroupResource } from '../../types/groupResource'
 
 // Helper to convert Firestore doc to typed object
 function docToObject<T>(doc: DocumentData): T {
@@ -481,6 +482,55 @@ export const dbService = {
       reactions[emoji] = [...users, userId]
     }
     await updateDoc(postRef, { reactions, updatedAt: serverTimestamp() })
+  },
+
+  // ============================================
+  // GROUP RESOURCES
+  // ============================================
+
+  async getGroupResources(gatheringId: string): Promise<GroupResource[]> {
+    const resourcesRef = collection(db, 'gatherings', gatheringId, 'resources')
+    const q = query(resourcesRef, orderBy('createdAt', 'desc'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => docToObject<GroupResource>(doc))
+  },
+
+  async addGroupResource(
+    gatheringId: string,
+    data: Omit<GroupResource, 'id' | 'createdAt'>
+  ): Promise<GroupResource> {
+    const resourcesRef = collection(db, 'gatherings', gatheringId, 'resources')
+    const docRef = await addDoc(resourcesRef, {
+      ...data,
+      createdAt: serverTimestamp(),
+    })
+    return { ...data, id: docRef.id, createdAt: new Date() } as GroupResource
+  },
+
+  async updateGroupResource(
+    gatheringId: string,
+    resourceId: string,
+    updates: Partial<Pick<GroupResource, 'title' | 'description' | 'tags'>>
+  ): Promise<void> {
+    const docRef = doc(db, 'gatherings', gatheringId, 'resources', resourceId)
+    await updateDoc(docRef, updates)
+  },
+
+  async deleteGroupResource(gatheringId: string, resourceId: string): Promise<void> {
+    const docRef = doc(db, 'gatherings', gatheringId, 'resources', resourceId)
+    await deleteDoc(docRef)
+  },
+
+  subscribeToGroupResources(
+    gatheringId: string,
+    callback: (resources: GroupResource[]) => void
+  ): Unsubscribe {
+    const resourcesRef = collection(db, 'gatherings', gatheringId, 'resources')
+    const q = query(resourcesRef, orderBy('createdAt', 'desc'))
+    return onSnapshot(q, (snapshot) => {
+      const resources = snapshot.docs.map(doc => docToObject<GroupResource>(doc))
+      callback(resources)
+    })
   },
 
   // ============================================
