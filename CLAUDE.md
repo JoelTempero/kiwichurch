@@ -177,6 +177,20 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
+### 2026-05-06f: Community Board, @Group Mentions, Search Filters (Autopilot)
+- **Google Calendar integration**: "Add to Google Calendar" link in EventModal using URL API (no keys needed)
+- **Search filters**: type pills (Events/Kete/Groups/People), date range dropdown, author filter on SearchPanel — collapsible with reset button
+- **Community gathering**: well-known "Kiwi Church" gathering (`kiwi-church-community`) auto-created on first admin login, all users auto-joined on auth
+- **HomePage reworked as community board**: desktop has board at top, 2-column bottom (events left, latest files right); mobile has board (3 posts + expand) then events
+- **@group mentions**: MentionInput shows groups in autocomplete dropdown (Users icon, terracotta "group" label); group markup `#[Name](id)`; notifications sent to all group members; renders in terracotta in post content
+- **GatheringCard** routes "Kiwi Church" group to `/home`; GroupDetailPage redirects community gathering to `/home`
+- Firestore rules verified — existing rules handle community gathering correctly (public gathering + self-join members)
+- New files: `src/utils/community.ts`, `src/utils/googleCalendar.ts`
+- Modified: HomePage, GroupDetailPage, GatheringCard, MentionInput, BoardPost, SearchPanel, mentions.ts, useGatherings.ts, db.ts, useAuth.ts, EventModal.tsx
+- 7 commits, typecheck + build clean
+- **Not deployed** (autopilot safety boundary)
+- **Needs Joel's input**: homepage layout review (board + widgets vs previous dashboard)
+
 ### 2026-05-06e: Group Files, URL Embeds, Bug Fixes + Deploy
 - Reviewed client requirements doc against what's been built — identified 12 gaps, tracked in CLAUDE.md
 - Deleted about.html (merged into communities previously) and giving.html (public page not needed)
@@ -283,6 +297,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - **No budget/timeline constraints** from client
 - **Storage deletes blocked client-side** — no Cloud Functions yet, so admin deletes via Firebase Console. Revisit when Cloud Functions are added.
 - **Portal design revision** — context-driven containers (flat+featured for dashboards, grouped sections for lists), no shadows except floating overlays, serif h1 only, Source Sans 3 body. Portal typography intentionally diverges from DESIGN.md (which defines serif for all headings on the static site).
+- **Community board on homepage** — "Kiwi Church" is a real gathering in Firestore (`kiwi-church-community`), all members auto-join. Its board renders on the homepage. Clicking "Kiwi Church" in groups list goes to `/home`. Desktop layout: board top, events/files bottom row. Mobile: 3 posts + expand, then events.
 
 ## Next Steps
 
@@ -297,9 +312,9 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] **File drag-and-drop**: future enhancement
 - [x] **Google Calendar integration**: "Add to Google Calendar" link in EventModal (URL-based, no API key needed)
 - [ ] **Guest/limited access**: brief mentions "external guests (optional/limited access)" — not built
-- [ ] **@group mentions**: only @user exists, brief asks for @group
+- [x] **@group mentions**: MentionInput shows groups in autocomplete, `#[Name](id)` markup, notifications to all group members
 - [ ] **Announcements/broadcast**: admin/moderator broadcast feature — no distinct announcement type
-- [ ] **Search filters**: date, user, topic filters on global search
+- [x] **Search filters**: type pills, date range, author filter on SearchPanel (collapsible)
 - [ ] **Audit logs**: brief says "audit logs for admin review" — not built
 - [ ] **Surveys**: brief says "polls and surveys" — polls built, no survey feature
 - [ ] **Notification customisation**: per-channel/per-group notification settings
