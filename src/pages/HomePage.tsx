@@ -7,6 +7,7 @@ import {
   useBoardPosts,
   useBoardPostsSubscription,
   useGatheringMemberProfiles,
+  useGatherings,
   useCreateBoardPost
 } from '@/hooks/useGatherings'
 import { useGroupResources } from '@/hooks/useGroupResources'
@@ -14,10 +15,10 @@ import { BoardPost } from '@/components/groups'
 import { EventCard } from '@/components/events'
 import { Spinner, FadeIn, PullToRefresh, EmptyState, Button, Avatar, MentionInput } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
-import { encodeMention, extractMentionIds } from '@/utils/mentions'
+import { encodeMention, encodeGroupMention, extractMentionIds, extractGroupMentionIds } from '@/utils/mentions'
 import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME } from '@/utils/community'
 import { storageService } from '@/services/firebase/storage'
-import type { MentionMember } from '@/components/common/MentionInput'
+import type { MentionMember, MentionGroup } from '@/components/common/MentionInput'
 import type { GroupResource } from '@/types/groupResource'
 
 function getTimeBasedGreeting(): string {
@@ -56,6 +57,7 @@ export function HomePage() {
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null)
   const [showAllPosts, setShowAllPosts] = useState(false)
+  const [groupMentions, setGroupMentions] = useState<Map<string, string>>(new Map())
   const attachmentRef = useRef<HTMLInputElement>(null)
 
   // Data
@@ -63,6 +65,7 @@ export function HomePage() {
   const { data: posts = [], isLoading: loadingPosts, refetch: refetchPosts } = useBoardPosts(COMMUNITY_GATHERING_ID)
   const { data: memberProfiles = [] } = useGatheringMemberProfiles(COMMUNITY_GATHERING_ID)
   const { data: resources = [] } = useGroupResources(COMMUNITY_GATHERING_ID)
+  const { data: allGatherings = [] } = useGatherings()
   const createPost = useCreateBoardPost()
 
   useBoardPostsSubscription(COMMUNITY_GATHERING_ID)
@@ -73,8 +76,16 @@ export function HomePage() {
       .map(m => ({ id: m.id, displayName: m.displayName, photoURL: m.photoURL }))
   }, [memberProfiles, user?.id])
 
+  const mentionGroups: MentionGroup[] = useMemo(() => {
+    return allGatherings.map(g => ({ id: g.id, name: g.name }))
+  }, [allGatherings])
+
   const handleMentionsChange = useCallback((mentions: Map<string, string>) => {
     setPostMentions(mentions)
+  }, [])
+
+  const handleGroupMentionsChange = useCallback((mentions: Map<string, string>) => {
+    setGroupMentions(mentions)
   }, [])
 
   const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,8 +119,15 @@ export function HomePage() {
           encodeMention(displayName, userId)
         )
       }
+      for (const [groupName, gatheringId] of groupMentions) {
+        content = content.replace(
+          new RegExp(`@${groupName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\])`, 'g'),
+          encodeGroupMention(groupName, gatheringId)
+        )
+      }
 
       const mentionIds = extractMentionIds(content)
+      const mentionedGroupIds = extractGroupMentionIds(content)
 
       const validPollOptions = pollOptions.map(o => o.trim()).filter(Boolean)
       const pollData = showPollCreator && pollQuestion.trim() && validPollOptions.length >= 2
@@ -141,10 +159,12 @@ export function HomePage() {
           attachmentURL,
           attachmentType,
           attachmentName,
-        }
+        },
+        groupMentionIds: mentionedGroupIds.length > 0 ? mentionedGroupIds : undefined,
       })
       setNewPostContent('')
       setPostMentions(new Map())
+      setGroupMentions(new Map())
       setShowPollCreator(false)
       setPollQuestion('')
       setPollOptions(['', ''])
@@ -191,6 +211,8 @@ export function HomePage() {
                 onChange={setNewPostContent}
                 onMentionsChange={handleMentionsChange}
                 members={mentionMembers}
+                groups={mentionGroups}
+                onGroupMentionsChange={handleGroupMentionsChange}
                 placeholder="Share something with the community..."
                 disabled={isPosting}
                 rows={3}

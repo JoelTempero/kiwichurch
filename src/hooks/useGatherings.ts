@@ -192,13 +192,16 @@ export function useCreateBoardPost() {
     mutationFn: async ({
       gatheringId,
       gatheringName,
-      postData
+      postData,
+      groupMentionIds
     }: {
       gatheringId: string
       gatheringName: string
       postData: Omit<BoardPost, 'id' | 'createdAt' | 'updatedAt'>
+      groupMentionIds?: string[]
     }) => {
       const post = await dbService.createBoardPost(gatheringId, postData)
+      const snippet = postData.content.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1').replace(/#\[([^\]]+)\]\([^)]+\)/g, '@$1')
 
       if (postData.mentions && postData.mentions.length > 0) {
         await dbService.createMentionNotifications(postData.mentions, {
@@ -207,7 +210,18 @@ export function useCreateBoardPost() {
           gatheringId,
           gatheringName,
           postId: post.id,
-          snippet: postData.content.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1'),
+          snippet,
+        })
+      }
+
+      if (groupMentionIds && groupMentionIds.length > 0) {
+        await dbService.createGroupMentionNotifications(groupMentionIds, {
+          authorId: postData.authorId,
+          authorName: postData.authorName,
+          sourceGatheringId: gatheringId,
+          sourceGatheringName: gatheringName,
+          postId: post.id,
+          snippet,
         })
       }
 
@@ -261,14 +275,17 @@ export function useAddPostComment() {
       gatheringId,
       gatheringName,
       postId,
-      commentData
+      commentData,
+      groupMentionIds
     }: {
       gatheringId: string
       gatheringName: string
       postId: string
       commentData: Omit<BoardComment, 'id' | 'createdAt'>
+      groupMentionIds?: string[]
     }) => {
       const comment = await dbService.addPostComment(gatheringId, postId, commentData)
+      const snippet = commentData.content.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1').replace(/#\[([^\]]+)\]\([^)]+\)/g, '@$1')
 
       if (commentData.mentions && commentData.mentions.length > 0) {
         await dbService.createMentionNotifications(commentData.mentions, {
@@ -278,7 +295,19 @@ export function useAddPostComment() {
           gatheringName,
           postId,
           commentId: comment.id,
-          snippet: commentData.content.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1'),
+          snippet,
+        })
+      }
+
+      if (groupMentionIds && groupMentionIds.length > 0) {
+        await dbService.createGroupMentionNotifications(groupMentionIds, {
+          authorId: commentData.authorId,
+          authorName: commentData.authorName,
+          sourceGatheringId: gatheringId,
+          sourceGatheringName: gatheringName,
+          postId,
+          commentId: comment.id,
+          snippet,
         })
       }
 

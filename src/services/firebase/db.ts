@@ -40,7 +40,7 @@ import type {
   ReportStatus
 } from '@/types'
 import { GroupResource } from '../../types/groupResource'
-import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME } from '@/utils/community'
+import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME, isCommunityGathering } from '@/utils/community'
 
 // Helper to convert Firestore doc to typed object
 function docToObject<T>(doc: DocumentData): T {
@@ -639,6 +639,54 @@ export const dbService = {
         read: false,
         createdAt: timestamp,
       })
+    }
+
+    await batch.commit()
+  },
+
+  async createGroupMentionNotifications(
+    gatheringIds: string[],
+    context: {
+      authorId: string
+      authorName: string
+      sourceGatheringId: string
+      sourceGatheringName: string
+      postId: string
+      commentId?: string
+      snippet: string
+    }
+  ): Promise<void> {
+    const allMemberIds = new Set<string>()
+    for (const gId of gatheringIds.slice(0, 10)) {
+      const members = await this.getGatheringMembers(gId)
+      for (const m of members) {
+        if (m.id !== context.authorId) allMemberIds.add(m.id)
+      }
+    }
+
+    if (allMemberIds.size === 0) return
+
+    const batch = writeBatch(db)
+    const timestamp = serverTimestamp()
+    let count = 0
+
+    for (const userId of allMemberIds) {
+      if (count >= 500) break
+      const notifRef = doc(collection(db, 'notifications'))
+      batch.set(notifRef, {
+        userId,
+        type: 'mention' as const,
+        title: `${context.authorName} mentioned a group you're in`,
+        message: context.snippet.length > 80
+          ? context.snippet.slice(0, 80) + '...'
+          : context.snippet,
+        link: isCommunityGathering(context.sourceGatheringId)
+          ? '/home'
+          : `/groups/${context.sourceGatheringId}`,
+        read: false,
+        createdAt: timestamp,
+      })
+      count++
     }
 
     await batch.commit()

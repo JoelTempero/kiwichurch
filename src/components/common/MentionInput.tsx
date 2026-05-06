@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type KeyboardEvent } from 'react'
+import { Users } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
 export interface MentionMember {
@@ -7,11 +8,18 @@ export interface MentionMember {
   photoURL?: string
 }
 
+export interface MentionGroup {
+  id: string
+  name: string
+}
+
 interface MentionInputProps {
   value: string
   onChange: (value: string) => void
   onMentionsChange: (mentions: Map<string, string>) => void
   members: MentionMember[]
+  groups?: MentionGroup[]
+  onGroupMentionsChange?: (groupMentions: Map<string, string>) => void
   placeholder?: string
   disabled?: boolean
   rows?: number
@@ -21,11 +29,17 @@ interface MentionInputProps {
   onSubmit?: () => void
 }
 
+type DropdownItem =
+  | { kind: 'member'; member: MentionMember }
+  | { kind: 'group'; group: MentionGroup }
+
 export function MentionInput({
   value,
   onChange,
   onMentionsChange,
   members,
+  groups = [],
+  onGroupMentionsChange,
   placeholder,
   disabled,
   rows = 3,
@@ -39,12 +53,30 @@ export function MentionInput({
   const [searchText, setSearchText] = useState('')
   const [mentionStartPos, setMentionStartPos] = useState<number | null>(null)
   const [mentionMap] = useState<Map<string, string>>(() => new Map())
+  const [groupMentionMap] = useState<Map<string, string>>(() => new Map())
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const filtered = members.filter(m =>
-    m.displayName.toLowerCase().includes(searchText.toLowerCase())
-  ).slice(0, 6)
+  const filteredItems = useMemo(() => {
+    const search = searchText.toLowerCase()
+    const items: DropdownItem[] = []
+
+    const filteredGroups = groups.filter(g =>
+      g.name.toLowerCase().includes(search)
+    ).slice(0, 3)
+    for (const group of filteredGroups) {
+      items.push({ kind: 'group', group })
+    }
+
+    const filteredMembers = members.filter(m =>
+      m.displayName.toLowerCase().includes(search)
+    ).slice(0, 6)
+    for (const member of filteredMembers) {
+      items.push({ kind: 'member', member })
+    }
+
+    return items
+  }, [members, groups, searchText])
 
   useEffect(() => {
     setDropdownIndex(0)
@@ -70,7 +102,7 @@ export function MentionInput({
     onChange(newValue)
   }, [onChange])
 
-  const insertMention = useCallback((member: MentionMember) => {
+  const insertMention = useCallback((item: DropdownItem) => {
     if (mentionStartPos === null) return
 
     const before = value.slice(0, mentionStartPos)
@@ -78,11 +110,18 @@ export function MentionInput({
     const cursorPos = el?.selectionStart ?? value.length
     const after = value.slice(cursorPos)
 
-    const displayText = `@${member.displayName} `
-    const newValue = before + displayText + after
-    mentionMap.set(member.displayName, member.id)
-    onMentionsChange(new Map(mentionMap))
+    let displayText: string
+    if (item.kind === 'member') {
+      displayText = `@${item.member.displayName} `
+      mentionMap.set(item.member.displayName, item.member.id)
+      onMentionsChange(new Map(mentionMap))
+    } else {
+      displayText = `@${item.group.name} `
+      groupMentionMap.set(item.group.name, item.group.id)
+      onGroupMentionsChange?.(new Map(groupMentionMap))
+    }
 
+    const newValue = before + displayText + after
     onChange(newValue)
     setShowDropdown(false)
     setMentionStartPos(null)
@@ -94,10 +133,10 @@ export function MentionInput({
         el.setSelectionRange(newPos, newPos)
       }
     })
-  }, [value, mentionStartPos, mentionMap, onChange, onMentionsChange])
+  }, [value, mentionStartPos, mentionMap, groupMentionMap, onChange, onMentionsChange, onGroupMentionsChange])
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (!showDropdown || filtered.length === 0) {
+    if (!showDropdown || filteredItems.length === 0) {
       if (singleLine && e.key === 'Enter') {
         e.preventDefault()
         onSubmit?.()
@@ -107,13 +146,13 @@ export function MentionInput({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setDropdownIndex(i => (i + 1) % filtered.length)
+      setDropdownIndex(i => (i + 1) % filteredItems.length)
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setDropdownIndex(i => (i - 1 + filtered.length) % filtered.length)
+      setDropdownIndex(i => (i - 1 + filteredItems.length) % filteredItems.length)
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      insertMention(filtered[dropdownIndex])
+      insertMention(filteredItems[dropdownIndex])
     } else if (e.key === 'Escape') {
       e.preventDefault()
       setShowDropdown(false)
@@ -141,26 +180,34 @@ export function MentionInput({
         aria-label={ariaLabel}
       />
 
-      {showDropdown && filtered.length > 0 && (
+      {showDropdown && filteredItems.length > 0 && (
         <div
           ref={dropdownRef}
           className="absolute left-0 right-0 bottom-full mb-1 bg-white rounded-md shadow-lg border border-cream-dark z-20 max-h-48 overflow-y-auto"
           role="listbox"
           aria-label="Mention suggestions"
         >
-          {filtered.map((member, i) => (
+          {filteredItems.map((item, i) => (
             <button
-              key={member.id}
+              key={item.kind === 'member' ? `m-${item.member.id}` : `g-${item.group.id}`}
               type="button"
               className={cn(
                 'flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors',
                 i === dropdownIndex ? 'bg-cream text-forest' : 'hover:bg-cream/50'
               )}
-              onClick={() => insertMention(member)}
+              onClick={() => insertMention(item)}
               role="option"
               aria-selected={i === dropdownIndex}
             >
-              <span className="font-medium">{member.displayName}</span>
+              {item.kind === 'group' ? (
+                <>
+                  <Users size={14} className="text-terracotta flex-shrink-0" />
+                  <span className="font-medium">{item.group.name}</span>
+                  <span className="text-xs text-text-lighter ml-auto">group</span>
+                </>
+              ) : (
+                <span className="font-medium">{item.member.displayName}</span>
+              )}
             </button>
           ))}
         </div>

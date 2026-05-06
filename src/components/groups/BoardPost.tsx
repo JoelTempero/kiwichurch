@@ -51,6 +51,8 @@ function RichContent({ content }: { content: string }) {
       {segments.map((seg, i) =>
         seg.type === 'mention' ? (
           <span key={i} className="font-semibold text-forest">@{seg.content}</span>
+        ) : seg.type === 'groupMention' ? (
+          <span key={i} className="font-semibold text-terracotta">@{seg.content}</span>
         ) : (
           <span key={i}>{seg.content}</span>
         )
