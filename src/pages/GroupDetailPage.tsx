@@ -13,7 +13,7 @@ import {
   useCreateBoardPost
 } from '@/hooks/useGatherings'
 import { BoardPost } from '@/components/groups'
-import { Button, EmptyState, Avatar, Skeleton, MentionInput, ConfirmModal } from '@/components/common'
+import { Button, EmptyState, Avatar, Spinner, MentionInput, ConfirmModal } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { encodeMention, extractMentionIds } from '@/utils/mentions'
 import type { MentionMember } from '@/components/common/MentionInput'
@@ -125,17 +125,7 @@ export function GroupDetailPage() {
   }
 
   if (loadingGathering) {
-    return (
-      <div>
-        <div>
-          <Skeleton variant="rectangular" height={120} />
-        </div>
-        <div className="p-4">
-          <Skeleton variant="text" width="60%" />
-          <Skeleton variant="text" width="80%" />
-        </div>
-      </div>
-    )
+    return <Spinner />
   }
 
   if (!gathering) {
@@ -309,10 +299,7 @@ export function GroupDetailPage() {
 
           {/* Posts */}
           {loadingPosts ? (
-            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-              <Skeleton variant="rectangular" height={120} />
-              <Skeleton variant="rectangular" height={120} />
-            </div>
+            <Spinner />
           ) : posts.length === 0 ? (
             <EmptyState
               icon="message"

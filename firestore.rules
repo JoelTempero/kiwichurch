@@ -69,20 +69,22 @@ service cloud.firestore {
       // Users can create their own profile during registration
       // During initial setup, first user can be admin
       // Otherwise, new users default to member role
-      allow create: if isAuthenticated() && request.auth.uid == userId &&
+      // Admins can create documents for other users
+      allow create: if isAuthenticated() &&
         (
-          // Initial setup: first user can be admin
-          (isInitialSetup() && request.resource.data.role == 'admin') ||
-          // Normal registration: must be member role
-          (request.resource.data.role == 'member') ||
-          // Admins can create any user
+          // Self-create
+          (request.auth.uid == userId && (
+            (isInitialSetup() && request.resource.data.role == 'admin') ||
+            request.resource.data.role == 'member'
+          )) ||
+          // Admin creates another user's document
           isAdmin()
         );
 
       // Users can update their own profile (limited fields)
       allow update: if isAuthenticated() && isActive() && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName', 'phone', 'photoURL', 'preferences', 'dependants', 'updatedAt']);
+          .hasOnly(['displayName', 'phone', 'bio', 'photoURL', 'preferences', 'dependants', 'updatedAt']);
 
       // Admins can update any user (including role)
       allow update: if isAdmin();
@@ -165,8 +167,8 @@ service cloud.firestore {
     // EVENTS COLLECTION
     // ============================================
     match /events/{eventId} {
-      // All authenticated users can read events
-      allow read: if isAuthenticated();
+      // Public events readable by anyone (static site calendar); all events readable by authenticated users
+      allow read: if isAuthenticated() || resource.data.isPublic == true;
 
       // Admins and hosts can create/update events
       allow create, update: if isAdminOrHost();

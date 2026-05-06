@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Council Audit - Kiwi Church - 2026-05-02</title>
+<style>
+:root {
+  --bg: #0f1419;
+  --surface: #1a2027;
+  --surface-2: #242d35;
+  --border: #2f3942;
+  --text: #e7e9ea;
+  --text-muted: #8b98a5;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --purple: #a855f7;
+  --cyan: #06b6d4;
+  --pink: #ec4899;
+  --teal: #14b8a6;
+  --blue: #818cf8;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
+h2 { font-size: 1.3rem; margin-bottom: 1rem; color: var(--text); }
+h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+.header { text-align: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+.header .crown { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.header .meta { color: var(--text-muted); font-size: 0.875rem; margin-top: 0.5rem; }
+.factions-bar { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+.faction-badge { background: var(--surface-2); padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.8rem; }
+.verdict-banner { padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 2rem; text-align: center; }
+.verdict-amber { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); }
+.verdict-text { font-size: 1.1rem; font-weight: 600; color: var(--amber); margin-bottom: 0.5rem; }
+.verdict-detail { color: var(--text-muted); font-size: 0.9rem; }
+.section { margin-bottom: 2rem; }
+.section-title { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+.critical-path { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem; }
+.critical-path ol { padding-left: 1.25rem; }
+.critical-path li { margin-bottom: 0.75rem; color: var(--text-muted); }
+.critical-path li strong { color: var(--text); }
+.faction-card { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+.faction-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+.severity-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-red { background: var(--red); }
+.dot-amber { background: var(--amber); }
+.dot-green { background: var(--green); }
+.rec-list { list-style: none; padding: 0; }
+.rec-list li { padding: 0.5rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 0.5rem; }
+.rec-list li:last-child { border-bottom: none; }
+.tag { font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.25rem; text-transform: uppercase; white-space: nowrap; }
+.tag-critical { background: rgba(239,68,68,0.15); color: var(--red); }
+.tag-important { background: rgba(245,158,11,0.15); color: var(--amber); }
+.tag-nice { background: rgba(139,152,165,0.15); color: var(--text-muted); }
+.faction-synthesis { color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.member-card { margin-top: 1rem; padding: 1rem; background: var(--surface-2); border-radius: 0.5rem; border-left: 3px solid var(--green); }
+.member-card:nth-child(2) { border-left-color: var(--red); }
+.member-card:nth-child(3) { border-left-color: var(--purple); }
+.member-card:nth-child(4) { border-left-color: var(--cyan); }
+.member-card:nth-child(5) { border-left-color: var(--amber); }
+.member-card:nth-child(6) { border-left-color: var(--pink); }
+.member-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.member-avatar { font-size: 1.25rem; }
+.member-name { font-weight: 600; font-size: 0.9rem; }
+.member-role { color: var(--text-muted); font-size: 0.8rem; }
+.compact-take { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+.full-report { display: none; font-size: 0.85rem; color: var(--text-muted); line-height: 1.7; }
+.full-report p { margin-bottom: 0.75rem; }
+.expand-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 0.25rem 0.75rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.75rem; }
+.expand-btn:hover { border-color: var(--text-muted); color: var(--text); }
+.blind-spots { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem; }
+.blind-spots h3 { color: var(--amber); }
+.peer-review { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem; }
+.peer-review p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; }
+.peer-review strong { color: var(--text); }
+.token-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem; }
+.token-table th, .token-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; }
+.token-table th { color: var(--text); font-weight: 500; }
+.token-table tr:last-child { font-weight: 600; color: var(--text); }
+.expand-all { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted); padding: 0.4rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.8rem; margin-top: 0.5rem; }
+.expand-all:hover { border-color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="crown">👑</div>
+  <h1>Council Audit</h1>
+  <p>Kiwi Church Community Platform</p>
+  <p class="meta">2 May 2026 &middot; 8 members active &middot; Peer review enabled</p>
+  <div class="factions-bar">
+    <span class="faction-badge">💻 Code Council</span>
+    <span class="faction-badge">🔨 Stress Test Council</span>
+    <span class="faction-badge">👥 User Council</span>
+    <span class="faction-badge">✍️ Content Council</span>
+  </div>
+  <button class="expand-all" onclick="toggleAll()">Expand All Reports</button>
+</div>
+
+<!-- Executive Summary -->
+<div class="verdict-banner verdict-amber">
+  <div class="verdict-text">⚠️ SHIP WITH FIXES</div>
+  <div class="verdict-detail">The platform is architecturally sound for a 30-person church community, but has 4-5 blocking issues that would embarrass the client on day one: the lead pastor cannot log in, the events page is empty, registration misleads users, deactivation is decorative, and the contact form is an open spam vector. Fix these, seed real data, and ship.</div>
+</div>
+
+<!-- Critical Path -->
+<div class="critical-path">
+  <h2>🎯 Critical Path</h2>
+  <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">If you only have 2 hours, do these.</p>
+  <ol>
+    <li><strong>Fix auth resilience:</strong> When getUser(uid) returns null for a valid auth session, create the Firestore doc on the fly or show an error. Never silently redirect to login. (Code)</li>
+    <li><strong>Decide registration model:</strong> Open or gated? If gated, add approval queue. If open, rename "Request an Account" to "Create Account." (User/Code)</li>
+    <li><strong>Add rate limiting to contactMessages:</strong> Require a honeypot field or reCAPTCHA. Add document size validation in security rules. (Stress Test)</li>
+    <li><strong>Fix Storage delete rules:</strong> Any authenticated user can currently delete any file in kete/events/gatherings/resources paths. Add ownership check. (Code)</li>
+    <li><strong>Seed fresh event data and make Darryl's account work.</strong> (User)</li>
+  </ol>
+</div>
+
+<!-- Code Council -->
+<div class="faction-card">
+  <div class="faction-header">
+    <span>💻</span>
+    <h3>Code Council</h3>
+    <span class="severity-dot dot-red"></span>
+  </div>
+  <ul class="rec-list">
+    <li><span class="tag tag-critical">critical</span> Storage delete rules allow any authenticated user to delete any file outside /users/ path</li>
+    <li><span class="tag tag-critical">critical</span> getAllUsers() will throw permission denied for non-admin users (DM member picker, search panel broken)</li>
+    <li><span class="tag tag-important">important</span> Auth flow treats missing Firestore doc identically to "not logged in" with no error feedback</li>
+    <li><span class="tag tag-important">important</span> No App Check configured; API calls can bypass the app entirely</li>
+    <li><span class="tag tag-nice">nice-to-have</span> enableIndexedDbPersistence is deprecated; migrate to persistentLocalCache before next SDK bump</li>
+  </ul>
+  <div class="faction-synthesis">The code layer has two genuine security holes (Storage deletes, getAllUsers permission mismatch) and an auth UX failure that will hit every user whose Firestore doc is missing or slow to load. The deprecated persistence API works today but is a ticking clock.</div>
+
+  <div class="member-card">
+    <div class="member-header">
+      <span class="member-avatar">🛡️</span>
+      <span class="member-name">The Sentinel</span>
+      <span class="member-role">Security Hardliner</span>
+    </div>
+    <div class="compact-take">Storage delete rules grant any authenticated user the ability to delete all uploaded media. getAllUsers() contradicts security rules and will fail for members. No App Check means the API is callable without loading the website. The platform has doors that look closed but aren't latched.</div>
+    <button class="expand-btn" onclick="toggleReport(this)">Full Report</button>
+    <div class="full-report">
+      <p>This project has a pattern I see constantly in Firebase apps: the rules look thorough on first read, but the authorization model is full of semantic gaps. The contactMessages collection allows create: if true with no constraints on document shape, size, or frequency. Any script can flood that collection with garbage. No Cloud Functions exist to throttle it. No captcha protects it.</p>
+      <p>The Storage rules are worse than they appear. Every single path under /kete/, /events/, /gatherings/, and /resources/ grants allow delete: if isAuthenticated(). That means any member who signs up (registration is open and instant) can delete every uploaded image and document belonging to other users. One disgruntled member and your media library is gone.</p>
+      <p>The users collection read rule (request.auth.uid == userId || isAdmin()) contradicts the application code. getAllUsers() is called from DirectMessagesPage, SearchPanel, and DirectoryPage for regular members. This query will fail for non-admin users. Either the app is already broken for members, or the Firestore emulators are hiding the permission failures during dev.</p>
+      <p>The deactivated status enforcement is entirely absent from security rules. A deactivated user retains their Firebase Auth credentials, can sign in, and has full member-level access to every collection. The username enumeration leak is similarly still present. The Firebase API key absence of App Check means any HTTP client can call your Firestore and Auth APIs directly.</p>
+    </div>
+  </div>
+
+  <div class="member-card">
+    <div class="member-header">
+      <span class="member-avatar">🧬</span>
+      <span class="member-name">First Principles Thinker</span>
+      <span class="member-role">Problem Reframer</span>
+    </div>
+    <div class="compact-take">The audit asks "what bugs need fixing" but the actual question is "can 30 church members use this next Sunday?" Half the 18 items are irrelevant to that goal. The architecture is fine for a church. The product readiness is not. Focus on: auth resilience, registration decision, fresh events, deactivation enforcement.</div>
+    <button class="expand-btn" onclick="toggleReport(this)">Full Report</button>
+    <div class="full-report">
+      <p>What if the bug list is solving the wrong problem? The audit categorizes by technical severity. But severity for whom? A deprecated persistence API and an O(n) membership query are engineering debt. They will not prevent anyone from joining a group next week. Meanwhile, "Darryl cannot log in" and "anyone can create an account with no approval" are the only two items that will generate a confused phone call from a real person.</p>
+      <p>You have 5 registered users. The system has 16 pages, 28 components, polls, emoji reactions, moderation queues. How many of those features will be used in the first month? Groups, events, maybe the blog. The moderation queue will sit empty because there is nothing to moderate when your community is 30 people who see each other on Sunday.</p>
+      <p>The auth flow is the wall. The system was built for a user who already exists in both Firebase Auth AND Firestore. The moment those two get out of sync, the app silently treats you as logged out. For a non-technical church administrator, this is indistinguishable from "the app is broken." The fix is: what happens when getUser(uid) returns null for a valid auth session? The answer should never be "pretend they are not logged in."</p>
+      <p>Here is what I would strip the fixlist down to for "usable next Sunday": (1) Auth resilience when Firestore user doc is missing or slow. (2) A decision on open vs. gated registration. (3) Fresh event data so the homepage is not empty. (4) The deactivated-user enforcement. Everything else addresses scale problems at 30 users with no evidence they matter yet.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Stress Test Council -->
+<div class="faction-card">
+  <div class="faction-header">
+    <span>🔨</span>
+    <h3>Stress Test Council</h3>
+    <span class="severity-dot dot-red"></span>
+  </div>
+  <ul class="rec-list">
+    <li><span class="tag tag-critical">critical</span> contactMessages: unlimited public writes, no captcha, no size validation, no rate limit</li>
+    <li><span class="tag tag-critical">critical</span> Open registration + no App Check = bot farm in minutes; authenticated bots can spam notifications, posts, storage</li>
+    <li><span class="tag tag-important">important</span> Patient attacker can inflate Firebase bill $15-200/month through slow Storage and document accumulation</li>
+    <li><span class="tag tag-important">important</span> All onSnapshot subscriptions pass zero error callbacks; connection loss is invisible to the user</li>
+    <li><span class="tag tag-nice">nice-to-have</span> Firebase monoculture means regional outage takes everything simultaneously with no degradation path</li>
+  </ul>
+  <div class="faction-synthesis">The stress test faction identified that the combination of open public writes, open registration, and no App Check creates a cost and spam surface that requires zero sophistication to exploit. The infrastructure resilience issues are real but less urgent at current scale. The cost exposure through slow accumulation is the subtlest and most likely threat to go unnoticed.</div>
+
+  <div class="member-card">
+    <div class="member-header">
+      <span class="member-avatar">🔨</span>
+      <span class="member-name">The Hammer</span>
+      <span class="member-role">Bot Buster</span>
+    </div>
+    <div class="compact-take">5 attack vectors: contact form spam (unlimited, unauthenticated), username enumeration (public reads + distinct errors), notification flood (any auth user, no volume cap), bot farm via open registration, and public Firestore reads as a billing attack. None require sophistication.</div>
+    <button class="expand-btn" onclick="toggleReport(this)">Full Report</button>
+    <div class="full-report">
+      <p><strong>Vector 1: Contact form spam.</strong> The contactMessages rule is allow create: if true. No authentication. No CAPTCHA. No honeypot. No document size limit. I write a 12-line loop that posts garbage until your bill spikes or admin inbox is buried.</p>
+      <p><strong>Vector 2: Username enumeration.</strong> The usernames collection has allow read: if true. Dictionary attack against this endpoint. Login flow compounds: username not found vs wrong password gives two distinct oracles.</p>
+      <p><strong>Vector 3: Notification spam.</strong> Any authenticated user can write unlimited notifications to any other user. No volume limit, no deduplication, no cooldown. One batch write, 500 notifications.</p>
+      <p><strong>Vector 4: Open registration as bot farm.</strong> No CAPTCHA on signup. No email verification gate. I script 1,000 accounts in an hour. Each can post, send DMs, create reports, and spam notifications.</p>
+      <p><strong>Vector 5: Public reads billing.</strong> Kete, settings, and usernames collections all allow read: if true. A bot issues reads continuously. You pay per read. No caching layer between the internet and your billing meter.</p>
+    </div>
+  </div>
+
+  <div class="member-card">
+    <div class="member-header">
+      <span class="member-avatar">🐒</span>
+      <span class="member-name">The Chaos Monkey</span>
+      <span class="member-role">Failure Injector</span>
+    </div>
+    <div class="compact-take">Total trust in Firebase availability with zero verification that it's actually responding. Every subscription silently drops on connection loss, auth treats a timeout identically to "not logged in," and the service worker's Firestore caching guards a door nobody walks through (SDK uses WebChannel, not fetch).</div>
+    <button class="expand-btn" onclick="toggleReport(this)">Full Report</button>
+    <div class="full-report">
+      <p>Your user is in a group chat. Firebase hiccups. All four onSnapshot subscriptions pass a callback for success and nothing for error. The Firestore SDK swallows the disconnection, the listener goes dormant, and the UI freezes on stale data. The user keeps typing, hits send, the writeBatch queues locally. When it comes back, maybe the batch applies. The user will never know.</p>
+      <p>The auth flow: Zustand hydrates from localStorage. Then onAuthStateChanged fires, calls getUser(uid), and if Firestore is unreachable, that promise hangs. No timeout. No error catch. The user stares at a spinner forever. Or worse: if the SDK returns from cache, the user gets a potentially stale role assignment.</p>
+      <p>The service worker's NetworkFirst rule for firestore.googleapis.com will only catch REST-based reads (which this app does not make). The Firestore SDK uses WebChannel transport. The service worker is guarding a door nobody walks through.</p>
+      <p>Single-provider monoculture: Auth, database, storage, hosting, real-time subscriptions all Firebase, one project. A regional outage takes everything simultaneously. No health check, no navigator.onLine listener, no connection state subscription. The app assumes Firebase is there and behaves as though network failures are impossible.</p>
+    </div>
+  </div>
+
+  <div class="member-card">
+    <div class="member-header">
+      <span class="member-avatar">🐌</span>
+      <span class="member-name">The Slow Drip</span>
+      <span class="member-role">Resource Exhaustion Specialist</span>
+    </div>
+    <div class="compact-take">A patient attacker operating below detection can inflict $15-200/month via contactMessages spam (1MB docs at 45-second intervals), Storage uploads (10MB files, no lifecycle policy), and notification writes that trigger onSnapshot reads on recipients. No single request is anomalous. You notice on the monthly invoice.</div>
+    <button class="expand-btn" onclick="toggleReport(this)">Full Report</button>
+    <div class="full-report">
+      <p>contactMessages: allow create: if true. No auth, no captcha, no rate limit, no field validation. One request every 45 seconds. Each document 900KB. 1,920 documents per day. 57,600 in 30 days. ~51GB stored data. Storage cost accumulates to $9/month and grows every month.</p>
+      <p>Authenticated path: registration is open. I upload 10MB images to kete/{randomId}/ at one per hour across 5 accounts. 6GB/day. 180GB in 30 days. $4.68/month storage growing perpetually. No lifecycle policy, no Cloud Function to garbage-collect orphaned uploads.</p>
+      <p>Conversations: one message per minute across all real users. Two writes per message. Each triggers onSnapshot reads on the recipient. Your Firestore read bill grows proportional to (write rate * active users).</p>
+      <p>30-day total: $15-200 depending on Storage aggression and active listener count. None triggers alerting. Firebase has no built-in anomaly detection for slow accumulation.</p>
+    </div>
+  </div>
+</div>
+
+<!-- User Council -->
+<div class="faction-card">
+  <div class="faction-header">
+    <span>👥</span>
+    <h3>User Council</h3>
+    <span class="severity-dot dot-amber"></span>
+  </div>
+  <ul class="rec-list">
+    <li><span class="tag tag-critical">critical</span> Lead pastor (Darryl) cannot log in; his Firestore user doc doesn't exist</li>
+    <li><span class="tag tag-critical">critical</span> Events page shows nothing; all events are 4 months old and filtered out</li>
+    <li><span class="tag tag-important">important</span> No phone number anywhere on the public site; contact info buried in footer only</li>
+    <li><span class="tag tag-important">important</span> Community meeting times show "fortnightly" without specifying which week or full addresses</li>
+    <li><span class="tag tag-nice">nice-to-have</span> "Thin Place," "Rito Shack," "Reel Life" are insider names that confuse first-time visitors</li>
+  </ul>
+  <div class="faction-synthesis">The user faction identified that the platform fails both its primary admin user (Darryl can't log in) and first-time visitors (can't find a phone number or figure out when/where to show up). The portal has the right features but needs fresh data and a working first-run experience. The static site needs a phone number and clearer meeting details.</div>
+
+  <div class="member-card">
+    <div class="member-header">
+      <span class="member-avatar">😤</span>
+      <span class="member-name">The Picky Client</span>
+      <span class="member-role">Demanding Stakeholder</span>
+    </div>
+    <div class="compact-take">I paid for a platform I'm supposed to hand to my congregation and the lead pastor's account doesn't work. The deactivate button is decoration. If I showed this to church leaders tomorrow: Darryl can't log in, Events is empty, registration lies about requiring approval, and removing someone doesn't actually remove them.</div>
+    <button class="expand-btn" onclick="toggleReport(this)">Full Report</button>
+    <div class="full-report">
+      <p>Darryl is the guy who's going to demo this to his house church leaders. He's Account Number One. And his login is broken. Not "sometimes flaky" broken. Broken as in the system doesn't know he exists after he authenticates. That's not a bug on page 47 of the backlog. That's the front door being bricked shut for the one person who needs to walk through it first.</p>
+      <p>The Events page is empty. "Working correctly" and "useful to my congregation" are two different things. If I log in today as a church member, I see no events. A church runs on its calendar. An empty calendar says "this place is dead."</p>
+      <p>The "Request an Account" button actually creates an account instantly with full member access. No approval. No admin notification. The button literally says "Request" which implies someone reviews it. Nobody does. That's a promise to users that you're not keeping.</p>
+      <p>There's a button to deactivate a user. I press it, it looks like it worked. But that person can still log in and see everything. When a church leader needs to remove someone for pastoral reasons, and the tool doesn't work, that's my credibility on the line.</p>
+    </div>
+  </div>
+
+  <div class="member-card">
+    <div class="member-header">
+      <span class="member-avatar">👵</span>
+      <span class="member-name">Grandma</span>
+      <span class="member-role">Zero Tech Literacy</span>
+    </div>
+    <div class="compact-take">Contact information exists only in the footer with no phone numbers. Meeting times are rhythms ("Fortnightly Wednesdays") not actual dates. Community names like "Thin Place" and "Rito Shack" mean nothing to a newcomer. There is no dedicated Contact page in the navigation. The homepage events widget fails silently if JavaScript doesn't load.</div>
+    <button class="expand-btn" onclick="toggleReport(this)">Full Report</button>
+    <div class="full-report">
+      <p>So Karen said look up Kiwi Church on the computer because Darryl and Julie run it. I've got the page open and it says "Welcome to the Table." Welcome to WHAT table? There's a button "Find a Community" and now I'm on a page about "Thin Place" which sounds like a cafe. It says "Hansons Lane, Central Christchurch" but WHICH part of Hansons Lane? Is there a number? Is there parking?</p>
+      <p>I found "Online Prayer" and it says "Zoom" and a link will be provided on signup. Signup to WHAT? I just want to know when they meet so I can turn up on a Wednesday. It says "fortnightly" but which fortnight? This one or next one?</p>
+      <p>I went looking for a phone number. There isn't one. Not at the top, not in the middle. Right at the bottom in the smallest writing it says "Darryl Tempero, Minister" with an email. I don't DO email. And there's no surname for Julie. Just "Julie." Julie WHO?</p>
+      <p>The thing that gets me is I can't tell what this IS. The word "church" is in the name but nothing mentions a Sunday. Everything is "fortnightly" this and "monthly" that. If I just want to rock up to a service, there's nothing telling me that's possible. Put a phone number at the top of the page.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Content Council -->
+<div class="faction-card">
+  <div class="faction-header">
+    <span>✍️</span>
+    <h3>Content Council</h3>
+    <span class="severity-dot dot-amber"></span>
+  </div>
+  <ul class="rec-list">
+    <li><span class="tag tag-important">important</span> Dead link to about.html in homepage CTA (page exists in repo but isn't deployed)</li>
+    <li><span class="tag tag-important">important</span> Giving page uses "give" 14 times in 30 lines; subheads should be "Time," "Skills," "Practical Help"</li>
+    <li><span class="tag tag-important">important</span> Copyright says 2025 in every footer; it's 2026</li>
+    <li><span class="tag tag-nice">nice-to-have</span> "Faith journey" is church jargon; replace with plain language in resources page</li>
+    <li><span class="tag tag-nice">nice-to-have</span> Footer has inconsistent "About Us" link across pages pointing to communities.html</li>
+  </ul>
+  <div class="faction-synthesis">The content layer is mostly clean after the stop-slop pass, but has scattered dead links, a dated copyright, and one page (Giving) that reads like a thesaurus entry. The portal error messages are well-written. The main content gap is the homepage heading that tries to do four things at once without supporting body copy.</div>
+
+  <div class="member-card">
+    <div class="member-header">
+      <span class="member-avatar">🧹</span>
+      <span class="member-name">The Editor</span>
+      <span class="member-role">Clarity Enforcer</span>
+    </div>
+    <div class="compact-take">Dead link to about.html in homepage. Copyright 2025 everywhere. Giving page repeats "give" 14 times. "Faith journey" is jargon. Homepage heading overreaches with four ideas and no body copy beneath it. Footer links inconsistent across pages.</div>
+    <button class="expand-btn" onclick="toggleReport(this)">Full Report</button>
+    <div class="full-report">
+      <p><strong>Dead link, wrong year.</strong> Homepage line 160: "Learn More" points to about.html, which is dead and unlinked. Every footer says "2025 Kiwi Church." Fix both.</p>
+      <p><strong>Homepage heading overreach.</strong> "A desire for faith, meaning, community and authentic relationship" is not a heading. It's a clause fragment doing four jobs at once. Either give it body copy or tighten to one idea.</p>
+      <p><strong>Giving page thesaurus.</strong> Subheads: "Give Your Time", "Give Your Skills", "Give Practically", "Give Beyond Us." The word "give" stops meaning anything. Try: "Time", "Skills", "Practical Help", "Beyond Kiwi Church." The section label "Our Heart" is church marketing filler.</p>
+      <p><strong>Resources jargon.</strong> "Find what you need to support your faith journey." Stock church phrase. Try: "Guides, links, and reading lists for the community."</p>
+      <p><strong>Footer inconsistency.</strong> resources.html and giving.html have "About Us" linking to communities.html. Homepage and communities.html don't. Pick one approach.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Peer Review -->
+<div class="peer-review">
+  <h3>🔍 Peer Review (Anonymous)</h3>
+  <p><strong>Strongest response:</strong> The Picky Client, because it translates technical findings into concrete embarrassment scenarios the client will immediately understand.</p>
+  <p><strong>Biggest blind spot:</strong> The Chaos Monkey describes infrastructure failure modes statistically irrelevant for a 30-person church launching next week, while ignoring that the app already has user-facing bugs that will hit first.</p>
+  <p><strong>What ALL missed:</strong> Nobody tested the actual end-to-end first-run experience: a real person receiving an invite, signing up, seeing content, and successfully attending a service because of this platform. There is no launch runbook, no seed data plan, no "Darryl sends a link to 30 people on Saturday night" scenario validated.</p>
+</div>
+
+<!-- Cross-Faction Blind Spots -->
+<div class="blind-spots">
+  <h3>⚠️ Cross-Faction Blind Spots</h3>
+  <p style="color: var(--text-muted); margin-top: 0.75rem;">No council member validated the first-run onboarding path end-to-end. The platform has never been tested as: "Darryl emails a link &rarr; church member clicks it &rarr; creates account &rarr; sees relevant content &rarr; RSVPs to an event &rarr; shows up on Sunday." Until this golden path is validated with real data and a real non-technical user, the platform is a collection of features, not a product.</p>
+</div>
+
+<!-- Action Plan -->
+<div class="section">
+  <h2>📋 Action Plan</h2>
+  <div class="faction-card" style="margin-bottom: 1rem;">
+    <h3>💻 Code Council Actions</h3>
+    <ol style="padding-left: 1.25rem; color: var(--text-muted);">
+      <li>Fix auth: when getUser(uid) returns null, auto-create Firestore doc from Firebase Auth data</li>
+      <li>Fix Storage rules: add ownership validation to delete operations on kete/events/gatherings/resources</li>
+      <li>Replace getAllUsers() in member picker with userProfiles collection (already has open authenticated reads)</li>
+    </ol>
+  </div>
+  <div class="faction-card" style="margin-bottom: 1rem;">
+    <h3>🔨 Stress Test Actions</h3>
+    <ol style="padding-left: 1.25rem; color: var(--text-muted);">
+      <li>Add captcha or honeypot to contactMessages (server-side validation via Cloud Function or rule constraint)</li>
+      <li>Add document size validation to Firestore rules (request.resource.data.message.size() &lt; 5000)</li>
+      <li>Set Firebase budget alerts on Blaze plan ($25, $50, $100 thresholds)</li>
+    </ol>
+  </div>
+  <div class="faction-card" style="margin-bottom: 1rem;">
+    <h3>👥 User Council Actions</h3>
+    <ol style="padding-left: 1.25rem; color: var(--text-muted);">
+      <li>Create Darryl's Firestore user doc (or implement auto-creation on first login)</li>
+      <li>Seed 3-5 upcoming events with real dates and details</li>
+      <li>Add a phone number to the static site header or a dedicated Contact nav item</li>
+    </ol>
+  </div>
+  <div class="faction-card" style="margin-bottom: 1rem;">
+    <h3>✍️ Content Council Actions</h3>
+    <ol style="padding-left: 1.25rem; color: var(--text-muted);">
+      <li>Remove dead about.html link from homepage; update copyright to 2026</li>
+      <li>Simplify giving page subheads (drop repeated "Give Your")</li>
+      <li>Standardize footer links across all pages</li>
+    </ol>
+  </div>
+</div>
+
+<!-- Token Usage -->
+<div class="section">
+  <h3 style="color: var(--text-muted); font-size: 0.9rem;">Token Usage</h3>
+  <table class="token-table">
+    <tr><th>Member</th><th>~Tokens</th><th>Tool Uses</th></tr>
+    <tr><td>🛡️ The Sentinel</td><td>44,311</td><td>23</td></tr>
+    <tr><td>🔨 The Hammer</td><td>51,148</td><td>14</td></tr>
+    <tr><td>🧬 First Principles Thinker</td><td>30,319</td><td>7</td></tr>
+    <tr><td>😤 The Picky Client</td><td>25,506</td><td>1</td></tr>
+    <tr><td>🐒 The Chaos Monkey</td><td>41,182</td><td>22</td></tr>
+    <tr><td>👵 Grandma</td><td>38,609</td><td>3</td></tr>
+    <tr><td>🐌 The Slow Drip</td><td>41,541</td><td>15</td></tr>
+    <tr><td>🧹 The Editor</td><td>60,799</td><td>19</td></tr>
+    <tr><td>🔍 Peer Reviewer</td><td>18,385</td><td>0</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>351,800</strong></td><td><strong>104</strong></td></tr>
+  </table>
+</div>
+
+<script>
+function toggleReport(btn) {
+  const report = btn.nextElementSibling;
+  if (report.style.display === 'block') {
+    report.style.display = 'none';
+    btn.textContent = 'Full Report';
+  } else {
+    report.style.display = 'block';
+    btn.textContent = 'Collapse';
+  }
+}
+let allExpanded = false;
+function toggleAll() {
+  allExpanded = !allExpanded;
+  document.querySelectorAll('.full-report').forEach(r => r.style.display = allExpanded ? 'block' : 'none');
+  document.querySelectorAll('.expand-btn').forEach(b => b.textContent = allExpanded ? 'Collapse' : 'Full Report');
+  document.querySelector('.expand-all').textContent = allExpanded ? 'Collapse All Reports' : 'Expand All Reports';
+}
+</script>
+
+</body>
+</html>

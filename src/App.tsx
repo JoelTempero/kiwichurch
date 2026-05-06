@@ -19,7 +19,6 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ defaul
 const GivingPage = lazy(() => import('@/pages/GivingPage').then(m => ({ default: m.GivingPage })))
 const HostingPage = lazy(() => import('@/pages/HostingPage').then(m => ({ default: m.HostingPage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
-const UsersPage = lazy(() => import('@/pages/UsersPage').then(m => ({ default: m.UsersPage })))
 const DirectoryPage = lazy(() => import('@/pages/DirectoryPage').then(m => ({ default: m.DirectoryPage })))
 const DirectMessagesPage = lazy(() => import('@/pages/DirectMessagesPage').then(m => ({ default: m.DirectMessagesPage })))
 const ConversationPage = lazy(() => import('@/pages/ConversationPage').then(m => ({ default: m.ConversationPage })))
@@ -65,7 +64,7 @@ function App() {
             <Route path="/giving" element={<GivingPage />} />
             <Route path="/hosting" element={<HostingPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/users" element={<UsersPage />} />
+            <Route path="/users" element={<Navigate to="/settings" replace />} />
             <Route path="/directory" element={<DirectoryPage />} />
             <Route path="/messages" element={<DirectMessagesPage />} />
             <Route path="/messages/:conversationId" element={<ConversationPage />} />

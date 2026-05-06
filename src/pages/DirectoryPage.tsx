@@ -3,7 +3,7 @@ import { Search } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { dbService } from '@/services/firebase'
 import { useQuery } from '@tanstack/react-query'
-import { Avatar, EmptyState, Skeleton } from '@/components/common'
+import { Avatar, EmptyState, Spinner, FadeIn } from '@/components/common'
 import type { User } from '@/types'
 
 export function DirectoryPage() {
@@ -53,11 +53,7 @@ export function DirectoryPage() {
       </div>
 
       {isLoading ? (
-        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-          <Skeleton variant="rectangular" height={60} />
-          <Skeleton variant="rectangular" height={60} />
-          <Skeleton variant="rectangular" height={60} />
-        </div>
+        <Spinner />
       ) : filteredUsers.length === 0 ? (
         <EmptyState
           icon="users"
@@ -65,7 +61,7 @@ export function DirectoryPage() {
           message={searchQuery ? 'Try a different search term' : 'No members in the directory'}
         />
       ) : (
-        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden">
+        <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden">
           {sortedLetters.map((letter, letterIndex) => (
             <div key={letter} className={letterIndex > 0 ? 'border-t border-[#e0dbd2]' : ''}>
               {/* Section header row */}
@@ -94,7 +90,7 @@ export function DirectoryPage() {
               </div>
             </div>
           ))}
-        </div>
+        </FadeIn>
       )}
     </div>
   )

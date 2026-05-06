@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useConversations, useConversationsSubscription, useCreateConversation } from '@/hooks/useDirectMessages'
 import { dbService } from '@/services/firebase'
 import { useQuery } from '@tanstack/react-query'
-import { Avatar, EmptyState, Skeleton } from '@/components/common'
+import { Avatar, EmptyState, Spinner, FadeIn } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import type { Conversation, User } from '@/types'
 import type { Timestamp } from 'firebase/firestore'
@@ -113,7 +113,6 @@ export function DirectMessagesPage() {
               placeholder="Search members..."
               value={memberSearch}
               onChange={(e) => setMemberSearch(e.target.value)}
-              autoFocus
             />
           </div>
           <div className="max-h-[240px] overflow-y-auto divide-y divide-[#ebe6dc]">
@@ -136,11 +135,7 @@ export function DirectMessagesPage() {
       )}
 
       {isLoading ? (
-        <div className="flex flex-col gap-2">
-          <Skeleton variant="rectangular" height={72} />
-          <Skeleton variant="rectangular" height={72} />
-          <Skeleton variant="rectangular" height={72} />
-        </div>
+        <Spinner />
       ) : conversations.length === 0 ? (
         <EmptyState
           icon="message"
@@ -148,7 +143,7 @@ export function DirectMessagesPage() {
           message="Start a conversation with a church member"
         />
       ) : (
-        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+        <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
           {conversations.map((conversation) => {
             const other = getOtherParticipant(conversation)
             const unread = user ? isUnread(conversation, user.id) : false
@@ -158,7 +153,7 @@ export function DirectMessagesPage() {
               <button
                 key={conversation.id}
                 onClick={() => navigate(`/messages/${conversation.id}`)}
-                className={`flex items-center gap-3 px-4 py-3 text-left w-full hover:bg-cream/30 transition-colors ${unread ? 'bg-forest/5' : ''}`}
+                className={`flex items-center gap-3 px-4 py-3 text-left w-full cursor-pointer hover:bg-cream/30 transition-colors ${unread ? 'bg-forest/5' : ''}`}
               >
                 <div className="relative shrink-0">
                   <Avatar src={other.photoURL} name={other.displayName} size="md" />
@@ -185,7 +180,7 @@ export function DirectMessagesPage() {
               </button>
             )
           })}
-        </div>
+        </FadeIn>
       )}
     </div>
   )

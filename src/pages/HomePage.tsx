@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { Settings, BookMarked } from 'lucide-react'
 import { EventCard } from '@/components/events'
 import { ActivityFeedItem } from '@/components/home/ActivityFeedItem'
-import { Skeleton, PullToRefresh, EmptyState, Button } from '@/components/common'
+import { Spinner, FadeIn, PullToRefresh, EmptyState, Button } from '@/components/common'
 
 function getTimeBasedGreeting(): string {
   const hour = new Date().getHours()
@@ -49,10 +49,7 @@ export function HomePage() {
           </div>
 
           {loadingEvents ? (
-            <div className="flex flex-col gap-2">
-              <Skeleton variant="rectangular" height={80} />
-              <Skeleton variant="rectangular" height={48} />
-            </div>
+            <Spinner />
           ) : events.length === 0 ? (
             <EmptyState
               icon="calendar"
@@ -61,7 +58,7 @@ export function HomePage() {
               action={<Link to="/events"><Button variant="outline" size="sm">View Calendar</Button></Link>}
             />
           ) : (
-            <>
+            <FadeIn>
               {/* Featured next event — dark container */}
               {featuredEvent && (
                 <div className="bg-forest rounded-lg p-4 mb-2 cursor-pointer hover:bg-forest-light transition-colors">
@@ -82,7 +79,7 @@ export function HomePage() {
                   ))}
                 </div>
               )}
-            </>
+            </FadeIn>
           )}
         </section>
 
@@ -91,19 +88,15 @@ export function HomePage() {
           <span className="text-xs uppercase tracking-widest font-medium text-terracotta">Recent Activity</span>
 
           {loadingActivity ? (
-            <div className="mt-3 flex flex-col gap-2">
-              <Skeleton variant="rectangular" height={48} />
-              <Skeleton variant="rectangular" height={48} />
-              <Skeleton variant="rectangular" height={48} />
-            </div>
+            <Spinner />
           ) : activities.length === 0 ? (
             <p className="text-sm text-text-light mt-3">No recent activity from your communities.</p>
           ) : (
-            <div className="mt-3 divide-y divide-[#e0dbd2]">
+            <FadeIn className="mt-3 divide-y divide-[#e0dbd2]">
               {activities.map(item => (
                 <ActivityFeedItem key={item.id} item={item} />
               ))}
-            </div>
+            </FadeIn>
           )}
         </section>
 

@@ -54,12 +54,12 @@ export function useGatheringMemberProfiles(gatheringId: string | null) {
   })
 }
 
-// Get user's gatherings
-export function useUserGatherings(userId: string | null) {
+// Get IDs of gatherings the user is a member of
+export function useUserGatheringIds(userId: string | null, gatheringIds: string[]) {
   return useQuery({
     queryKey: gatheringKeys.userGatherings(userId || ''),
-    queryFn: () => dbService.getUserGatherings(userId!),
-    enabled: !!userId,
+    queryFn: () => dbService.getUserGatheringIds(userId!, gatheringIds),
+    enabled: !!userId && gatheringIds.length > 0,
     staleTime: 5 * 60 * 1000
   })
 }

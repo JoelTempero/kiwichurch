@@ -1,13 +1,23 @@
 import { useMemo } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { useGatherings, useUserGatherings } from '@/hooks/useGatherings'
+import { useGatherings, useUserGatheringIds } from '@/hooks/useGatherings'
+import { dbService } from '@/services/firebase'
+import { useQuery } from '@tanstack/react-query'
 import { GatheringCard } from '@/components/groups'
-import { EmptyState, GatheringCardSkeleton, PullToRefresh } from '@/components/common'
+import { EmptyState, Spinner, FadeIn, PullToRefresh } from '@/components/common'
 
 export function GroupsPage() {
   const { user } = useAuth()
   const { data: allGatherings = [], isLoading: loadingAll, refetch: refetchAll } = useGatherings()
-  const { data: userGatherings = [], isLoading: loadingUser, refetch: refetchUser } = useUserGatherings(user?.id || null)
+  const allIds = useMemo(() => allGatherings.map(g => g.id), [allGatherings])
+  const { data: memberIds = new Set<string>(), isLoading: loadingUser, refetch: refetchUser } = useUserGatheringIds(user?.id || null, allIds)
+
+  const { data: memberCounts = {} } = useQuery({
+    queryKey: ['gatheringMemberCounts', allIds],
+    queryFn: () => dbService.getGatheringMemberCounts(allIds),
+    enabled: allIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  })
 
   const handleRefresh = async () => {
     await Promise.all([refetchAll(), refetchUser()])
@@ -15,14 +25,13 @@ export function GroupsPage() {
 
   const isLoading = loadingAll || loadingUser
 
-  // Separate user's gatherings from others
-  const userGatheringIds = useMemo(() => {
-    return new Set(userGatherings.map(g => g.id))
-  }, [userGatherings])
+  const userGatherings = useMemo(() => {
+    return allGatherings.filter(g => memberIds.has(g.id))
+  }, [allGatherings, memberIds])
 
   const publicGatherings = useMemo(() => {
-    return allGatherings.filter(g => g.isPublic && !userGatheringIds.has(g.id))
-  }, [allGatherings, userGatheringIds])
+    return allGatherings.filter(g => g.isPublic && !memberIds.has(g.id))
+  }, [allGatherings, memberIds])
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -33,10 +42,7 @@ export function GroupsPage() {
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-text-light uppercase tracking-wide mb-2">My Groups</h2>
           {isLoading ? (
-            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-              <GatheringCardSkeleton />
-              <GatheringCardSkeleton />
-            </div>
+            <Spinner />
           ) : userGatherings.length === 0 ? (
             <EmptyState
               icon="users"
@@ -47,15 +53,16 @@ export function GroupsPage() {
               }
             />
           ) : (
-            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+            <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
               {userGatherings.map(gathering => (
                 <GatheringCard
                   key={gathering.id}
                   gathering={gathering}
+                  memberCount={memberCounts[gathering.id] || 0}
                   isMember={true}
                 />
               ))}
-            </div>
+            </FadeIn>
           )}
         </section>
 
@@ -63,15 +70,16 @@ export function GroupsPage() {
         {publicGatherings.length > 0 && (
           <section className="mb-6">
             <h2 className="text-sm font-semibold text-text-light uppercase tracking-wide mb-2">Discover</h2>
-            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+            <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
               {publicGatherings.map(gathering => (
                 <GatheringCard
                   key={gathering.id}
                   gathering={gathering}
+                  memberCount={memberCounts[gathering.id] || 0}
                   isMember={false}
                 />
               ))}
-            </div>
+            </FadeIn>
           </section>
         )}
       </div>

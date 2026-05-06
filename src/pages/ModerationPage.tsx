@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useReports, useUpdateReportStatus } from '@/hooks/useReports'
-import { Button, EmptyState, Skeleton, Badge } from '@/components/common'
+import { Button, EmptyState, Spinner, FadeIn, Badge } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { Shield, Flag, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -84,11 +84,7 @@ export function ModerationPage() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-40 rounded-lg" />
-          ))}
-        </div>
+        <Spinner />
       ) : reports.length === 0 ? (
         <EmptyState
           icon="search"
@@ -96,7 +92,7 @@ export function ModerationPage() {
           message={activeTab === 'pending' ? 'No pending reports to review' : 'No reports found'}
         />
       ) : (
-        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+        <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
           {reports.map((report: Report) => (
             <div key={report.id} className="p-5 space-y-3">
               <div className="flex items-start justify-between">
@@ -160,7 +156,7 @@ export function ModerationPage() {
               )}
             </div>
           ))}
-        </div>
+        </FadeIn>
       )}
     </div>
   )

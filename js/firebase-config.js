@@ -13,10 +13,10 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-// Initialize services
-const auth = firebase.auth();
+// Initialize services (only those whose SDKs are loaded)
 const db = firebase.firestore();
-const storage = firebase.storage();
+const auth = typeof firebase.auth === 'function' ? firebase.auth() : null;
+const storage = typeof firebase.storage === 'function' ? firebase.storage() : null;
 
 // Enable offline persistence for Firestore
 db.enablePersistence({ synchronizeTabs: true })

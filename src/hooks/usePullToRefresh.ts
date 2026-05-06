@@ -35,8 +35,8 @@ export function usePullToRefresh({
     const container = containerRef.current
     if (!container) return
 
-    // Only start pull if at the top of the scroll container
-    if (container.scrollTop > 0) return
+    // Only start pull if at the top — check both container scroll and viewport scroll
+    if (container.scrollTop > 0 || window.scrollY > 0) return
 
     startY.current = e.touches[0].clientY
     currentY.current = e.touches[0].clientY
@@ -49,8 +49,8 @@ export function usePullToRefresh({
     const container = containerRef.current
     if (!container) return
 
-    // Only allow pull if at top
-    if (container.scrollTop > 0) {
+    // Only allow pull if at top — check both container scroll and viewport scroll
+    if (container.scrollTop > 0 || window.scrollY > 0) {
       startY.current = 0
       setState(prev => ({ ...prev, isPulling: false, pullDistance: 0, pullProgress: 0 }))
       return

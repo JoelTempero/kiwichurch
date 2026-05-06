@@ -1,12 +1,22 @@
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { useAuth } from '@/hooks/useAuth'
-import { dbService } from '@/services/firebase'
+import { dbService, authService } from '@/services/firebase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Avatar, Button, Modal, Badge, EmptyState, Skeleton } from '@/components/common'
+import { Avatar, Button, Modal, Badge, EmptyState, Spinner, FadeIn } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
-import { Search, Pencil, Check } from 'lucide-react'
+import { Search, Pencil, Check, Plus } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import type { User } from '@/types'
+
+const addUserSchema = z.object({
+  displayName: z.string().min(1, 'Name is required'),
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  role: z.enum(['member', 'host', 'admin']),
+})
 
 export function UsersPage() {
   const { isAdmin } = useAuth()
@@ -15,6 +25,7 @@ export function UsersPage() {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showRoleModal, setShowRoleModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   const { data: users = [], isLoading } = useQuery({
@@ -34,6 +45,25 @@ export function UsersPage() {
     },
     onError: () => {
       showToast('Failed to update role', 'error')
+    }
+  })
+
+  const addUserForm = useForm<z.infer<typeof addUserSchema>>({
+    resolver: zodResolver(addUserSchema),
+    defaultValues: { displayName: '', email: '', password: '', role: 'member' },
+  })
+
+  const addUserMutation = useMutation({
+    mutationFn: (data: z.infer<typeof addUserSchema>) =>
+      authService.adminCreateUser(data.email, data.password, data.displayName, data.role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      showToast('User created successfully', 'success')
+      setShowAddModal(false)
+      addUserForm.reset()
+    },
+    onError: (err: Error) => {
+      showToast(err.message || 'Failed to create user', 'error')
     }
   })
 
@@ -72,9 +102,14 @@ export function UsersPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-4">
-      <div className="mb-6">
-        <h1 className="text-2xl font-display text-forest">Users</h1>
-        <p className="text-text-light text-sm">{users.length} members</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-display text-forest">Users</h1>
+          <p className="text-text-light text-sm">{users.length} members</p>
+        </div>
+        <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
+          <Plus size={16} className="mr-1" /> Add User
+        </Button>
       </div>
 
       {/* Search */}
@@ -91,11 +126,7 @@ export function UsersPage() {
 
       {/* Users List */}
       {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton variant="rectangular" height={70} />
-          <Skeleton variant="rectangular" height={70} />
-          <Skeleton variant="rectangular" height={70} />
-        </div>
+        <Spinner />
       ) : filteredUsers.length === 0 ? (
         <EmptyState
           icon="users"
@@ -103,7 +134,7 @@ export function UsersPage() {
           message={searchQuery ? 'Try a different search term' : 'No users in the system'}
         />
       ) : (
-        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+        <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
           {filteredUsers.map((user: User) => (
             <div key={user.id} className="flex items-center gap-3 p-3">
               <Avatar src={user.photoURL} name={user.displayName} size="md" />
@@ -126,7 +157,7 @@ export function UsersPage() {
               </Button>
             </div>
           ))}
-        </div>
+        </FadeIn>
       )}
 
       {/* Role Modal */}
@@ -205,6 +236,81 @@ export function UsersPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Add User Modal */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => {
+          setShowAddModal(false)
+          addUserForm.reset()
+        }}
+        title="Add User"
+      >
+        <form onSubmit={addUserForm.handleSubmit((data) => addUserMutation.mutate(data))} className="space-y-4">
+          <div>
+            <label htmlFor="add-name" className="block text-sm font-medium mb-1">Full Name</label>
+            <input
+              id="add-name"
+              type="text"
+              className="w-full px-3 py-2 border border-sage-light rounded-md text-base focus:outline-none focus:border-forest"
+              placeholder="e.g. John Smith"
+              {...addUserForm.register('displayName')}
+            />
+            {addUserForm.formState.errors.displayName && (
+              <span className="text-xs text-red-600 mt-1 block">{addUserForm.formState.errors.displayName.message}</span>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="add-email" className="block text-sm font-medium mb-1">Email</label>
+            <input
+              id="add-email"
+              type="email"
+              className="w-full px-3 py-2 border border-sage-light rounded-md text-base focus:outline-none focus:border-forest"
+              placeholder="john@example.com"
+              {...addUserForm.register('email')}
+            />
+            {addUserForm.formState.errors.email && (
+              <span className="text-xs text-red-600 mt-1 block">{addUserForm.formState.errors.email.message}</span>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="add-password" className="block text-sm font-medium mb-1">Password</label>
+            <input
+              id="add-password"
+              type="text"
+              className="w-full px-3 py-2 border border-sage-light rounded-md text-base focus:outline-none focus:border-forest"
+              placeholder="Temporary password (min 6 chars)"
+              {...addUserForm.register('password')}
+            />
+            {addUserForm.formState.errors.password && (
+              <span className="text-xs text-red-600 mt-1 block">{addUserForm.formState.errors.password.message}</span>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="add-role" className="block text-sm font-medium mb-1">Role</label>
+            <select
+              id="add-role"
+              className="w-full px-3 py-2 border border-sage-light rounded-md text-base focus:outline-none focus:border-forest"
+              {...addUserForm.register('role')}
+            >
+              <option value="member">Member</option>
+              <option value="host">Host</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={addUserMutation.isPending}
+          >
+            {addUserMutation.isPending ? 'Creating...' : 'Create User'}
+          </Button>
+        </form>
       </Modal>
     </div>
   )

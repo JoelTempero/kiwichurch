@@ -32,6 +32,21 @@
   --radius-lg: 1.5rem;
   --radius-xl: 2rem;
   --radius-full: 9999px;
+
+  /* Animations */
+  --animate-fade-in-up: fade-in-up 0.4s ease-out both;
+  --animate-spin-slow: spin 1s linear infinite;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Keep existing CSS variables for legacy styles during migration */

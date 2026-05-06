@@ -20,19 +20,19 @@ export function KeteCard({ post }: KeteCardProps) {
   const [imgError, setImgError] = useState(false)
 
   return (
-    <Link to={`/kete/${post.id}`} className="flex items-center gap-3 py-3 px-2 hover:bg-cream/50 transition-colors no-underline text-inherit">
+    <Link to={`/kete/${post.id}`} className="block no-underline text-inherit hover:opacity-90 transition-opacity">
       {post.featuredImage && !imgError && (
         <img
           src={post.featuredImage}
           alt={post.title}
           loading="lazy"
           onError={() => setImgError(true)}
-          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+          className="w-full h-48 object-cover"
         />
       )}
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold text-[15px] text-text-primary truncate">{post.title}</p>
-        <p className="text-sm text-text-light truncate">
+      <div className="px-4 py-3">
+        <h3 className="font-semibold text-base text-text-primary mb-1 line-clamp-2">{post.title}</h3>
+        <p className="text-sm text-text-light">
           {post.authorName}{post.authorName && formatDate(post.publishedAt as Date) ? ' · ' : ''}{formatDate(post.publishedAt as Date)}
         </p>
       </div>

@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUpcomingEvents } from '@/hooks/useEvents'
 import { useKetePosts } from '@/hooks/useKete'
 import { useGatherings } from '@/hooks/useGatherings'
-import { Button, EmptyState, Skeleton } from '@/components/common'
+import { Button, EmptyState, Spinner } from '@/components/common'
 import { EventForm } from '@/components/events'
 import { KeteForm } from '@/components/kete'
 import { GroupForm } from '@/components/groups'
@@ -183,10 +183,7 @@ export function HostingPage() {
           </div>
 
           {loadingEvents ? (
-            <div className="space-y-2">
-              <Skeleton variant="rectangular" height={70} />
-              <Skeleton variant="rectangular" height={70} />
-            </div>
+            <Spinner />
           ) : events.length === 0 ? (
             <EmptyState
               icon="calendar"
@@ -239,10 +236,7 @@ export function HostingPage() {
           </div>
 
           {loadingKete ? (
-            <div className="space-y-2">
-              <Skeleton variant="rectangular" height={70} />
-              <Skeleton variant="rectangular" height={70} />
-            </div>
+            <Spinner />
           ) : ketePosts.length === 0 ? (
             <EmptyState
               icon="book"
@@ -299,10 +293,7 @@ export function HostingPage() {
           </div>
 
           {loadingGroups ? (
-            <div className="space-y-2">
-              <Skeleton variant="rectangular" height={70} />
-              <Skeleton variant="rectangular" height={70} />
-            </div>
+            <Spinner />
           ) : groups.length === 0 ? (
             <EmptyState
               icon="users"

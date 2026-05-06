@@ -15,6 +15,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
 
+// Secondary app for admin user creation (avoids signing out the current user)
+export const secondaryApp = initializeApp(firebaseConfig, 'secondary')
+
 // Initialize services
 export const auth = getAuth(app)
 export const db = initializeFirestore(app, {

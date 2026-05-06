@@ -4,7 +4,7 @@ import { ChevronLeft, Trash2 } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { useAuth } from '@/hooks/useAuth'
 import { useKetePost, useKeteComments, useAddKeteComment, useDeleteKeteComment } from '@/hooks/useKete'
-import { Avatar, Button, ConfirmModal, EmptyState, Skeleton } from '@/components/common'
+import { Avatar, Button, ConfirmModal, EmptyState, Spinner } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 
 function formatDate(date: Date | { toDate: () => Date } | null): string {
@@ -83,16 +83,7 @@ export function KetePostPage() {
   }, [postId, deleteCommentId, deleteComment, showToast])
 
   if (loadingPost) {
-    return (
-      <div className="max-w-[700px] mx-auto">
-        <Skeleton variant="rectangular" height={300} />
-        <div className="p-8">
-          <Skeleton variant="text" width="60%" height={40} />
-          <Skeleton variant="text" width="30%" />
-          <Skeleton variant="text" count={5} />
-        </div>
-      </div>
-    )
+    return <Spinner />
   }
 
   if (!post) {
@@ -181,10 +172,7 @@ export function KetePostPage() {
 
         {/* Comments list */}
         {loadingComments ? (
-          <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-            <div className="p-4"><Skeleton variant="rectangular" height={60} /></div>
-            <div className="p-4"><Skeleton variant="rectangular" height={60} /></div>
-          </div>
+          <Spinner size="sm" />
         ) : comments.length === 0 ? (
           <p className="text-center text-text-light py-4">No comments yet. Be the first to share your thoughts!</p>
         ) : (

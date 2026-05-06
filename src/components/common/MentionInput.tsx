@@ -18,6 +18,7 @@ interface MentionInputProps {
   className?: string
   ariaLabel?: string
   singleLine?: boolean
+  onSubmit?: () => void
 }
 
 export function MentionInput({
@@ -31,6 +32,7 @@ export function MentionInput({
   className,
   ariaLabel,
   singleLine = false,
+  onSubmit,
 }: MentionInputProps) {
   const [showDropdown, setShowDropdown] = useState(false)
   const [dropdownIndex, setDropdownIndex] = useState(0)
@@ -97,7 +99,8 @@ export function MentionInput({
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!showDropdown || filtered.length === 0) {
       if (singleLine && e.key === 'Enter') {
-        return
+        e.preventDefault()
+        onSubmit?.()
       }
       return
     }

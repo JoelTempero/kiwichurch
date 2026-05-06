@@ -162,6 +162,14 @@ export const dbService = {
     return docSnap.exists() ? docToObject<Gathering>(docSnap) : null
   },
 
+  async getGatheringMemberCounts(gatheringIds: string[]): Promise<Record<string, number>> {
+    if (gatheringIds.length === 0) return {}
+    const counts = await Promise.all(
+      gatheringIds.map(id => getDocs(collection(db, 'gatherings', id, 'members')))
+    )
+    return Object.fromEntries(gatheringIds.map((id, i) => [id, counts[i].size]))
+  },
+
   async getGatheringMembers(gatheringId: string): Promise<GatheringMember[]> {
     const membersRef = collection(db, 'gatherings', gatheringId, 'members')
     const snapshot = await getDocs(membersRef)
@@ -183,19 +191,14 @@ export const dbService = {
     return profiles
   },
 
-  async getUserGatherings(userId: string): Promise<Gathering[]> {
-    const gatherings = await this.getGatherings()
-    const userGatherings: Gathering[] = []
-
-    for (const gathering of gatherings) {
-      const memberDoc = await getDoc(
-        doc(db, 'gatherings', gathering.id, 'members', userId)
+  async getUserGatheringIds(userId: string, gatheringIds: string[]): Promise<Set<string>> {
+    if (gatheringIds.length === 0) return new Set()
+    const memberChecks = await Promise.all(
+      gatheringIds.map(id =>
+        getDoc(doc(db, 'gatherings', id, 'members', userId))
       )
-      if (memberDoc.exists()) {
-        userGatherings.push(gathering)
-      }
-    }
-    return userGatherings
+    )
+    return new Set(gatheringIds.filter((_, i) => memberChecks[i].exists()))
   },
 
   async joinGathering(gatheringId: string, userId: string): Promise<void> {

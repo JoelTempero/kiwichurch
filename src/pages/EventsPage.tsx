@@ -4,7 +4,7 @@ import { useUIStore } from '@/store'
 import { useAuth } from '@/hooks/useAuth'
 import { useEvents } from '@/hooks/useEvents'
 import { EventCard, EventModal, CalendarView } from '@/components/events'
-import { EmptyState, EventCardSkeleton, PullToRefresh, Button } from '@/components/common'
+import { EmptyState, Spinner, FadeIn, PullToRefresh, Button } from '@/components/common'
 import type { Event, RSVP } from '@/types'
 import { dbService } from '@/services/firebase'
 import { useQuery } from '@tanstack/react-query'
@@ -168,11 +168,7 @@ export function EventsPage() {
         ) : (
           <div>
             {isLoading ? (
-              <div className="space-y-4">
-                <EventCardSkeleton />
-                <EventCardSkeleton />
-                <EventCardSkeleton />
-              </div>
+              <Spinner />
             ) : events.length === 0 ? (
               <EmptyState
                 icon="calendar"
@@ -189,7 +185,8 @@ export function EventsPage() {
                 }
               />
             ) : (
-              sortedMonths.map(month => (
+              <FadeIn>
+              {sortedMonths.map(month => (
                 <div key={month} className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden mb-4">
                   <div className="px-4 py-2.5 border-b border-[#e0dbd2] bg-[#faf8f4]">
                     <h3 className="text-sm font-semibold text-text-primary">{formatMonthHeader(month)}</h3>
@@ -205,7 +202,8 @@ export function EventsPage() {
                     ))}
                   </div>
                 </div>
-              ))
+              ))}
+              </FadeIn>
             )}
           </div>
         )}

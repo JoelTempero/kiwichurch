@@ -10,19 +10,24 @@ import {
 } from '@/hooks/useDirectMessages'
 import { dbService } from '@/services/firebase'
 import { useQuery } from '@tanstack/react-query'
-import { Avatar, Skeleton } from '@/components/common'
+import { Avatar, Spinner, FadeIn } from '@/components/common'
 import { MentionInput, type MentionMember } from '@/components/common/MentionInput'
 import { parseMentions, encodeMention } from '@/utils/mentions'
 import type { DirectMessage } from '@/types'
 import type { Timestamp } from 'firebase/firestore'
 
-function formatTime(timestamp: Timestamp | Date): string {
-  const date = 'toDate' in timestamp ? timestamp.toDate() : new Date(timestamp)
-  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+function toDate(timestamp: Timestamp | Date | null | undefined): Date {
+  if (!timestamp) return new Date()
+  if ('toDate' in timestamp) return timestamp.toDate()
+  return new Date(timestamp)
 }
 
-function formatDateSeparator(timestamp: Timestamp | Date): string {
-  const date = 'toDate' in timestamp ? timestamp.toDate() : new Date(timestamp)
+function formatTime(timestamp: Timestamp | Date | null | undefined): string {
+  return toDate(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
+function formatDateSeparator(timestamp: Timestamp | Date | null | undefined): string {
+  const date = toDate(timestamp)
   const today = new Date()
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
@@ -37,9 +42,7 @@ function shouldShowDateSeparator(
   previous: DirectMessage | undefined
 ): boolean {
   if (!previous) return true
-  const currentDate = 'toDate' in current.createdAt ? current.createdAt.toDate() : new Date(current.createdAt)
-  const prevDate = 'toDate' in previous.createdAt ? previous.createdAt.toDate() : new Date(previous.createdAt)
-  return currentDate.toDateString() !== prevDate.toDateString()
+  return toDate(current.createdAt).toDateString() !== toDate(previous.createdAt).toDateString()
 }
 
 function MessageContent({ content }: { content: string }) {
@@ -127,7 +130,7 @@ export function ConversationPage() {
   }
 
   return (
-    <div className="flex flex-col h-full max-w-[800px] mx-auto">
+    <div className="flex flex-col h-[calc(100dvh-128px)] md:h-[calc(100vh-96px)] max-w-[800px] mx-auto">
       {otherParticipant && (
         <h1 className="sr-only">Conversation with {otherParticipant.displayName}</h1>
       )}
@@ -151,11 +154,7 @@ export function ConversationPage() {
       {/* Messages */}
       <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4">
         {isLoading ? (
-          <div className="flex flex-col gap-3">
-            <Skeleton variant="rectangular" height={48} />
-            <Skeleton variant="rectangular" height={48} />
-            <Skeleton variant="rectangular" height={48} />
-          </div>
+          <Spinner />
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             {otherParticipant && (
@@ -168,7 +167,7 @@ export function ConversationPage() {
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <FadeIn className="flex flex-col gap-1">
             {messages.map((msg, i) => {
               const isOwn = msg.senderId === user?.id
               const showDate = shouldShowDateSeparator(msg, messages[i - 1])
@@ -184,25 +183,25 @@ export function ConversationPage() {
                   )}
                   <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-1`}>
                     <div
-                      className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
+                      className={`max-w-[75%] px-3 py-1.5 rounded-2xl text-[14px] ${
                         isOwn
-                          ? 'bg-forest text-white rounded-br-md'
-                          : 'bg-white border border-[#e0dbd2] rounded-bl-md'
+                          ? 'bg-forest text-white rounded-br-sm'
+                          : 'bg-[#f5f3ef] rounded-bl-sm'
                       }`}
                     >
-                      <p className="m-0 whitespace-pre-wrap break-words">
+                      <span className="block whitespace-pre-wrap break-words">
                         <MessageContent content={msg.content} />
-                      </p>
-                      <p className={`text-[10px] mt-1 mb-0 ${isOwn ? 'text-white/60' : 'text-text-light'}`}>
+                      </span>
+                      <span className={`block text-[10px] mt-0.5 leading-tight text-right ${isOwn ? 'text-white/50' : 'text-text-lighter'}`}>
                         {formatTime(msg.createdAt)}
-                      </p>
+                      </span>
                     </div>
                   </div>
                 </div>
               )
             })}
             <div ref={messagesEndRef} />
-          </div>
+          </FadeIn>
         )}
       </div>
 
@@ -220,6 +219,7 @@ export function ConversationPage() {
               rows={1}
               className="!rounded-full !py-2.5 !px-4 text-sm"
               ariaLabel="Message input"
+              onSubmit={handleSend}
             />
           </div>
           <button

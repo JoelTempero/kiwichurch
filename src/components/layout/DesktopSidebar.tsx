@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Calendar, Users, MessageCircle, BookOpen, Heart, Settings, UserPlus, BookMarked, SlidersHorizontal, Shield } from 'lucide-react'
+import { Home, Calendar, Users, MessageCircle, BookOpen, Heart, Settings, BookMarked, SlidersHorizontal, Shield } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useUnreadMessageCount } from '@/hooks/useUnreadMessages'
 import type { LucideIcon } from 'lucide-react'
@@ -21,7 +21,6 @@ const mainNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { to: '/hosting', label: 'Hosting', icon: Settings },
-  { to: '/users', label: 'Users', icon: UserPlus },
   { to: '/directory', label: 'Directory', icon: BookMarked },
   { to: '/settings', label: 'Settings', icon: SlidersHorizontal },
   { to: '/moderation', label: 'Moderation', icon: Shield }
@@ -67,7 +66,7 @@ export function DesktopSidebar() {
             <div className="desktop-nav-divider" />
             {adminNavItems
               .filter(item => {
-                if (item.to === '/users' || item.to === '/settings') {
+                if (item.to === '/settings') {
                   return isAdmin
                 }
                 return true

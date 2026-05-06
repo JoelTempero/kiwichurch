@@ -1,6 +1,6 @@
 import { usePublishedKetePosts } from '@/hooks/useKete'
 import { KeteCard } from '@/components/kete'
-import { EmptyState, Skeleton, PullToRefresh } from '@/components/common'
+import { EmptyState, Spinner, FadeIn, PullToRefresh } from '@/components/common'
 
 export function KetePage() {
   const { data: posts = [], isLoading, refetch } = usePublishedKetePosts()
@@ -20,11 +20,7 @@ export function KetePage() {
       </div>
 
       {isLoading ? (
-        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-          <div className="p-4"><Skeleton variant="text" width="60%" /></div>
-          <div className="p-4"><Skeleton variant="text" width="80%" /></div>
-          <div className="p-4"><Skeleton variant="text" width="50%" /></div>
-        </div>
+        <Spinner />
       ) : posts.length === 0 ? (
         <EmptyState
           icon="book"
@@ -32,11 +28,13 @@ export function KetePage() {
           message="Stories, reflections, and resources from our community will appear here. Check back soon!"
         />
       ) : (
-        <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+        <FadeIn className="space-y-4">
           {posts.map(post => (
-            <KeteCard key={post.id} post={post} />
+            <div key={post.id} className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden">
+              <KeteCard post={post} />
+            </div>
           ))}
-        </div>
+        </FadeIn>
       )}
       </div>
     </PullToRefresh>

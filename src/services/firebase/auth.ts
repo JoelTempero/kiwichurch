@@ -11,10 +11,13 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   onAuthStateChanged,
+  getAuth,
+  inMemoryPersistence,
+  setPersistence,
   type User as FirebaseUser,
   type Unsubscribe
 } from 'firebase/auth'
-import { auth } from './config'
+import { auth, secondaryApp } from './config'
 import { dbService } from './db'
 import type { User, UserRole } from '@/types'
 
@@ -324,5 +327,34 @@ export const authService = {
    */
   isAdminOrHost(userData: User | null): boolean {
     return userData?.role === 'admin' || userData?.role === 'host'
+  },
+
+  /**
+   * Admin: create a user without signing out the current admin
+   */
+  async adminCreateUser(email: string, password: string, displayName: string, role: UserRole = 'member'): Promise<string> {
+    const secondaryAuth = getAuth(secondaryApp)
+    await setPersistence(secondaryAuth, inMemoryPersistence)
+
+    try {
+      const result = await createUserWithEmailAndPassword(secondaryAuth, email, password)
+      const newUser = result.user
+
+      await firebaseUpdateProfile(newUser, { displayName })
+
+      await dbService.createUser(newUser.uid, {
+        email,
+        displayName,
+        role,
+        preferences: { emailNotifications: true }
+      })
+
+      await secondaryAuth.signOut()
+      return newUser.uid
+    } catch (error) {
+      try { await secondaryAuth.signOut() } catch { /* ignore */ }
+      console.error('[Auth] Admin create user error:', error)
+      throw formatError(error)
+    }
   }
 }
