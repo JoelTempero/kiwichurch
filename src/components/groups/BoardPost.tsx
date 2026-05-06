@@ -18,6 +18,7 @@ import { parseMentions, encodeMention, extractMentionIds } from '@/utils/mention
 import type { BoardPost as BoardPostType, BoardComment } from '@/types'
 import type { MentionMember } from '@/components/common/MentionInput'
 import { ReportModal } from './ReportModal'
+import URLEmbed from './URLEmbed'
 
 interface BoardPostProps {
   post: BoardPostType
@@ -326,6 +327,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
         ) : (
           <>
             <RichContent content={post.content} />
+            <URLEmbed text={post.content} />
             {post.attachmentURL && (
               <div className="rounded-md overflow-hidden mt-2">
                 {post.attachmentType?.startsWith('image/') ? (
