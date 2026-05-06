@@ -30,6 +30,7 @@ interface GroupResource {
   fileName?: string
   fileSize?: number
   fileType?: string
+  storagePath?: string
   thumbnailURL?: string
   // Link-specific
   url?: string
