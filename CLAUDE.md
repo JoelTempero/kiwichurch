@@ -177,6 +177,22 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
+### 2026-05-06e: Group Files, URL Embeds, Bug Fixes + Deploy
+- Reviewed client requirements doc against what's been built — identified 12 gaps, tracked in CLAUDE.md
+- Deleted about.html (merged into communities previously) and giving.html (public page not needed)
+- Fixed homepage "Learn More" CTA → communities.html (was dead about.html link)
+- Removed giving.html from vite.config.ts static copy and sw.js precache
+- **Group resources library**: new `resources` subcollection per gathering (files + links with tags)
+- GroupResource type, Firestore + Storage rules, db service CRUD, storage upload, TanStack Query hooks
+- Files tab on GroupDetailPage with search bar, tag filter pills, upload/link/edit/delete modals
+- 8 new files: type, utility, hook, 5 components (GroupResourcesList, GroupResourceItem, ResourceUploadModal, ResourceLinkModal, URLEmbed)
+- **Post image attachments**: image button on post creation form, preview, upload to Storage
+- **URL embeds**: YouTube/Vimeo players and link cards auto-detected in board post content
+- Admin deletion verified working across board posts, comments, kete posts, and new group resources
+- Design spec: `docs/superpowers/specs/2026-05-06-group-files-and-attachments.md`
+- Implementation plan: `docs/superpowers/plans/2026-05-06-group-files-and-attachments.md`
+- 14 commits, typecheck + build clean, deployed to Firebase Hosting
+
 ### 2026-05-06d: Admin, Messages, Groups, Kete Fixes + Deploy
 - Admin user creation fixed: Firestore rules allowed admin to create user docs for others (was blocked by `request.auth.uid == userId` AND gate); secondary auth uses inMemoryPersistence to avoid Edge tracking prevention blocking storage
 - Created orphaned Firestore docs for d.tempero@xtra.co.nz and racheltempero@gmail.com (Auth accounts existed without user docs from prior failed attempts)
@@ -275,8 +291,10 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] Apply any spacing/density/feel feedback
 
 ### Brief gaps (from client requirements doc review — 2026-05-06)
-- [ ] **File sharing in groups**: brief says "allow those groups to store files" — no file uploads/attachments in groups or DMs
-- [ ] **File uploads in messages**: documents, images, video attachments with drag-and-drop + preview
+- [x] **File sharing in groups**: group resources library with files + links, tags, search (deployed 2026-05-06)
+- [x] **Post image attachments**: image button on board posts with preview + upload (deployed 2026-05-06)
+- [ ] **File uploads in DMs**: text-only for now — deferred
+- [ ] **File drag-and-drop**: future enhancement
 - [ ] **Google Calendar integration**: brief says "link to online calendar" — website has own calendar but no external sync
 - [ ] **Guest/limited access**: brief mentions "external guests (optional/limited access)" — not built
 - [ ] **@group mentions**: only @user exists, brief asks for @group
@@ -285,7 +303,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] **Audit logs**: brief says "audit logs for admin review" — not built
 - [ ] **Surveys**: brief says "polls and surveys" — polls built, no survey feature
 - [ ] **Notification customisation**: per-channel/per-group notification settings
-- [ ] **Admin content deletion**: verify admins can delete/edit others' posts and messages
+- [x] **Admin content deletion**: verified — admins can delete board posts, comments, kete posts, group resources
 - [ ] **Mobile push (FCM)**: brief says "push notifications (mobile)" — Web Notifications only
 
 ### Feature work (needs brainstorm/planning)
