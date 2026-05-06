@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, MapPin, Users, BarChart3, Plus, X, Image as ImageIcon } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -19,10 +19,18 @@ import { encodeMention, extractMentionIds } from '@/utils/mentions'
 import type { MentionMember } from '@/components/common/MentionInput'
 import GroupResourcesList from '@/components/groups/GroupResourcesList'
 import { storageService } from '@/services/firebase/storage'
+import { isCommunityGathering } from '@/utils/community'
 
 export function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (groupId && isCommunityGathering(groupId)) {
+      navigate('/home', { replace: true })
+    }
+  }, [groupId, navigate])
+
   const { user, isAdminOrHost } = useAuth()
   const { showToast } = useToast()
   const [newPostContent, setNewPostContent] = useState('')

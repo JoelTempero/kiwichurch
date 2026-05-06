@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Users } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { isCommunityGathering } from '@/utils/community'
 import type { Gathering } from '@/types'
 
 interface GatheringCardProps {
@@ -10,9 +11,11 @@ interface GatheringCardProps {
 }
 
 export function GatheringCard({ gathering, memberCount = 0, isMember = false }: GatheringCardProps) {
+  const href = isCommunityGathering(gathering.id) ? '/home' : `/groups/${gathering.id}`
+
   return (
     <Link
-      to={`/groups/${gathering.id}`}
+      to={href}
       className="flex items-center gap-3 py-3 px-2 hover:bg-cream/50 transition-colors no-underline text-inherit"
     >
       <span
