@@ -87,6 +87,17 @@ service firebase.storage {
     }
 
     // ============================================
+    // GROUP RESOURCES (files uploaded to group library)
+    // ============================================
+    match /gatherings/{gatheringId}/resources/{resourceId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+        && isAllowedType()
+        && isValidSize(25);
+      allow delete: if isAuthenticated();
+    }
+
+    // ============================================
     // MESSAGE BOARD ATTACHMENTS
     // ============================================
     match /messageBoards/{boardId}/posts/{postId}/{fileName} {
