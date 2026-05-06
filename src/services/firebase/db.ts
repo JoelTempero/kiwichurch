@@ -40,6 +40,7 @@ import type {
   ReportStatus
 } from '@/types'
 import { GroupResource } from '../../types/groupResource'
+import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME } from '@/utils/community'
 
 // Helper to convert Firestore doc to typed object
 function docToObject<T>(doc: DocumentData): T {
@@ -235,7 +236,6 @@ export const dbService = {
   },
 
   async ensureCommunityGathering(): Promise<void> {
-    const { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME } = await import('@/utils/community')
     const docRef = doc(db, 'gatherings', COMMUNITY_GATHERING_ID)
     const docSnap = await getDoc(docRef)
     if (!docSnap.exists()) {
@@ -251,7 +251,6 @@ export const dbService = {
   },
 
   async ensureCommunityMembership(userId: string): Promise<void> {
-    const { COMMUNITY_GATHERING_ID } = await import('@/utils/community')
     const memberRef = doc(db, 'gatherings', COMMUNITY_GATHERING_ID, 'members', userId)
     const memberSnap = await getDoc(memberRef)
     if (!memberSnap.exists()) {
