@@ -27,6 +27,8 @@ export function useAuth() {
           })
         }
         setUser(userData)
+        dbService.ensureCommunityGathering().catch(() => {})
+        dbService.ensureCommunityMembership(firebaseUser.uid).catch(() => {})
       } else {
         setUser(null)
       }

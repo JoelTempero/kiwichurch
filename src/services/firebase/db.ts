@@ -234,6 +234,31 @@ export const dbService = {
     await deleteDoc(doc(db, 'gatherings', gatheringId))
   },
 
+  async ensureCommunityGathering(): Promise<void> {
+    const { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME } = await import('@/utils/community')
+    const docRef = doc(db, 'gatherings', COMMUNITY_GATHERING_ID)
+    const docSnap = await getDoc(docRef)
+    if (!docSnap.exists()) {
+      await setDoc(docRef, {
+        name: COMMUNITY_GATHERING_NAME,
+        description: 'The main community board for all Kiwi Church members',
+        isPublic: true,
+        featured: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+    }
+  },
+
+  async ensureCommunityMembership(userId: string): Promise<void> {
+    const { COMMUNITY_GATHERING_ID } = await import('@/utils/community')
+    const memberRef = doc(db, 'gatherings', COMMUNITY_GATHERING_ID, 'members', userId)
+    const memberSnap = await getDoc(memberRef)
+    if (!memberSnap.exists()) {
+      await setDoc(memberRef, { joinedAt: serverTimestamp() })
+    }
+  },
+
   // ============================================
   // EVENTS
   // ============================================
