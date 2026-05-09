@@ -15,6 +15,7 @@ const GroupsPage = lazy(() => import('@/pages/GroupsPage').then(m => ({ default:
 const GroupDetailPage = lazy(() => import('@/pages/GroupDetailPage').then(m => ({ default: m.GroupDetailPage })))
 const KetePage = lazy(() => import('@/pages/KetePage').then(m => ({ default: m.KetePage })))
 const KetePostPage = lazy(() => import('@/pages/KetePostPage').then(m => ({ default: m.KetePostPage })))
+const KetePostEditor = lazy(() => import('@/pages/KetePostEditor').then(m => ({ default: m.KetePostEditor })))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ default: m.ProfilePage })))
 const GivingPage = lazy(() => import('@/pages/GivingPage').then(m => ({ default: m.GivingPage })))
 const HostingPage = lazy(() => import('@/pages/HostingPage').then(m => ({ default: m.HostingPage })))
@@ -59,7 +60,9 @@ function App() {
             <Route path="/groups" element={<GroupsPage />} />
             <Route path="/groups/:groupId" element={<GroupDetailPage />} />
             <Route path="/kete" element={<KetePage />} />
+            <Route path="/kete/new" element={<KetePostEditor />} />
             <Route path="/kete/:postId" element={<KetePostPage />} />
+            <Route path="/kete/:postId/edit" element={<KetePostEditor />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/giving" element={<GivingPage />} />
             <Route path="/hosting" element={<HostingPage />} />
