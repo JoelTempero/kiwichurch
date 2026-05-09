@@ -31,6 +31,13 @@ service cloud.firestore {
       return isAdmin() || isHost();
     }
 
+    // Check if user is permitted to post Kete
+    function canPostKete() {
+      let data = getUserData();
+      return isAdminOrHost() ||
+        (data.keys().hasAny(['canPostKete']) && data.canPostKete == true);
+    }
+
     // Check if user account is active (not deactivated)
     function isActive() {
       let data = getUserData();
@@ -203,31 +210,36 @@ service cloud.firestore {
     // KETE (BLOG) COLLECTION
     // ============================================
     match /kete/{postId} {
-      // All authenticated users can read kete posts
-      // Public posts can also be read without auth (for SEO)
-      allow read: if true;
+      // All authenticated users can read published posts.
+      // Drafts: only the author and admin/host.
+      allow read: if isAuthenticated() && (
+        resource.data.published == true ||
+        resource.data.authorId == request.auth.uid ||
+        isAdminOrHost()
+      );
 
-      // Only admins and hosts can create posts
-      // During initial setup, allow seeding
+      // Permitted users can create posts authored by themselves.
+      // Initial setup is allowed (seed data).
       allow create: if isInitialSetup() ||
-        (isAdminOrHost() && isActive() && request.resource.data.authorId == request.auth.uid);
+        (canPostKete() && isActive() && request.resource.data.authorId == request.auth.uid);
 
-      // Authors can update their own posts, admins can update any
-      allow update: if isAuthenticated() && isActive() &&
-        (resource.data.authorId == request.auth.uid || isAdmin());
+      // Authors can update their own posts; admins/hosts can update any.
+      allow update: if isAuthenticated() && isActive() && (
+        resource.data.authorId == request.auth.uid || isAdminOrHost()
+      );
 
-      // Only admins can delete posts
-      allow delete: if isAdmin();
+      // Authors can delete their own posts; admins/hosts can delete any.
+      allow delete: if isAuthenticated() && (
+        resource.data.authorId == request.auth.uid || isAdminOrHost()
+      );
 
-      // Comments on kete posts
+      // Comments on kete posts (unchanged from previous rules)
       match /comments/{commentId} {
         allow read: if isAuthenticated();
 
-        // Authenticated users can comment
         allow create: if isAuthenticated() && isActive() &&
           request.resource.data.authorId == request.auth.uid;
 
-        // Users can update/delete their own comments
         allow update, delete: if isAuthenticated() &&
           (resource.data.authorId == request.auth.uid || isAdmin());
       }
