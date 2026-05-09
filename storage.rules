@@ -51,12 +51,22 @@ service firebase.storage {
     // KETE (BLOG) IMAGES
     // ============================================
     match /kete/{postId}/{fileName} {
+      // Public — Kete posts are public, so their images must be too.
+      // (Storage rules can't query Firestore to check post.published,
+      // so all kete images are publicly readable. Drafts that link to
+      // these images are private at the Firestore level.)
       allow read: if true;
 
+      // Any authenticated user can write image bytes within size limits.
+      // Firestore rules gate post creation via canPostKete — that's the
+      // real permission gate. Images uploaded without a matching post
+      // doc become orphans (admin sweep deferred).
       allow write: if isAuthenticated() &&
         isImage() &&
         isValidSize(10);
 
+      // Client-side deletes blocked. Admins delete via Firebase Console
+      // for now; revisit when Cloud Functions are added.
       allow delete: if false;
     }
 
