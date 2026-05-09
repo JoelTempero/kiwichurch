@@ -14,6 +14,7 @@ export interface User {
   preferences?: UserPreferences
   dependants?: Dependant[]
   assignedGatherings?: string[]
+  canPostKete?: boolean
   createdAt: Timestamp | Date
   updatedAt: Timestamp | Date
 }

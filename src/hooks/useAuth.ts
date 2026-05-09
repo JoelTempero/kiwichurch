@@ -100,6 +100,7 @@ export function useAuth() {
   const isAdmin = user?.role === 'admin'
   const isHost = user?.role === 'host'
   const isAdminOrHost = isAdmin || isHost
+  const canPostKete = isAdminOrHost || user?.canPostKete === true
 
   return {
     // State
@@ -109,6 +110,7 @@ export function useAuth() {
     isAdmin,
     isHost,
     isAdminOrHost,
+    canPostKete,
 
     // Actions
     signIn,
