@@ -12,15 +12,20 @@ const ALLOWED_IFRAME_HOSTS = [
   'https://player.vimeo.com/video/',
 ]
 
-DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-  if (data.tagName === 'iframe') {
-    const src = (node as HTMLIFrameElement).getAttribute('src') || ''
-    const ok = ALLOWED_IFRAME_HOSTS.some((prefix) => src.startsWith(prefix))
-    if (!ok) {
-      node.parentNode?.removeChild(node)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+if (!(DOMPurify as any).__keteHookInstalled) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(DOMPurify as any).__keteHookInstalled = true
+  DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+    if (data.tagName === 'iframe') {
+      const src = (node as HTMLIFrameElement).getAttribute('src') || ''
+      const ok = ALLOWED_IFRAME_HOSTS.some((prefix) => src.startsWith(prefix))
+      if (!ok) {
+        node.parentNode?.removeChild(node)
+      }
     }
-  }
-})
+  })
+}
 
 const SANITIZE_CONFIG = {
   ADD_TAGS: ['iframe'],
