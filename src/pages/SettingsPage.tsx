@@ -27,6 +27,7 @@ const editUserSchema = z.object({
   phone: z.string().optional(),
   bio: z.string().optional(),
   role: z.enum(['member', 'host', 'admin']),
+  canPostKete: z.boolean(),
 })
 
 const inputBase = 'w-full px-3 py-2 border border-sage-light rounded-md text-base focus:outline-none focus:border-forest'
@@ -130,6 +131,7 @@ export function SettingsPage() {
       phone: u.phone || '',
       bio: u.bio || '',
       role: u.role,
+      canPostKete: u.canPostKete === true,
     })
     setShowEditModal(true)
   }
@@ -143,6 +145,7 @@ export function SettingsPage() {
         phone: data.phone?.trim() || '',
         bio: data.bio?.trim() || '',
         role: data.role,
+        canPostKete: data.canPostKete,
       },
     })
   })
@@ -311,6 +314,20 @@ export function SettingsPage() {
                 <option value="host">Host</option>
                 <option value="admin">Admin</option>
               </select>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-[18px] h-[18px] accent-forest"
+                  {...editUserForm.register('canPostKete')}
+                />
+                <span className="text-sm">Can post Kete</span>
+              </label>
+              <span className="text-xs text-text-light mt-1 block">
+                Lets this member create and edit their own Kete posts. Admin/host always can.
+              </span>
             </div>
 
             <div className="flex gap-3 pt-2">
