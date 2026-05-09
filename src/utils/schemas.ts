@@ -47,11 +47,22 @@ export const eventSchema = z.object({
 })
 
 export const keteSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  excerpt: z.string().optional().default(''),
-  content: z.string().min(1, 'Content is required'),
-  featuredImage: z.string().optional().default(''),
-  published: z.boolean().default(true),
+  title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
+  excerpt: z.string().max(500, 'Excerpt too long').optional().default(''),
+  content: z
+    .string()
+    .min(1, 'Content is required')
+    .refine(
+      (html) => html.replace(/<[^>]*>/g, '').trim().length > 0,
+      { message: 'Content is required' }
+    ),
+  featuredImage: z
+    .string()
+    .url('Featured image must be a valid URL')
+    .optional()
+    .or(z.literal(''))
+    .default(''),
+  published: z.boolean().default(false),
 })
 
 export const groupSchema = z.object({
