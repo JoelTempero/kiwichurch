@@ -374,6 +374,22 @@ export const dbService = {
     return docSnap.exists() ? docToObject<KetePost>(docSnap) : null
   },
 
+  async getMyKeteDrafts(userId: string): Promise<KetePost[]> {
+    const q = query(
+      collection(db, 'kete'),
+      where('authorId', '==', userId),
+      where('published', '==', false),
+      orderBy('updatedAt', 'desc')
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => docToObject<KetePost>(doc))
+  },
+
+  allocateKetePostRef(): { id: string } {
+    const ref = doc(collection(db, 'kete'))
+    return { id: ref.id }
+  },
+
   async createKetePost(postData: Omit<KetePost, 'id' | 'createdAt' | 'updatedAt'>): Promise<KetePost> {
     const timestamp = serverTimestamp()
     const docRef = await addDoc(collection(db, 'kete'), {

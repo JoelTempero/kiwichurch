@@ -9,7 +9,8 @@ export const keteKeys = {
   list: (options: KeteQueryOptions) => [...keteKeys.lists(), options] as const,
   details: () => [...keteKeys.all, 'detail'] as const,
   detail: (id: string) => [...keteKeys.details(), id] as const,
-  comments: (postId: string) => [...keteKeys.all, 'comments', postId] as const
+  comments: (postId: string) => [...keteKeys.all, 'comments', postId] as const,
+  myDrafts: (userId: string) => [...keteKeys.all, 'myDrafts', userId] as const,
 }
 
 // Get kete posts
@@ -24,6 +25,16 @@ export function useKetePosts(options: KeteQueryOptions = {}) {
 // Get published kete posts
 export function usePublishedKetePosts(limit?: number) {
   return useKetePosts({ published: true, limit })
+}
+
+// Get the current user's drafts
+export function useMyKeteDrafts(userId: string | null) {
+  return useQuery({
+    queryKey: keteKeys.myDrafts(userId || ''),
+    queryFn: () => dbService.getMyKeteDrafts(userId!),
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+  })
 }
 
 // Get single kete post
@@ -54,6 +65,7 @@ export function useCreateKetePost() {
       dbService.createKetePost(postData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keteKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: [...keteKeys.all, 'myDrafts'] })
     }
   })
 }
@@ -68,6 +80,7 @@ export function useUpdateKetePost() {
     onSuccess: (_, { postId }) => {
       queryClient.invalidateQueries({ queryKey: keteKeys.lists() })
       queryClient.invalidateQueries({ queryKey: keteKeys.detail(postId) })
+      queryClient.invalidateQueries({ queryKey: [...keteKeys.all, 'myDrafts'] })
     }
   })
 }
@@ -80,6 +93,7 @@ export function useDeleteKetePost() {
     mutationFn: (postId: string) => dbService.deleteKetePost(postId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keteKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: [...keteKeys.all, 'myDrafts'] })
     }
   })
 }
