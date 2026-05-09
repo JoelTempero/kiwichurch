@@ -210,13 +210,13 @@ service cloud.firestore {
     // KETE (BLOG) COLLECTION
     // ============================================
     match /kete/{postId} {
-      // All authenticated users can read published posts.
+      // Published posts are publicly readable (static site fetches anonymously).
       // Drafts: only the author and admin/host.
-      allow read: if isAuthenticated() && (
-        resource.data.published == true ||
-        resource.data.authorId == request.auth.uid ||
-        isAdminOrHost()
-      );
+      allow read: if resource.data.published == true ||
+        (isAuthenticated() && (
+          resource.data.authorId == request.auth.uid ||
+          isAdminOrHost()
+        ));
 
       // Permitted users can create posts authored by themselves.
       // Initial setup is allowed (seed data).
