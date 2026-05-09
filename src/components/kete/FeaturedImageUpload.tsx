@@ -56,26 +56,28 @@ export function FeaturedImageUpload({ postId, value, onChange }: FeaturedImageUp
       />
 
       {value ? (
-        <div className="relative group">
+        <div className="relative">
           <img
             src={value}
             alt="Featured"
             className="w-full max-h-96 object-cover rounded-md"
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors rounded-md flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+          <div className="absolute top-2 right-2 flex items-center gap-2">
             <button
               type="button"
               onClick={pickFile}
-              className="px-3 py-1.5 bg-white text-text-primary rounded text-sm font-medium hover:bg-cream"
+              className="px-3 py-1.5 bg-white/95 text-text-primary rounded text-sm font-medium hover:bg-white shadow-sm disabled:opacity-50"
               disabled={isUploading}
+              aria-busy={isUploading}
             >
               {isUploading ? 'Uploading…' : 'Replace'}
             </button>
             <button
               type="button"
               onClick={remove}
-              className="px-3 py-1.5 bg-white text-red-600 rounded text-sm font-medium hover:bg-red-50 flex items-center gap-1"
+              className="px-3 py-1.5 bg-white/95 text-red-600 rounded text-sm font-medium hover:bg-white shadow-sm flex items-center gap-1 disabled:opacity-50"
               disabled={isUploading}
+              aria-label="Remove featured image"
             >
               <X size={14} aria-hidden="true" />
               Remove
