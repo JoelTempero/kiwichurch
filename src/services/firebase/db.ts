@@ -402,6 +402,21 @@ export const dbService = {
     return { id: docRef.id, ...postData } as KetePost
   },
 
+  async createKetePostWithId(
+    postId: string,
+    postData: Omit<KetePost, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<KetePost> {
+    const timestamp = serverTimestamp()
+    await setDoc(doc(db, 'kete', postId), {
+      ...postData,
+      published: postData.published || false,
+      publishedAt: postData.published ? timestamp : null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    return { id: postId, ...postData } as KetePost
+  },
+
   async updateKetePost(postId: string, updates: Partial<KetePost>): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {
