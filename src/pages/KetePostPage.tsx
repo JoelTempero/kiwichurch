@@ -1,11 +1,31 @@
 import { useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Trash2 } from 'lucide-react'
+import { ChevronLeft, Trash2, Pencil } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { useAuth } from '@/hooks/useAuth'
 import { useKetePost, useKeteComments, useAddKeteComment, useDeleteKeteComment } from '@/hooks/useKete'
 import { Avatar, Button, ConfirmModal, EmptyState, Spinner } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
+
+const ALLOWED_IFRAME_HOSTS = [
+  'https://www.youtube.com/embed/',
+  'https://player.vimeo.com/video/',
+]
+
+DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+  if (data.tagName === 'iframe') {
+    const src = (node as HTMLIFrameElement).getAttribute('src') || ''
+    const ok = ALLOWED_IFRAME_HOSTS.some((prefix) => src.startsWith(prefix))
+    if (!ok) {
+      node.parentNode?.removeChild(node)
+    }
+  }
+})
+
+const SANITIZE_CONFIG = {
+  ADD_TAGS: ['iframe'],
+  ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'src', 'width', 'height'],
+}
 
 function formatDate(date: Date | { toDate: () => Date } | null): string {
   if (!date) return ''
@@ -122,21 +142,34 @@ export function KetePostPage() {
       )}
 
       {/* Header */}
-      <header className="px-6 py-4">
-        <h1 className="text-2xl font-display text-forest mb-3">{post.title}</h1>
-        <div className="flex items-center gap-3">
-          <Avatar src={post.authorPhotoURL} name={post.authorName} size="md" />
-          <div className="flex flex-col">
-            <span className="font-semibold text-text-primary text-sm">{post.authorName}</span>
-            <span className="text-xs text-text-light">{formatDate(post.publishedAt as Date)}</span>
+      <header className="px-6 py-4 flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-display text-forest mb-3">{post.title}</h1>
+          <div className="flex items-center gap-3">
+            <Avatar src={post.authorPhotoURL} name={post.authorName} size="md" />
+            <div className="flex flex-col">
+              <span className="font-semibold text-text-primary text-sm">{post.authorName}</span>
+              <span className="text-xs text-text-light">{formatDate(post.publishedAt as Date)}</span>
+            </div>
           </div>
         </div>
+        {(user?.id === post.authorId || isAdminOrHost) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/kete/${post.id}/edit`)}
+            aria-label={`Edit ${post.title}`}
+          >
+            <Pencil size={14} aria-hidden="true" />
+            Edit
+          </Button>
+        )}
       </header>
 
       {/* Content */}
       <article
         className="px-6 py-2 prose prose-forest max-w-none"
-        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content, SANITIZE_CONFIG) }}
       />
 
       {/* Comments */}
