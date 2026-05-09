@@ -57,10 +57,10 @@ export const keteSchema = z.object({
       { message: 'Content is required' }
     ),
   featuredImage: z
-    .string()
-    .url('Featured image must be a valid URL')
-    .optional()
-    .or(z.literal(''))
+    .union([
+      z.string().url('Featured image must be a valid URL'),
+      z.literal(''),
+    ])
     .default(''),
   published: z.boolean().default(false),
 })
