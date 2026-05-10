@@ -3,7 +3,7 @@
 ## Overview
 - **Client**: Kiwi Church
 - **Type**: Community Platform / Portal / PWA
-- **Status**: Workstream A complete, Workstream B complete, design revision merged + deployed, functionality bug fix pass deployed
+- **Status**: Workstream A complete, Workstream B complete, design revision merged + deployed, Kete editor overhaul deployed (awaiting manual verification)
 
 ## Playbooks In Use
 Read these from the Brain folder at session start. Do not copy into this project.
@@ -177,6 +177,22 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
+### 2026-05-10: Kete Editor Overhaul (deployed, awaiting verification)
+- **Permission flag**: `canPostKete?: boolean` on User; admin toggles per-member in Settings user-edit modal; admin/host always have it; `canPostKete` derived in `useAuth`
+- **New full-page editor** at `/kete/new` and `/kete/:postId/edit` (lazy-loaded, route order: `/kete/new` BEFORE `/kete/:postId` to avoid match collision)
+- **Three new components** in `src/components/kete/`: `RichTextEditor` (Quill wrapper with custom image-upload + YouTube/Vimeo URL embed handlers), `FeaturedImageUpload` (drop/click + preview, always-visible Replace/Remove buttons for mobile reach), `EditorTopBar` (sticky bar, Save Draft + Publish/Update)
+- **KetePostEditor page** owns RHF + zod state, pre-allocates Firestore doc ID via `dbService.allocateKetePostRef()` so image uploads land under a stable `kete/{postId}/` Storage folder before save; permission gate redirects on lack of canPostKete or non-author edit attempt; beforeunload + ConfirmModal discard guard; `dbService.createKetePostWithId()` writes via the pre-allocated ID
+- **KetePage updates**: New Post button (canPostKete only), "Your drafts" section above published list (`useMyKeteDrafts(userId)`)
+- **KetePostPage**: DOMPurify allowlist extended for `<img>` and `<iframe>` (YouTube/Vimeo only via `uponSanitizeElement` hook, registered once via `DOMPurify.__keteHookInstalled` flag to survive HMR); Edit button visible to author/admin/host
+- **HostingPage**: Kete tab + state + `KeteForm` mount + `formatPostDate` helper all stripped (116 lines deleted, 2 inserted)
+- **Schema**: `keteSchema` tightened — title 200-char cap, excerpt 500-char cap, content stripped-text refine (catches Quill's `<p><br></p>` empty state), `featuredImage` as `union([url, '']).default('')`
+- **Firestore rules**: new `canPostKete()` helper; `kete` collection: published reads remain public (static site still works), drafts private to author + admin/host; create gated by `canPostKete()` + isActive + author-id match; update/delete extended from admin-only to author + admin/host
+- **Storage rules**: `kete/{postId}/{fileName}` rules unchanged (public read, image+size cap on write, client deletes blocked); added explanatory comments
+- 18 commits, typecheck + build clean, rules + portal deployed to https://kiwichurch-1ef0f.web.app
+- **Awaiting**: Joel's manual run-through of 12 test scenarios; then delete obsolete `src/components/kete/KeteForm.tsx` + final commit
+- Spec: `docs/superpowers/specs/2026-05-10-kete-editor-overhaul-design.md`
+- Plan: `docs/superpowers/plans/2026-05-10-kete-editor-overhaul.md`
+
 ### 2026-05-07: Community Board, @Group Mentions, Search Filters + Deploy
 - **Google Calendar integration**: "Add to Google Calendar" link in EventModal using URL API (no keys needed)
 - **Search filters**: type pills (Events/Kete/Groups/People), date range dropdown, author filter on SearchPanel — collapsible with reset button
@@ -293,6 +309,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - **Storage deletes blocked client-side** — no Cloud Functions yet, so admin deletes via Firebase Console. Revisit when Cloud Functions are added.
 - **Portal design revision** — context-driven containers (flat+featured for dashboards, grouped sections for lists), no shadows except floating overlays, serif h1 only, Source Sans 3 body. Portal typography intentionally diverges from DESIGN.md (which defines serif for all headings on the static site).
 - **Community board on homepage** — "Kiwi Church" is a real gathering in Firestore (`kiwi-church-community`), all members auto-join. Its board renders on the homepage. Clicking "Kiwi Church" in groups list goes to `/home`. Desktop layout: board top, events/files bottom row. Mobile: 3 posts + expand, then events.
+- **Kete editor architecture (2026-05-10)** — per-user `canPostKete` boolean (not a new role). Pre-allocated Firestore doc ID for create flow so image uploads have a stable `kete/{postId}/` Storage path before the post is saved (orphaned files on discard accepted as v1 cost). Video embeds via URL paste only — YouTube/Vimeo regex parser, no .mp4 uploads. DOMPurify allows `<iframe>` but the `uponSanitizeElement` hook strips any iframe whose src isn't `youtube.com/embed/` or `player.vimeo.com/video/`. Hook registration guarded with `DOMPurify.__keteHookInstalled` so Vite HMR doesn't accumulate duplicate hooks.
 
 ## Next Steps
 
@@ -317,7 +334,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] **Mobile push (FCM)**: brief says "push notifications (mobile)" — Web Notifications only
 
 ### Feature work (needs brainstorm/planning)
-- [ ] **Kete editor overhaul**: move add/edit from Hosting page to Kete page itself; permission-based access (admin toggles per-user); full-page editor with rich text, inline images, video embeds (replace barebones modal)
+- [x] **Kete editor overhaul** (deployed 2026-05-10, awaiting Joel's manual verification): full-page editor at `/kete/new` and `/kete/:postId/edit`; per-user `canPostKete` flag toggled by admin in Settings; image uploads + YouTube/Vimeo embeds; manual drafts surfaced on Kete page; Hosting Kete tab removed. Final cleanup pending: delete `src/components/kete/KeteForm.tsx` after verification passes.
 - [ ] **Profile expansion**: family members, connected accounts, hobbies (optional), privacy toggles (show/hide phone/email/groups), personal gallery
 - [ ] **Directory rethink**: make useful for all users — contact info, profile cards, search/filter
 - [ ] **Events admin overhaul**: Hosting page events tab needs full rework — no repetition support, unclear how events system works
@@ -326,6 +343,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] **Giving page**: review with client how they want this presented
 
 ### Remaining bugs
+- [ ] **Orphaned Kete images in Storage**: if author uploads images then discards the post, files orphan under `kete/{postId}/` (admin sweep deferred — needs Cloud Functions or manual console cleanup)
 - [ ] No gatherings have `hostId` field — `isHostOfGathering()` always returns false (rules work around it now, but data should be fixed)
 - [ ] DM permission error may persist — now surfaces as toast instead of silent failure; root cause likely Firestore rules interaction, needs testing with live data
 - [x] Homepage "Learn More" CTA links to dead about.html → fixed, now links to communities.html
