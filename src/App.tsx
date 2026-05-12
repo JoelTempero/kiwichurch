@@ -1,29 +1,31 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { AppLayout } from '@/components/layout'
 import { ProtectedRoute } from '@/components/auth'
-import { ToastProvider, ScrollToTop } from '@/components/common'
+import { ToastProvider, ScrollToTop, RouteErrorBoundary } from '@/components/common'
+import { lazyWithRetry } from '@/utils/lazyWithRetry'
 
 // Eager load critical pages
 import { LoginPage } from '@/pages/LoginPage'
 import { HomePage } from '@/pages/HomePage'
 
-// Lazy load other pages
-const EventsPage = lazy(() => import('@/pages/EventsPage').then(m => ({ default: m.EventsPage })))
-const GroupsPage = lazy(() => import('@/pages/GroupsPage').then(m => ({ default: m.GroupsPage })))
-const GroupDetailPage = lazy(() => import('@/pages/GroupDetailPage').then(m => ({ default: m.GroupDetailPage })))
-const KetePage = lazy(() => import('@/pages/KetePage').then(m => ({ default: m.KetePage })))
-const KetePostPage = lazy(() => import('@/pages/KetePostPage').then(m => ({ default: m.KetePostPage })))
-const KetePostEditor = lazy(() => import('@/pages/KetePostEditor').then(m => ({ default: m.KetePostEditor })))
-const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ default: m.ProfilePage })))
-const GivingPage = lazy(() => import('@/pages/GivingPage').then(m => ({ default: m.GivingPage })))
-const HostingPage = lazy(() => import('@/pages/HostingPage').then(m => ({ default: m.HostingPage })))
-const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
-const DirectoryPage = lazy(() => import('@/pages/DirectoryPage').then(m => ({ default: m.DirectoryPage })))
-const DirectMessagesPage = lazy(() => import('@/pages/DirectMessagesPage').then(m => ({ default: m.DirectMessagesPage })))
-const ConversationPage = lazy(() => import('@/pages/ConversationPage').then(m => ({ default: m.ConversationPage })))
-const ModerationPage = lazy(() => import('@/pages/ModerationPage').then(m => ({ default: m.ModerationPage })))
+// Lazy load other pages — wrapped so a failed chunk load (the post-deploy
+// stale-SW scenario) auto-reloads once instead of white-screening.
+const EventsPage = lazyWithRetry(() => import('@/pages/EventsPage').then(m => ({ default: m.EventsPage })))
+const GroupsPage = lazyWithRetry(() => import('@/pages/GroupsPage').then(m => ({ default: m.GroupsPage })))
+const GroupDetailPage = lazyWithRetry(() => import('@/pages/GroupDetailPage').then(m => ({ default: m.GroupDetailPage })))
+const KetePage = lazyWithRetry(() => import('@/pages/KetePage').then(m => ({ default: m.KetePage })))
+const KetePostPage = lazyWithRetry(() => import('@/pages/KetePostPage').then(m => ({ default: m.KetePostPage })))
+const KetePostEditor = lazyWithRetry(() => import('@/pages/KetePostEditor').then(m => ({ default: m.KetePostEditor })))
+const ProfilePage = lazyWithRetry(() => import('@/pages/ProfilePage').then(m => ({ default: m.ProfilePage })))
+const GivingPage = lazyWithRetry(() => import('@/pages/GivingPage').then(m => ({ default: m.GivingPage })))
+const HostingPage = lazyWithRetry(() => import('@/pages/HostingPage').then(m => ({ default: m.HostingPage })))
+const SettingsPage = lazyWithRetry(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
+const DirectoryPage = lazyWithRetry(() => import('@/pages/DirectoryPage').then(m => ({ default: m.DirectoryPage })))
+const DirectMessagesPage = lazyWithRetry(() => import('@/pages/DirectMessagesPage').then(m => ({ default: m.DirectMessagesPage })))
+const ConversationPage = lazyWithRetry(() => import('@/pages/ConversationPage').then(m => ({ default: m.ConversationPage })))
+const ModerationPage = lazyWithRetry(() => import('@/pages/ModerationPage').then(m => ({ default: m.ModerationPage })))
 
 function PageLoader() {
   return (
@@ -47,8 +49,9 @@ function App() {
   return (
     <ToastProvider>
       <ScrollToTop />
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
+      <RouteErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           {/* Public auth routes */}
           <Route path="/login" element={<LoginPage />} />
 
@@ -77,7 +80,8 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
-      </Suspense>
+        </Suspense>
+      </RouteErrorBoundary>
     </ToastProvider>
   )
 }
