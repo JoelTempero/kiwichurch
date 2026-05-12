@@ -157,7 +157,7 @@ export function SettingsPage() {
     // Only persist hostedGatherings for the host role — clearing it when
     // someone is demoted to member or promoted to admin keeps the data
     // honest (admin already has full access).
-    const hostedGatherings = data.role === 'host' ? data.hostedGatherings : []
+    const hostedGatherings: string[] = data.role === 'host' ? (data.hostedGatherings ?? []) : []
     updateUserMutation.mutate({
       userId: selectedUser.id,
       updates: {
