@@ -518,9 +518,9 @@ export const dbService = {
       updatedAt: serverTimestamp()
     })
     if (before && (
-      updates.time !== undefined && updates.time !== before.time ||
-      updates.endTime !== undefined && updates.endTime !== before.endTime ||
-      updates.location !== undefined && updates.location !== before.location
+      (updates.time !== undefined && updates.time !== before.time) ||
+      (updates.endTime !== undefined && updates.endTime !== before.endTime) ||
+      (updates.location !== undefined && updates.location !== before.location)
     )) {
       const after = { ...before, ...updates } as Event
       this.notifyEventAttendees(eventId, after, 'updated').catch(
