@@ -1038,6 +1038,29 @@ export const dbService = {
     await batch.commit()
   },
 
+  createCommentNotification(context: {
+    recipientId: string
+    authorId: string
+    authorName: string
+    gatheringId: string
+    isReply: boolean
+    snippet: string
+  }): void {
+    if (context.recipientId === context.authorId) return
+    const verb = context.isReply ? 'replied to your comment' : 'commented on your post'
+    addDoc(collection(db, 'notifications'), {
+      userId: context.recipientId,
+      type: 'new_comment' as const,
+      title: `${context.authorName} ${verb}`,
+      message: context.snippet.length > 80
+        ? context.snippet.slice(0, 80) + '...'
+        : context.snippet,
+      link: isCommunityGathering(context.gatheringId) ? '/home' : `/groups/${context.gatheringId}`,
+      read: false,
+      createdAt: serverTimestamp(),
+    }).catch((err) => console.error('[db] comment notify failed', err))
+  },
+
   // ============================================
   // REPORTS (Content Moderation)
   // ============================================

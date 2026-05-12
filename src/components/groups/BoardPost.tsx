@@ -156,6 +156,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
         gatheringId,
         gatheringName,
         postId: post.id,
+        postAuthorId: post.authorId,
         commentData: {
           authorId: user.id,
           authorName: user.displayName,
@@ -164,6 +165,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
           mentions: mentionIds.length > 0 ? mentionIds : undefined,
           replyToId: replyTo?.id,
           replyToAuthorName: replyTo?.authorName,
+          replyToAuthorId: replyTo?.authorId,
         }
       })
       setNewComment('')

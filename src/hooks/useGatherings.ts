@@ -275,12 +275,14 @@ export function useAddPostComment() {
       gatheringId,
       gatheringName,
       postId,
+      postAuthorId,
       commentData,
       groupMentionIds
     }: {
       gatheringId: string
       gatheringName: string
       postId: string
+      postAuthorId: string
       commentData: Omit<BoardComment, 'id' | 'createdAt'>
       groupMentionIds?: string[]
     }) => {
@@ -307,6 +309,21 @@ export function useAddPostComment() {
           sourceGatheringName: gatheringName,
           postId,
           commentId: comment.id,
+          snippet,
+        })
+      }
+
+      // Notify post author on new comment, or replied-to commenter on reply
+      const recipientId = commentData.replyToId
+        ? commentData.replyToAuthorId
+        : postAuthorId
+      if (recipientId) {
+        dbService.createCommentNotification({
+          recipientId,
+          authorId: commentData.authorId,
+          authorName: commentData.authorName,
+          gatheringId,
+          isReply: !!commentData.replyToId,
           snippet,
         })
       }
