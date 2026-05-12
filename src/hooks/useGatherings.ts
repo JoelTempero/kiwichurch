@@ -382,3 +382,41 @@ export function useToggleReaction() {
     }
   })
 }
+
+// Pin post mutation
+export function usePinPost() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      gatheringId,
+      postId,
+      userId,
+    }: {
+      gatheringId: string
+      postId: string
+      userId: string
+    }) => dbService.pinPost(gatheringId, postId, userId),
+    onSuccess: (_, { gatheringId }) => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.posts(gatheringId) })
+    }
+  })
+}
+
+// Unpin post mutation
+export function useUnpinPost() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      gatheringId,
+      postId,
+    }: {
+      gatheringId: string
+      postId: string
+    }) => dbService.unpinPost(gatheringId, postId),
+    onSuccess: (_, { gatheringId }) => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.posts(gatheringId) })
+    }
+  })
+}
