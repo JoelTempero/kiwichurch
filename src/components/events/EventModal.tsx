@@ -122,6 +122,8 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
         attendees,
         guestCount: attendees.length,
         selfAttending: effectiveSelf,
+        userName: user.displayName || '',
+        userPhotoURL: user.photoURL || '',
       })
       showToast(
         status === 'yes' ? "You're going!" : status === 'maybe' ? 'Marked as maybe' : 'RSVP updated',
@@ -261,10 +263,12 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
                 <ul className="space-y-2 list-none p-0 m-0">
                   {goingRsvps.map(rsvp => {
                     const isSelf = rsvp.userId === user?.id
-                    const selfLabel = isSelf ? 'You' : rsvp.userId
+                    // Prefer denormalised userName, fall back to a friendly label if missing.
+                    const displayName = rsvp.userName || (isSelf ? user?.displayName : '') || 'Member'
+                    const selfLabel = isSelf ? 'You' : displayName
                     return (
                       <li key={rsvp.userId} className="flex items-start gap-2 text-sm">
-                        <Avatar size="sm" name={rsvp.userId} />
+                        <Avatar size="sm" src={rsvp.userPhotoURL} name={displayName} />
                         <div className="flex-1 min-w-0">
                           {rsvp.selfAttending !== false && (
                             <p className="font-medium text-text-primary m-0">{selfLabel}</p>

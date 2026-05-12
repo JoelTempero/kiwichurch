@@ -1,7 +1,5 @@
 import type { EventRecurrence } from '@/types'
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
 export interface RecurrenceLabel {
   value: EventRecurrence
   label: string
@@ -22,24 +20,30 @@ export function recurrenceLabel(value?: EventRecurrence): string {
 
 // Returns YYYY-MM-DD for each occurrence in the series, starting with `startDate`.
 // `count` is total occurrences in the series (including the start).
+//
+// Date arithmetic uses setDate(+N) on a cloned Date rather than millisecond
+// addition. Millisecond addition silently drifts an hour across a daylight-
+// saving boundary (NZ shifts at 2am last Sun Sep / first Sun Apr) and the
+// resulting Date's `getDate()` lands on the previous day. setDate avoids that
+// because the calendar field is what we advance, not the wall-clock offset.
 export function generateRecurrenceDates(
   startDate: string,
   recurrence: EventRecurrence,
   count: number,
 ): string[] {
   if (recurrence === 'none' || count < 2) return [startDate]
-  const result: string[] = []
   const start = parseISODate(startDate)
   if (!start) return [startDate]
 
+  const result: string[] = []
   for (let i = 0; i < count; i++) {
-    const d = new Date(start.getTime())
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate())
     if (recurrence === 'weekly') {
-      d.setTime(start.getTime() + i * 7 * DAY_MS)
+      d.setDate(d.getDate() + i * 7)
     } else if (recurrence === 'fortnightly') {
-      d.setTime(start.getTime() + i * 14 * DAY_MS)
+      d.setDate(d.getDate() + i * 14)
     } else if (recurrence === 'monthly') {
-      d.setMonth(start.getMonth() + i)
+      d.setMonth(d.getMonth() + i)
     }
     result.push(toISODate(d))
   }

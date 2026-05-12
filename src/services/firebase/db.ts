@@ -394,10 +394,14 @@ export const dbService = {
     notes = '',
     attendees: RSVPAttendee[] = [],
     guestCount = 0,
-    selfAttending = true
+    selfAttending = true,
+    userName = '',
+    userPhotoURL = '',
   ): Promise<void> {
     await setDoc(doc(db, 'events', eventId, 'rsvps', userId), {
       userId,
+      userName,
+      userPhotoURL,
       status,
       notes,
       attendees,

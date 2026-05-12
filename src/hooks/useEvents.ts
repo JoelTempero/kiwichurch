@@ -129,7 +129,9 @@ export function useRSVP() {
       notes = '',
       attendees = [],
       guestCount = 0,
-      selfAttending = true
+      selfAttending = true,
+      userName = '',
+      userPhotoURL = '',
     }: {
       eventId: string
       userId: string
@@ -138,7 +140,9 @@ export function useRSVP() {
       attendees?: RSVPAttendee[]
       guestCount?: number
       selfAttending?: boolean
-    }) => dbService.setRSVP(eventId, userId, status, notes, attendees, guestCount, selfAttending),
+      userName?: string
+      userPhotoURL?: string
+    }) => dbService.setRSVP(eventId, userId, status, notes, attendees, guestCount, selfAttending, userName, userPhotoURL),
     onSuccess: (_, { eventId, userId }) => {
       queryClient.invalidateQueries({ queryKey: eventKeys.rsvps(eventId) })
       queryClient.invalidateQueries({ queryKey: eventKeys.userRsvp(eventId, userId) })

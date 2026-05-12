@@ -28,6 +28,10 @@ export interface Event {
 export interface RSVP {
   id: string // Same as userId
   userId: string
+  // Denormalised for display so the attendee list doesn't need to fetch
+  // every user doc to show real names.
+  userName?: string
+  userPhotoURL?: string
   status: 'yes' | 'no' | 'maybe'
   notes?: string
   guestCount?: number
