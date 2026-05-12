@@ -8,7 +8,6 @@ import { storageService } from '@/services/firebase'
 import { Camera, Pencil, Lock, LogOut, Loader2 } from 'lucide-react'
 import {
   FamilySection,
-  LinkedAccountsSection,
   PrivacySection,
   InterestsSection,
   GallerySection,
@@ -198,7 +197,6 @@ export function ProfilePage() {
             </Button>
           </div>
 
-          <LinkedAccountsSection />
           <FamilySection />
           <InterestsSection />
           <GallerySection />

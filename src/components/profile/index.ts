@@ -1,5 +1,4 @@
 export { FamilySection } from './FamilySection'
-export { LinkedAccountsSection } from './LinkedAccountsSection'
 export { PrivacySection } from './PrivacySection'
 export { InterestsSection } from './InterestsSection'
 export { GallerySection } from './GallerySection'

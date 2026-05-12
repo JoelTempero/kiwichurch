@@ -211,6 +211,7 @@ export const dbService = {
     senderName: string,
     recipientId: string,
     recipientName: string,
+    relationship = '',
   ): Promise<string> {
     if (senderId === recipientId) throw new Error('Cannot link to yourself')
     const id = familyLinkId(senderId, recipientId)
@@ -221,6 +222,7 @@ export const dbService = {
       recipientId,
       senderName,
       recipientName,
+      relationship,
       status: 'pending',
       createdAt: serverTimestamp(),
     })

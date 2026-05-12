@@ -17,6 +17,9 @@ export interface FamilyLink {
   recipientId: string
   senderName?: string
   recipientName?: string
+  // Relationship label set by the sender at invite time (e.g. "Spouse",
+  // "Brother", "Mother"). Visible to both sides; either can edit later.
+  relationship?: string
   status: FamilyLinkStatus
   createdAt: Timestamp | Date
   acceptedAt?: Timestamp | Date

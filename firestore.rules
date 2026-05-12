@@ -451,12 +451,15 @@ service cloud.firestore {
 
       // Sender creates a pending invite. They must be one of the
       // participants and the sender. Recipient must be a different user.
+      // Optional `relationship` and name fields ride along.
       allow create: if isAuthenticated() && isActive() &&
         request.resource.data.status == 'pending' &&
         request.resource.data.senderId == request.auth.uid &&
         request.resource.data.recipientId != request.auth.uid &&
         request.auth.uid in request.resource.data.participants &&
-        request.resource.data.participants.size() == 2;
+        request.resource.data.participants.size() == 2 &&
+        (!request.resource.data.keys().hasAny(['relationship']) ||
+         request.resource.data.relationship is string);
 
       // Recipient accepts: flip status to 'accepted'. Other fields stay.
       allow update: if isAuthenticated() && isActive() &&

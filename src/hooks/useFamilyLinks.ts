@@ -33,13 +33,20 @@ interface SendArgs {
   senderName: string
   recipientId: string
   recipientName: string
+  relationship?: string
 }
 
 export function useSendFamilyLink() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (args: SendArgs) =>
-      dbService.sendFamilyLink(args.senderId, args.senderName, args.recipientId, args.recipientName),
+      dbService.sendFamilyLink(
+        args.senderId,
+        args.senderName,
+        args.recipientId,
+        args.recipientName,
+        args.relationship,
+      ),
     onSuccess: (_, args) => {
       qc.invalidateQueries({ queryKey: KEY(args.senderId) })
     },
