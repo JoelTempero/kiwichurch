@@ -211,7 +211,7 @@ addDoc(collection(db, 'notifications'), {
 
 ```ts
 async runAnnouncementBroadcast(postId: string, post: BoardPost): Promise<void> {
-  const postRef = doc(db, 'gatherings', COMMUNITY_GATHERING_ID, 'posts', postId)
+  const postRef = doc(db, 'messageBoards', COMMUNITY_GATHERING_ID, 'posts', postId)
   const members = await this.getGatheringMembers(COMMUNITY_GATHERING_ID)
   const targets = members.map(m => m.id).filter(uid => uid !== post.pinnedBy)
   if (targets.length === 0) {
@@ -242,7 +242,7 @@ async runAnnouncementBroadcast(postId: string, post: BoardPost): Promise<void> {
 ```ts
 async resumePendingAnnouncements(): Promise<void> {
   const pending = await getDocs(query(
-    collection(db, 'gatherings', COMMUNITY_GATHERING_ID, 'posts'),
+    collection(db, 'messageBoards', COMMUNITY_GATHERING_ID, 'posts'),
     where('pinned', '==', true),
     where('announcementBroadcastStatus', '==', 'pending')
   ))
@@ -316,15 +316,17 @@ For community pins, add `border-l-4 border-terracotta-300` conditionally to the 
 
 **Modify:** `firestore.rules`.
 
-- [ ] In the `match /gatherings/{gatheringId}/posts/{postId}` block, ADD (don't replace) this update clause alongside the existing content-edit rule:
+- [ ] In `firestore.rules`, find the `match /messageBoards/{boardId} { match /posts/{postId} { ... }` block (~line 308). ADD (don't replace) this update clause alongside the existing author/admin update rule:
 
 ```
 allow update: if isAuthenticated() && isActive()
-  && (isAdmin() || isHostOfGathering(gatheringId))
+  && (isAdmin() || isHostOfGathering(boardId))
   && request.resource.data.diff(resource.data).affectedKeys()
        .hasOnly(['pinned', 'pinnedAt', 'pinnedBy',
                  'announcementBroadcastStatus', 'broadcastCompletedAt']);
 ```
+
+(`boardId == gatheringId` by convention. `isHostOfGathering` exists at firestore.rules:61.)
 
 - [ ] Replace the notification create rule at firestore.rules:350 with:
 
