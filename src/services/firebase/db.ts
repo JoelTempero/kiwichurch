@@ -175,15 +175,40 @@ export const dbService = {
     if (privacy.showGallery !== false && user.gallery && user.gallery.length > 0) profile.gallery = user.gallery
     if (privacy.showPhone !== false && user.phone) profile.publicPhone = user.phone
     if (privacy.showEmail !== false && user.email) profile.publicEmail = user.email
-    if (privacy.showFamily === true && user.dependants && user.dependants.length > 0) {
-      // First-name-only mirror; no relationship or age. Keep isChild flag so
-      // the directory can show the child icon.
-      profile.publicFamily = user.dependants.map((d) => {
-        const firstName = (d.name || '').trim().split(/\s+/)[0]
-        return { name: firstName, isChild: !!d.isChild }
-      }).filter((d) => d.name)
+    if (privacy.showFamily === true) {
+      const familyEntries: Array<{ name: string; isChild?: boolean }> = []
+      // Non-account dependants — first name + isChild flag.
+      if (user.dependants && user.dependants.length > 0) {
+        for (const d of user.dependants) {
+          const firstName = (d.name || '').trim().split(/\s+/)[0]
+          if (firstName) familyEntries.push({ name: firstName, isChild: !!d.isChild })
+        }
+      }
+      // Accepted linked accounts — first name of the other side. Best-effort;
+      // if the read fails we just skip the linked half, dependants still show.
+      try {
+        const links = await this.getFamilyLinks(user.id)
+        for (const link of links) {
+          if (link.status !== 'accepted') continue
+          const otherName = link.senderId === user.id ? link.recipientName : link.senderName
+          if (!otherName) continue
+          const firstName = otherName.trim().split(/\s+/)[0]
+          if (firstName) familyEntries.push({ name: firstName })
+        }
+      } catch (err) {
+        console.error('[db] mirror: family-links read failed', err)
+      }
+      if (familyEntries.length > 0) profile.publicFamily = familyEntries
     }
     await setDoc(doc(db, 'userProfiles', user.id), profile, { merge: false })
+  },
+
+  // Re-runs the profile mirror for the given user. Used after family-link
+  // mutations so the linked-family half stays in sync without waiting for
+  // the next user-doc write to trigger the mirror.
+  async refreshProfileMirror(userId: string): Promise<void> {
+    const fresh = await this.getUser(userId)
+    if (fresh) await this.writeUserProfileMirror(fresh)
   },
 
   async checkUsernameAvailable(username: string): Promise<boolean> {

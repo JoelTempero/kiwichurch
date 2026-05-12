@@ -39,6 +39,16 @@ interface SendArgs {
   recipientLabel?: string
 }
 
+// Re-mirror the user's public profile so `publicFamily` reflects the new
+// link state. Fire-and-forget — the family link write itself has already
+// succeeded; the mirror is a side-effect for the directory view.
+function refreshMirror(userId: string | null | undefined) {
+  if (!userId) return
+  dbService.refreshProfileMirror(userId).catch((err) =>
+    console.error('[familyLinks] mirror refresh failed', err),
+  )
+}
+
 export function useSendFamilyLink() {
   const qc = useQueryClient()
   return useMutation({
@@ -53,6 +63,8 @@ export function useSendFamilyLink() {
       ),
     onSuccess: (_, args) => {
       qc.invalidateQueries({ queryKey: KEY(args.senderId) })
+      // Pending invites don't appear in publicFamily until accepted, so no
+      // mirror refresh here.
     },
   })
 }
@@ -64,6 +76,7 @@ export function useAcceptFamilyLink(currentUserId: string | null) {
       dbService.acceptFamilyLink(linkId, recipientLabel),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY(currentUserId) })
+      refreshMirror(currentUserId)
     },
   })
 }
@@ -74,6 +87,7 @@ export function useDeleteFamilyLink(currentUserId: string | null) {
     mutationFn: (linkId: string) => dbService.deleteFamilyLink(linkId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY(currentUserId) })
+      refreshMirror(currentUserId)
     },
   })
 }
@@ -92,6 +106,9 @@ export function useUpdateMyFamilyLinkLabel(currentUserId: string | null) {
     }) => dbService.updateMyFamilyLinkLabel(linkId, side, label),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY(currentUserId) })
+      // Label changes don't affect publicFamily (which uses just first names)
+      // but the data is cheap to refresh.
+      refreshMirror(currentUserId)
     },
   })
 }
