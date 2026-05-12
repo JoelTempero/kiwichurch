@@ -70,14 +70,25 @@ export function HostingPage() {
   const { data: events = [], isLoading: loadingEvents, refetch: refetchEvents } = useEvents(range)
   const { data: groups = [], isLoading: loadingGroups, refetch: refetchGroups } = useGatherings()
 
-  // Per-event RSVP counts — small batch (page is admin-only and event count is manageable)
-  const visibleEventIds = useMemo(() => events.slice(0, 60).map((e) => e.id).join(','), [events])
-  const { data: rsvpCounts = {} } = useQuery<Record<string, number>>({
-    queryKey: ['hostingRsvpCounts', visibleEventIds, eventScope],
-    queryFn: () => dbService.getEventGoingCounts(events.slice(0, 60).map((e) => e.id)),
-    enabled: events.length > 0,
+  // Prefer the denormalised rsvpYesCount; fall back to an aggregate read for
+  // legacy events that pre-date the counter. Most loads pay zero extra reads.
+  const eventsMissingCount = useMemo(
+    () => events.filter((e) => typeof e.rsvpYesCount !== 'number').slice(0, 60).map((e) => e.id),
+    [events],
+  )
+  const { data: rsvpCountFallback = {} } = useQuery<Record<string, number>>({
+    queryKey: ['hostingRsvpCountFallback', eventsMissingCount.join(',')],
+    queryFn: () => dbService.getEventGoingCounts(eventsMissingCount),
+    enabled: eventsMissingCount.length > 0,
     staleTime: 60_000,
   })
+  const rsvpCounts = useMemo(() => {
+    const out: Record<string, number> = {}
+    for (const e of events) {
+      out[e.id] = typeof e.rsvpYesCount === 'number' ? e.rsvpYesCount : (rsvpCountFallback[e.id] ?? 0)
+    }
+    return out
+  }, [events, rsvpCountFallback])
 
   const filteredEvents = useMemo(() => {
     const q = eventQuery.toLowerCase().trim()

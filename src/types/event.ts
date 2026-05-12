@@ -15,6 +15,10 @@ export interface Event {
   isPublic: boolean
   imageURL?: string
   createdBy?: string
+  // Denormalised count of RSVPs with status === 'yes'. Maintained by
+  // setRSVP/removeRSVP via Firestore increment(). Lets the Hosting list
+  // render headcounts without N+1 aggregate reads.
+  rsvpYesCount?: number
   // Recurrence: when an event is part of a series, all siblings share `seriesId`.
   // The original (first) event also stores the recurrence rule.
   seriesId?: string

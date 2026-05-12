@@ -8,11 +8,13 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  increment,
   query,
   where,
   orderBy,
   limit,
   onSnapshot,
+  runTransaction,
   serverTimestamp,
   writeBatch,
   type Unsubscribe,
@@ -454,24 +456,49 @@ export const dbService = {
     userName = '',
     userPhotoURL = '',
   ): Promise<void> {
-    await setDoc(doc(db, 'events', eventId, 'rsvps', userId), {
-      userId,
-      userName,
-      userPhotoURL,
-      status,
-      notes,
-      attendees,
-      guestCount,
-      selfAttending,
-      updatedAt: serverTimestamp()
+    const eventRef = doc(db, 'events', eventId)
+    const rsvpRef = doc(db, 'events', eventId, 'rsvps', userId)
+    await runTransaction(db, async (txn) => {
+      const existing = await txn.get(rsvpRef)
+      const prevStatus = existing.exists() ? (existing.data().status as string | undefined) : undefined
+      txn.set(rsvpRef, {
+        userId,
+        userName,
+        userPhotoURL,
+        status,
+        notes,
+        attendees,
+        guestCount,
+        selfAttending,
+        updatedAt: serverTimestamp(),
+      })
+      const wasYes = prevStatus === 'yes'
+      const isYes = status === 'yes'
+      if (wasYes !== isYes) {
+        txn.update(eventRef, {
+          rsvpYesCount: increment(isYes ? 1 : -1),
+        })
+      }
     })
   },
 
   async removeRSVP(eventId: string, userId: string): Promise<void> {
-    await deleteDoc(doc(db, 'events', eventId, 'rsvps', userId))
+    const eventRef = doc(db, 'events', eventId)
+    const rsvpRef = doc(db, 'events', eventId, 'rsvps', userId)
+    await runTransaction(db, async (txn) => {
+      const existing = await txn.get(rsvpRef)
+      const wasYes = existing.exists() && existing.data().status === 'yes'
+      txn.delete(rsvpRef)
+      if (wasYes) {
+        txn.update(eventRef, {
+          rsvpYesCount: increment(-1),
+        })
+      }
+    })
   },
 
-  // Counts only RSVPs with status 'yes' — cheap aggregate, one query per event.
+  // Legacy aggregate fallback for events that pre-date the denormalised
+  // rsvpYesCount field. The Hosting page hydrates these on demand.
   async getEventGoingCount(eventId: string): Promise<number> {
     const q = query(collection(db, 'events', eventId, 'rsvps'), where('status', '==', 'yes'))
     const snap = await getCountFromServer(q)
