@@ -20,7 +20,7 @@ import {
   type Unsubscribe,
   type DocumentData,
 } from 'firebase/firestore'
-import { db } from './config'
+import { auth, db } from './config'
 import type {
   User,
   UserPreferences,
@@ -511,10 +511,22 @@ export const dbService = {
   },
 
   async updateEvent(eventId: string, updates: Partial<Event>): Promise<void> {
-    await updateDoc(doc(db, 'events', eventId), {
+    const eventRef = doc(db, 'events', eventId)
+    const before = (await getDoc(eventRef)).data() as Event | undefined
+    await updateDoc(eventRef, {
       ...updates,
       updatedAt: serverTimestamp()
     })
+    if (before && (
+      updates.time !== undefined && updates.time !== before.time ||
+      updates.endTime !== undefined && updates.endTime !== before.endTime ||
+      updates.location !== undefined && updates.location !== before.location
+    )) {
+      const after = { ...before, ...updates } as Event
+      this.notifyEventAttendees(eventId, after, 'updated').catch(
+        (err) => console.error('[db] event update notify failed', err)
+      )
+    }
   },
 
   // Update every event in a series whose date is >= the pivot event's date.
@@ -547,7 +559,47 @@ export const dbService = {
       batch.update(d.ref, { ...safe, updatedAt: serverTimestamp() })
     })
     await batch.commit()
+
+    // Fan-out notifications per event that actually changed
+    if (safe.time !== undefined || safe.endTime !== undefined || safe.location !== undefined) {
+      for (const d of snapshot.docs) {
+        const before = d.data() as Event
+        if (
+          safe.time === before.time &&
+          safe.endTime === before.endTime &&
+          safe.location === before.location
+        ) continue
+        const after = { ...before, ...safe, id: d.id } as Event
+        this.notifyEventAttendees(d.id, after, 'updated').catch(
+          (err) => console.error('[db] series event notify failed', err)
+        )
+      }
+    }
+
     return snapshot.size
+  },
+
+  async notifyEventAttendees(eventId: string, event: Event, kind: 'updated' | 'cancelled'): Promise<void> {
+    const rsvps = await getDocs(query(
+      collection(db, 'events', eventId, 'rsvps'),
+      where('status', 'in', ['yes', 'maybe'])
+    ))
+    const me = auth.currentUser?.uid
+    const targets = rsvps.docs.map(d => d.id).filter(uid => uid !== me)
+    if (targets.length === 0) return
+    const title = kind === 'cancelled' ? `${event.title} was cancelled` : `${event.title} was updated`
+    const now = serverTimestamp()
+    for (let i = 0; i < targets.length; i += 450) {
+      const batch = writeBatch(db)
+      targets.slice(i, i + 450).forEach(uid => {
+        batch.set(doc(collection(db, 'notifications')), {
+          userId: uid, type: 'event_update' as const,
+          title, message: '', link: `/events/${eventId}`,
+          read: false, createdAt: now,
+        })
+      })
+      await batch.commit()
+    }
   },
 
   async deleteEvent(eventId: string): Promise<void> {
