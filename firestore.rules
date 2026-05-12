@@ -38,10 +38,14 @@ service cloud.firestore {
         (data.keys().hasAny(['canPostKete']) && data.canPostKete == true);
     }
 
-    // Check if user account is active (not deactivated)
+    // Check if user account is active and approved.
+    // Existing users without a status field are treated as 'active' for
+    // backwards compatibility. Self-signup writes status: 'pending', which
+    // blocks writes until an admin/host flips it to 'active'.
     function isActive() {
       let data = getUserData();
-      return !data.keys().hasAny(['status']) || data.status != 'deactivated';
+      return !data.keys().hasAny(['status']) ||
+        (data.status != 'deactivated' && data.status != 'pending');
     }
 
     // Check if user is a member of a specific gathering
@@ -79,23 +83,28 @@ service cloud.firestore {
         request.auth.uid == userId || isAdminOrHost()
       );
 
-      // Users can create their own profile during registration
-      // During initial setup, first user can be admin
-      // Otherwise, new users default to member role
-      // Admins can create documents for other users
+      // Users can create their own profile during registration.
+      // Self-signup must land as status: 'pending' (admin approval required).
+      // During initial setup, the first user is allowed to be 'admin' + 'active'.
+      // Admins can create documents for other users (status: 'active' default).
       allow create: if isAuthenticated() &&
         (
-          // Self-create
+          // Self-create: pending only (or admin on initial setup)
           (request.auth.uid == userId && (
             (isInitialSetup() && request.resource.data.role == 'admin') ||
-            request.resource.data.role == 'member'
+            (request.resource.data.role == 'member' &&
+             request.resource.data.status == 'pending')
           )) ||
           // Admin creates another user's document
           isAdmin()
         );
 
-      // Users can update their own profile (limited fields)
-      allow update: if isAuthenticated() && isActive() && request.auth.uid == userId &&
+      // Users can update their own profile (limited fields). Pending users
+      // can still update their own profile so they can fill in details
+      // while awaiting approval, but isActive() gating elsewhere blocks
+      // their writes to community content.
+      allow update: if isAuthenticated() && request.auth.uid == userId &&
+        getUserData().status != 'deactivated' &&
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['displayName', 'phone', 'bio', 'photoURL', 'preferences', 'privacy', 'interests', 'gallery', 'dependants', 'updatedAt']);
 

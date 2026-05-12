@@ -106,10 +106,21 @@ export function SettingsPage() {
   const notifBlocked = notifPermission === 'denied'
   const notifUnsupported = notifPermission === 'unsupported'
 
-  const filteredUsers = users.filter((u: User) => {
+  // Show pending self-signups first so admins can approve quickly.
+  const sortedUsers = [...users].sort((a, b) => {
+    const aPending = a.status === 'pending' ? 0 : 1
+    const bPending = b.status === 'pending' ? 0 : 1
+    if (aPending !== bPending) return aPending - bPending
+    return a.displayName.localeCompare(b.displayName)
+  })
+  const filteredUsers = sortedUsers.filter((u: User) => {
     const q = searchQuery.toLowerCase()
     return u.displayName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
   })
+
+  const handleApproveUser = (u: User) => {
+    updateUserMutation.mutate({ userId: u.id, updates: { status: 'active' } })
+  }
 
   const getRoleBadgeVariant = (role: User['role']) => {
     switch (role) {
@@ -226,19 +237,38 @@ export function SettingsPage() {
             />
           ) : (
             <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-              {filteredUsers.map((u: User) => (
-                <div key={u.id} className="flex items-center gap-3 p-3">
-                  <Avatar src={u.photoURL} name={u.displayName} size="md" />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-text-primary text-sm">{u.displayName}</h3>
-                    <p className="text-xs text-text-light truncate">{u.email}</p>
+              {filteredUsers.map((u: User) => {
+                const isPending = u.status === 'pending'
+                return (
+                  <div key={u.id} className={`flex items-center gap-3 p-3 ${isPending ? 'bg-amber-50' : ''}`}>
+                    <Avatar src={u.photoURL} name={u.displayName} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-text-primary text-sm">{u.displayName}</h3>
+                      <p className="text-xs text-text-light truncate">{u.email}</p>
+                    </div>
+                    {isPending && (
+                      <Badge variant="warning">Pending</Badge>
+                    )}
+                    {!isPending && (
+                      <Badge variant={getRoleBadgeVariant(u.role)}>{u.role}</Badge>
+                    )}
+                    {isPending && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleApproveUser(u)}
+                        disabled={updateUserMutation.isPending}
+                        aria-label={`Approve ${u.displayName}`}
+                      >
+                        Approve
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => openEditModal(u)} aria-label={`Edit ${u.displayName}`}>
+                      <Pencil size={16} />
+                    </Button>
                   </div>
-                  <Badge variant={getRoleBadgeVariant(u.role)}>{u.role}</Badge>
-                  <Button variant="ghost" size="sm" onClick={() => openEditModal(u)} aria-label={`Edit ${u.displayName}`}>
-                    <Pencil size={16} />
-                  </Button>
-                </div>
-              ))}
+                )
+              })}
             </FadeIn>
           )}
         </section>

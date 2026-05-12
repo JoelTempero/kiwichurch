@@ -5,6 +5,7 @@ import { DesktopSidebar } from './DesktopSidebar'
 import { AppHeader } from './AppHeader'
 import { NotificationPanel } from './NotificationPanel'
 import { SearchPanel } from './SearchPanel'
+import { PendingApprovalGate } from './PendingApprovalGate'
 import { useAuth } from '@/hooks/useAuth'
 import { useUnreadNotificationCount, useNotificationsSubscription } from '@/hooks/useNotifications'
 import { useConversationsSubscription } from '@/hooks/useDirectMessages'
@@ -18,6 +19,11 @@ export function AppLayout() {
   const unreadCount = useUnreadNotificationCount(user?.id || null)
   useNotificationsSubscription(user?.id || null)
   useConversationsSubscription(user?.id ?? null)
+
+  // Pending self-signups see only the approval gate.
+  if (user?.status === 'pending') {
+    return <PendingApprovalGate />
+  }
 
   const handleSearchClick = () => {
     setShowSearch(true)

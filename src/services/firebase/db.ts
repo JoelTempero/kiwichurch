@@ -106,6 +106,7 @@ export const dbService = {
     username?: string
     photoURL?: string
     role?: 'admin' | 'host' | 'member'
+    status?: 'pending' | 'active' | 'deactivated'
     preferences?: UserPreferences
   }): Promise<User> {
     const timestamp = serverTimestamp()
@@ -113,6 +114,7 @@ export const dbService = {
       ...userData,
       email: userData.email.toLowerCase(),
       role: userData.role || 'member',
+      status: userData.status || 'active',
       createdAt: timestamp,
       updatedAt: timestamp
     }

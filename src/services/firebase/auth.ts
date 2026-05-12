@@ -98,13 +98,15 @@ export const authService = {
         })
       }
 
-      // Create user document in Firestore
+      // Create user document in Firestore. Self-signup lands as `pending`
+      // — admin/host must approve before the user can interact.
       await dbService.createUser(user.uid, {
         email: email,
         displayName: userData.displayName || email.split('@')[0],
         username: userData.username,
         photoURL: userData.photoURL,
         role: 'member',
+        status: 'pending',
         preferences: {
           emailNotifications: true
         }
@@ -346,6 +348,8 @@ export const authService = {
         email,
         displayName,
         role,
+        // Admin/host-created accounts are pre-approved; no review queue.
+        status: 'active',
         preferences: { emailNotifications: true }
       })
 

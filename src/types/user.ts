@@ -2,6 +2,12 @@ import type { Timestamp } from 'firebase/firestore'
 
 export type UserRole = 'admin' | 'host' | 'member'
 
+// Account lifecycle:
+//   pending     — self-registered, waiting for admin to approve
+//   active      — full access (default for accounts predating this field)
+//   deactivated — blocked from writing; still readable for moderation
+export type UserStatus = 'pending' | 'active' | 'deactivated'
+
 export interface User {
   id: string
   email: string
@@ -11,6 +17,7 @@ export interface User {
   phone?: string
   bio?: string
   role: UserRole
+  status?: UserStatus
   preferences?: UserPreferences
   privacy?: PrivacySettings
   interests?: string[]
