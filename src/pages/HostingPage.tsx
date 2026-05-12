@@ -1,29 +1,110 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
-import { useUpcomingEvents } from '@/hooks/useEvents'
+import { useEvents } from '@/hooks/useEvents'
 import { useGatherings } from '@/hooks/useGatherings'
 import { Button, EmptyState, Spinner } from '@/components/common'
 import { EventForm } from '@/components/events'
 import { GroupForm } from '@/components/groups'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, Search, Repeat, Users as UsersIcon } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { dbService } from '@/services/firebase'
+import { recurrenceLabel } from '@/utils/recurrence'
 import type { Event, Gathering } from '@/types'
+
+type TopTab = 'events' | 'groups'
+type EventScope = 'upcoming' | 'past'
+
+function todayISO(): string {
+  return new Date().toISOString().split('T')[0]
+}
+
+function isoMonthsAgo(months: number): string {
+  const d = new Date()
+  d.setMonth(d.getMonth() - months)
+  return d.toISOString().split('T')[0]
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-NZ', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: new Date(dateStr).getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+  })
+}
+
+function monthLabel(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })
+}
 
 export function HostingPage() {
   const { isAdminOrHost, isAdmin } = useAuth()
 
-  const [activeTab, setActiveTab] = useState<'events' | 'groups'>('events')
+  const [activeTab, setActiveTab] = useState<TopTab>('events')
 
-  // Event form state
+  // Event filters
+  const [eventScope, setEventScope] = useState<EventScope>('upcoming')
+  const [eventQuery, setEventQuery] = useState('')
+  const [eventGroupFilter, setEventGroupFilter] = useState('')
+
+  // Forms
   const [showEventForm, setShowEventForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
-
-  // Group form state
   const [showGroupForm, setShowGroupForm] = useState(false)
   const [editingGroup, setEditingGroup] = useState<Gathering | null>(null)
 
-  const { data: events = [], isLoading: loadingEvents, refetch: refetchEvents } = useUpcomingEvents()
+  const today = todayISO()
+  const upcomingRange = useMemo(() => ({
+    startDate: today,
+    // Show up to a year ahead so recurring series are visible
+    endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  }), [today])
+  const pastRange = useMemo(() => ({
+    startDate: isoMonthsAgo(6),
+    endDate: today,
+  }), [today])
+
+  const range = eventScope === 'upcoming' ? upcomingRange : pastRange
+
+  const { data: events = [], isLoading: loadingEvents, refetch: refetchEvents } = useEvents(range)
   const { data: groups = [], isLoading: loadingGroups, refetch: refetchGroups } = useGatherings()
+
+  // Per-event RSVP counts — small batch (page is admin-only and event count is manageable)
+  const visibleEventIds = useMemo(() => events.slice(0, 60).map((e) => e.id).join(','), [events])
+  const { data: rsvpCounts = {} } = useQuery<Record<string, number>>({
+    queryKey: ['hostingRsvpCounts', visibleEventIds, eventScope],
+    queryFn: () => dbService.getEventGoingCounts(events.slice(0, 60).map((e) => e.id)),
+    enabled: events.length > 0,
+    staleTime: 60_000,
+  })
+
+  const filteredEvents = useMemo(() => {
+    const q = eventQuery.toLowerCase().trim()
+    const filtered = events.filter((e) => {
+      if (eventGroupFilter && e.gatheringId !== eventGroupFilter) return false
+      if (!q) return true
+      return (
+        e.title.toLowerCase().includes(q) ||
+        (e.location || '').toLowerCase().includes(q) ||
+        (e.gatheringName || '').toLowerCase().includes(q)
+      )
+    })
+    if (eventScope === 'past') filtered.reverse() // newest past first
+    return filtered
+  }, [events, eventQuery, eventGroupFilter, eventScope])
+
+  // For Past: group events by month for easier scanning
+  const groupedByMonth = useMemo(() => {
+    if (eventScope !== 'past') return null
+    const map = new Map<string, Event[]>()
+    filteredEvents.forEach((e) => {
+      const key = monthLabel(e.date)
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(e)
+    })
+    return Array.from(map.entries())
+  }, [filteredEvents, eventScope])
 
   if (!isAdminOrHost) {
     return (
@@ -75,12 +156,48 @@ export function HostingPage() {
     refetchGroups()
   }
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-NZ', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short'
-    })
+  const renderEventRow = (event: Event) => {
+    const goingCount = rsvpCounts[event.id] ?? 0
+    return (
+      <div key={event.id} className="flex items-center gap-4 p-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-text-primary text-sm m-0 truncate">{event.title}</h3>
+            {event.seriesId && (
+              <span
+                className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-forest/10 text-forest border border-forest/20"
+                title={`Part of a ${event.recurrence} series`}
+              >
+                <Repeat size={11} />
+                {recurrenceLabel(event.recurrence)}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-text-light mt-0.5 m-0">
+            {formatDate(event.date)} at {event.time}
+            {event.location && ` • ${event.location}`}
+            {event.gatheringName && ` • ${event.gatheringName}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {goingCount > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs text-text-light">
+              <UsersIcon size={12} />
+              {goingCount}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleEditEvent(event)}
+            aria-label={`Edit ${event.title}`}
+          >
+            <Pencil size={16} aria-hidden="true" />
+            Edit
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -90,16 +207,14 @@ export function HostingPage() {
         <p className="text-text-light text-sm">Manage events, content, and groups</p>
       </div>
 
-      {/* Tabs */}
+      {/* Top tabs */}
       <div className="flex gap-1 p-1 bg-cream rounded-md mb-6" role="tablist">
         <button
           role="tab"
           aria-selected={activeTab === 'events'}
           className={cn(
             'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
-            activeTab === 'events'
-              ? 'bg-forest text-cream'
-              : 'text-text-light hover:text-text-primary'
+            activeTab === 'events' ? 'bg-forest text-cream' : 'text-text-light hover:text-text-primary',
           )}
           onClick={() => setActiveTab('events')}
         >
@@ -111,9 +226,7 @@ export function HostingPage() {
             aria-selected={activeTab === 'groups'}
             className={cn(
               'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
-              activeTab === 'groups'
-                ? 'bg-forest text-cream'
-                : 'text-text-light hover:text-text-primary'
+              activeTab === 'groups' ? 'bg-forest text-cream' : 'text-text-light hover:text-text-primary',
             )}
             onClick={() => setActiveTab('groups')}
           >
@@ -122,55 +235,90 @@ export function HostingPage() {
         )}
       </div>
 
-      {/* Content */}
       {activeTab === 'events' && (
         <div className="mb-8" role="tabpanel">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-forest">Upcoming Events</h2>
+            <h2 className="text-lg font-semibold text-forest">Events</h2>
             <Button variant="primary" size="sm" onClick={handleCreateEvent}>
               <Plus size={16} aria-hidden="true" />
               New Event
             </Button>
           </div>
 
+          {/* Scope toggle */}
+          <div className="flex gap-1 p-1 bg-cream rounded-md mb-3">
+            {(['upcoming', 'past'] as EventScope[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setEventScope(s)}
+                className={cn(
+                  'flex-1 px-3 py-1.5 rounded-sm text-sm font-medium transition-colors capitalize',
+                  eventScope === s ? 'bg-forest text-cream' : 'text-text-light hover:text-text-primary',
+                )}
+              >
+                {s === 'upcoming' ? 'Upcoming' : 'Past 6 months'}
+              </button>
+            ))}
+          </div>
+
+          {/* Search + group filter */}
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <div className="flex-1 flex items-center gap-2 px-3 py-2 border border-[#e0dbd2] rounded-md bg-[#faf8f4]">
+              <Search size={16} className="text-text-light shrink-0" />
+              <input
+                type="text"
+                className="w-full border-none p-0 bg-transparent text-sm outline-none"
+                placeholder="Search by title, location, or group..."
+                value={eventQuery}
+                onChange={(e) => setEventQuery(e.target.value)}
+              />
+            </div>
+            <select
+              value={eventGroupFilter}
+              onChange={(e) => setEventGroupFilter(e.target.value)}
+              className="sm:w-48 px-3 py-2 rounded-md border border-[#e0dbd2] bg-transparent text-sm focus:outline-none focus:border-forest"
+              aria-label="Filter by group"
+            >
+              <option value="">All groups</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+
           {loadingEvents ? (
             <Spinner />
-          ) : events.length === 0 ? (
+          ) : filteredEvents.length === 0 ? (
             <EmptyState
               icon="calendar"
-              title="No upcoming events"
-              message="Create an event to get started"
+              title={eventScope === 'upcoming' ? 'No upcoming events' : 'No past events'}
+              message={
+                eventScope === 'upcoming'
+                  ? (eventQuery || eventGroupFilter ? 'Try clearing filters' : 'Create an event to get started')
+                  : 'Past events from the last 6 months will appear here'
+              }
               action={
-                <Button variant="primary" onClick={handleCreateEvent}>
-                  Create Event
-                </Button>
+                eventScope === 'upcoming' && !eventQuery && !eventGroupFilter ? (
+                  <Button variant="primary" onClick={handleCreateEvent}>
+                    Create Event
+                  </Button>
+                ) : undefined
               }
             />
-          ) : (
-            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-              {events.map((event: Event) => (
-                <div key={event.id} className="flex items-center gap-4 p-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-text-primary text-sm truncate">{event.title}</h3>
-                    <p className="text-xs text-text-light mt-0.5">
-                      {formatDate(event.date)} at {event.time}
-                      {event.location && ` \u2022 ${event.location}`}
-                      {event.gatheringName && ` \u2022 ${event.gatheringName}`}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditEvent(event)}
-                      aria-label={`Edit ${event.title}`}
-                    >
-                      <Pencil size={16} aria-hidden="true" />
-                      Edit
-                    </Button>
+          ) : groupedByMonth ? (
+            <div className="space-y-4">
+              {groupedByMonth.map(([month, list]) => (
+                <div key={month}>
+                  <p className="text-xs uppercase tracking-widest font-medium text-text-light mb-2">{month}</p>
+                  <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+                    {list.map(renderEventRow)}
                   </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+              {filteredEvents.map(renderEventRow)}
             </div>
           )}
         </div>
@@ -204,7 +352,7 @@ export function HostingPage() {
               {groups.map((group: Gathering) => (
                 <div key={group.id} className="flex items-center gap-4 p-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div
                         className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: group.color || '#2d5a4a' }}
@@ -219,7 +367,7 @@ export function HostingPage() {
                     </div>
                     <p className="text-xs text-text-light mt-0.5">
                       {group.rhythm || 'No schedule set'}
-                      {group.location && ` \u2022 ${group.location}`}
+                      {group.location && ` • ${group.location}`}
                     </p>
                   </div>
                   <div className="flex-shrink-0">
@@ -240,7 +388,6 @@ export function HostingPage() {
         </div>
       )}
 
-      {/* Event Form Modal */}
       <EventForm
         event={editingEvent}
         isOpen={showEventForm}
@@ -248,7 +395,6 @@ export function HostingPage() {
         onSuccess={handleEventSuccess}
       />
 
-      {/* Group Form Modal */}
       <GroupForm
         group={editingGroup}
         isOpen={showGroupForm}

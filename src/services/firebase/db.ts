@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getCountFromServer,
   addDoc,
   setDoc,
   updateDoc,
@@ -408,6 +409,20 @@ export const dbService = {
 
   async removeRSVP(eventId: string, userId: string): Promise<void> {
     await deleteDoc(doc(db, 'events', eventId, 'rsvps', userId))
+  },
+
+  // Counts only RSVPs with status 'yes' — cheap aggregate, one query per event.
+  async getEventGoingCount(eventId: string): Promise<number> {
+    const q = query(collection(db, 'events', eventId, 'rsvps'), where('status', '==', 'yes'))
+    const snap = await getCountFromServer(q)
+    return snap.data().count
+  },
+
+  async getEventGoingCounts(eventIds: string[]): Promise<Record<string, number>> {
+    const results = await Promise.all(
+      eventIds.map(async (id) => [id, await this.getEventGoingCount(id)] as const),
+    )
+    return Object.fromEntries(results)
   },
 
   // ============================================
