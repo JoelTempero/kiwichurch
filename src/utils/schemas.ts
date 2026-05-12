@@ -41,6 +41,8 @@ export const eventSchema = z.object({
   gatheringId: z.string().optional().default(''),
   isPublic: z.boolean().default(true),
   imageURL: z.string().optional().default(''),
+  recurrence: z.enum(['none', 'weekly', 'fortnightly', 'monthly']).default('none'),
+  recurrenceCount: z.coerce.number().int().min(1).max(26).default(1),
 }).refine(data => !data.endTime || data.endTime > data.time, {
   message: 'End time must be after start time',
   path: ['endTime'],

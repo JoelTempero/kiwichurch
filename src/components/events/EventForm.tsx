@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button, ConfirmModal, Modal } from '@/components/common'
 import { useGatherings } from '@/hooks/useGatherings'
-import { useCreateEvent, useUpdateEvent, useDeleteEvent } from '@/hooks/useEvents'
+import { useCreateEvent, useUpdateEvent, useDeleteEvent, eventKeys } from '@/hooks/useEvents'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/hooks/useAuth'
 import { eventSchema } from '@/utils/schemas'
 import { cn } from '@/utils/cn'
-import type { Event } from '@/types'
+import { dbService } from '@/services/firebase'
+import {
+  generateRecurrenceDates,
+  makeSeriesId,
+  RECURRENCE_OPTIONS,
+} from '@/utils/recurrence'
+import type { Event, EventRecurrence } from '@/types'
 
 interface EventFormProps {
   event?: Event | null
@@ -24,6 +31,7 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
   const { user } = useAuth()
   const { showToast } = useToast()
   const { data: gatherings = [] } = useGatherings()
+  const queryClient = useQueryClient()
 
   const createEvent = useCreateEvent()
   const updateEvent = useUpdateEvent()
@@ -31,14 +39,19 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
 
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  // For series-aware edits/deletes
+  const [seriesScope, setSeriesScope] = useState<'one' | 'following'>('one')
+  const [isSavingSeries, setIsSavingSeries] = useState(false)
 
   const isEditMode = !!event
+  const isSeries = !!event?.seriesId
 
   const form = useForm({
     resolver: zodResolver(eventSchema),
     defaultValues: {
       title: '', description: '', date: '', time: '', endTime: '',
       location: '', gatheringId: '', isPublic: true, imageURL: '',
+      recurrence: 'none' as EventRecurrence, recurrenceCount: 1,
     },
   })
 
@@ -50,46 +63,109 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
           date: event.date || '', time: event.time || '', endTime: event.endTime || '',
           location: event.location || '', gatheringId: event.gatheringId || '',
           isPublic: event.isPublic ?? true, imageURL: event.imageURL || '',
+          // Editing a series: recurrence shown as info, but locking it from being changed mid-stream.
+          recurrence: (event.recurrence as EventRecurrence) || 'none',
+          recurrenceCount: event.recurrenceCount || 1,
         })
+        setSeriesScope('one')
       } else {
         form.reset()
       }
     }
   }, [event, isOpen, form])
 
+  const recurrence = form.watch('recurrence') as EventRecurrence
+  const recurrenceCount = Number(form.watch('recurrenceCount') ?? 1) || 1
+
   const handleSubmit = form.handleSubmit(async (data) => {
     if (!user) return
 
-    try {
-      const gathering = gatherings.find(g => g.id === data.gatheringId)
-      const eventData = {
-        ...data,
-        gatheringName: gathering?.name,
-        createdBy: event?.createdBy || user.id,
-      }
+    const gathering = gatherings.find((g) => g.id === data.gatheringId)
+    const sharedData = {
+      title: data.title,
+      description: data.description,
+      time: data.time,
+      endTime: data.endTime,
+      location: data.location,
+      gatheringId: data.gatheringId,
+      gatheringName: gathering?.name,
+      isPublic: data.isPublic,
+      imageURL: data.imageURL,
+      createdBy: event?.createdBy || user.id,
+    }
 
+    try {
       if (isEditMode && event) {
-        await updateEvent.mutateAsync({ eventId: event.id, updates: eventData })
-        showToast('Event updated', 'success')
+        const updates = {
+          ...sharedData,
+          date: data.date,
+          recurrence: event.recurrence,
+          recurrenceCount: event.recurrenceCount,
+          seriesId: event.seriesId,
+        }
+        if (isSeries && seriesScope === 'following' && event.seriesId) {
+          setIsSavingSeries(true)
+          const n = await dbService.updateEventSeries(event.seriesId, event.date, sharedData)
+          queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
+          showToast(`Updated ${n} events in the series`, 'success')
+          setIsSavingSeries(false)
+        } else {
+          await updateEvent.mutateAsync({ eventId: event.id, updates })
+          showToast('Event updated', 'success')
+        }
       } else {
-        await createEvent.mutateAsync(eventData)
-        showToast('Event created', 'success')
+        if (data.recurrence !== 'none' && data.recurrenceCount > 1) {
+          const seriesId = makeSeriesId()
+          const dates = generateRecurrenceDates(data.date, data.recurrence, data.recurrenceCount)
+          await dbService.createEventSeries(
+            {
+              ...sharedData,
+              recurrence: data.recurrence,
+              recurrenceCount: data.recurrenceCount,
+              seriesId,
+              isPublic: data.isPublic,
+            },
+            dates,
+          )
+          queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
+          showToast(`Created ${dates.length} events`, 'success')
+        } else {
+          await createEvent.mutateAsync({
+            ...sharedData,
+            date: data.date,
+            recurrence: 'none',
+            recurrenceCount: 1,
+          })
+          showToast('Event created', 'success')
+        }
       }
 
       onSuccess?.()
       onClose()
-    } catch {
+    } catch (err) {
+      console.error(err)
       showToast(`Failed to ${isEditMode ? 'update' : 'create'} event`, 'error')
+    } finally {
+      setIsSavingSeries(false)
     }
   })
 
-  const handleDelete = async () => {
+  const handleDelete = async (scope: 'one' | 'following' | 'all') => {
     if (!event) return
-
     setIsDeleting(true)
     try {
-      await deleteEvent.mutateAsync(event.id)
-      showToast('Event deleted', 'success')
+      if (scope === 'one' || !event.seriesId) {
+        await deleteEvent.mutateAsync(event.id)
+        showToast('Event deleted', 'success')
+      } else if (scope === 'following') {
+        const n = await dbService.deleteEventSeries(event.seriesId, event.date)
+        queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
+        showToast(`Deleted ${n} events in the series`, 'success')
+      } else {
+        const n = await dbService.deleteEventSeries(event.seriesId)
+        queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
+        showToast(`Deleted entire series (${n} events)`, 'success')
+      }
       setShowDeleteConfirm(false)
       onSuccess?.()
       onClose()
@@ -111,11 +187,45 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
   }
 
   const { errors, isSubmitting } = form.formState
+  const showSeriesPicker = isSeries
 
   return (
     <>
       <Modal isOpen={isOpen} onClose={handleClose} title={isEditMode ? 'Edit Event' : 'Create Event'} size="lg">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Series indicator on edit */}
+          {showSeriesPicker && event && (
+            <div className="bg-cream rounded-md p-3 text-sm">
+              <p className="m-0 mb-2 text-text-primary">
+                Part of a <strong>{event.recurrence}</strong> series
+                {event.recurrenceIndex !== undefined && event.recurrenceCount
+                  ? ` (event ${event.recurrenceIndex + 1} of ${event.recurrenceCount})`
+                  : ''}
+              </p>
+              <fieldset className="space-y-1">
+                <legend className="sr-only">Edit scope</legend>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={seriesScope === 'one'}
+                    onChange={() => setSeriesScope('one')}
+                    name="series-scope"
+                  />
+                  Just this event
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={seriesScope === 'following'}
+                    onChange={() => setSeriesScope('following')}
+                    name="series-scope"
+                  />
+                  This and all following events
+                </label>
+              </fieldset>
+            </div>
+          )}
+
           <div>
             <label className="block font-medium mb-2" htmlFor="event-title">
               Title <span className="text-red-600">*</span>
@@ -196,12 +306,44 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
             <label className="block font-medium mb-2" htmlFor="event-group">Group</label>
             <select id="event-group" className={inputBase} {...form.register('gatheringId')}>
               <option value="">No group (church-wide event)</option>
-              {gatherings.map(g => (
+              {gatherings.map((g) => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </select>
             <span className="text-sm text-text-light mt-1 block">Assign this event to a specific group</span>
           </div>
+
+          {/* Repeats — create-only. Editing the recurrence rule on a series is intentionally
+              out of scope; admins can delete the series and recreate it. */}
+          {!isEditMode && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block font-medium mb-2" htmlFor="event-recurrence">Repeats</label>
+                <select id="event-recurrence" className={inputBase} {...form.register('recurrence')}>
+                  {RECURRENCE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block font-medium mb-2" htmlFor="event-recurrence-count">Occurrences</label>
+                <input
+                  id="event-recurrence-count"
+                  type="number"
+                  min={1}
+                  max={26}
+                  disabled={recurrence === 'none'}
+                  className={cn(inputBase, recurrence === 'none' && 'opacity-50 cursor-not-allowed')}
+                  {...form.register('recurrenceCount', { valueAsNumber: true })}
+                />
+                <span className="text-xs text-text-light mt-1 block">
+                  {recurrence === 'none'
+                    ? 'Pick a frequency to repeat'
+                    : `Creates ${recurrenceCount || 1} events sharing one series`}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block font-medium mb-2" htmlFor="event-description">Description</label>
@@ -236,15 +378,19 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
           <div className="flex justify-between items-center mt-6 pt-6 border-t border-cream">
             <div className="flex gap-2">
               {isEditMode && (
-                <Button type="button" variant="danger" onClick={() => setShowDeleteConfirm(true)} disabled={isSubmitting}>
+                <Button type="button" variant="danger" onClick={() => setShowDeleteConfirm(true)} disabled={isSubmitting || isSavingSeries}>
                   Delete Event
                 </Button>
               )}
             </div>
             <div className="flex gap-3">
-              <Button type="button" variant="ghost" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
-              <Button type="submit" variant="primary" loading={isSubmitting}>
-                {isEditMode ? 'Save Changes' : 'Create Event'}
+              <Button type="button" variant="ghost" onClick={handleClose} disabled={isSubmitting || isSavingSeries}>Cancel</Button>
+              <Button type="submit" variant="primary" loading={isSubmitting || isSavingSeries}>
+                {isEditMode
+                  ? (isSeries && seriesScope === 'following' ? 'Save series' : 'Save Changes')
+                  : (recurrence !== 'none' && recurrenceCount > 1
+                      ? `Create ${recurrenceCount} events`
+                      : 'Create Event')}
               </Button>
             </div>
           </div>
@@ -252,15 +398,34 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
       </Modal>
 
       <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title="Delete Event" size="sm">
-        <div className="text-center">
+        <div>
           <p>Are you sure you want to delete "<strong>{event?.title}</strong>"?</p>
           <p className="text-red-600 text-sm mt-2">This action cannot be undone. All RSVPs will be removed.</p>
-          <div className="flex justify-center gap-3 mt-6">
-            <Button variant="danger" onClick={handleDelete} loading={isDeleting}>Yes, Delete Event</Button>
-            <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>Cancel</Button>
-          </div>
+
+          {isSeries ? (
+            <div className="space-y-2 mt-4">
+              <Button variant="danger" onClick={() => handleDelete('one')} loading={isDeleting} className="w-full">
+                Delete just this event
+              </Button>
+              <Button variant="danger" onClick={() => handleDelete('following')} loading={isDeleting} className="w-full">
+                Delete this and following events
+              </Button>
+              <Button variant="outline" onClick={() => handleDelete('all')} loading={isDeleting} className="w-full">
+                Delete entire series
+              </Button>
+              <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting} className="w-full">
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-center gap-3 mt-6">
+              <Button variant="danger" onClick={() => handleDelete('one')} loading={isDeleting}>Yes, Delete Event</Button>
+              <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>Cancel</Button>
+            </div>
+          )}
         </div>
       </Modal>
+
       <ConfirmModal
         isOpen={showDiscardConfirm}
         onClose={() => setShowDiscardConfirm(false)}

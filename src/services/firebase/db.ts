@@ -300,6 +300,32 @@ export const dbService = {
     return { id: docRef.id, ...eventData } as Event
   },
 
+  // Bulk-create siblings of a recurring series. Each sibling shares `seriesId`
+  // and carries its own date + recurrenceIndex; recurrence/recurrenceCount are
+  // stamped on every occurrence so the UI can render "1 of 6" etc.
+  async createEventSeries(
+    baseData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'date' | 'recurrenceIndex'>,
+    dates: string[],
+  ): Promise<Event[]> {
+    const timestamp = serverTimestamp()
+    const batch = writeBatch(db)
+    const created: Event[] = []
+    for (let i = 0; i < dates.length; i++) {
+      const ref = doc(collection(db, 'events'))
+      const data = {
+        ...baseData,
+        date: dates[i],
+        recurrenceIndex: i,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }
+      batch.set(ref, data)
+      created.push({ id: ref.id, ...data } as unknown as Event)
+    }
+    await batch.commit()
+    return created
+  },
+
   async updateEvent(eventId: string, updates: Partial<Event>): Promise<void> {
     await updateDoc(doc(db, 'events', eventId), {
       ...updates,
@@ -307,8 +333,42 @@ export const dbService = {
     })
   },
 
+  // Update every event in a series whose date is >= the pivot event's date.
+  // Title/description/etc. are propagated; date/recurrenceIndex stay intact.
+  async updateEventSeries(
+    seriesId: string,
+    fromDate: string,
+    updates: Partial<Event>,
+  ): Promise<number> {
+    const q = query(
+      collection(db, 'events'),
+      where('seriesId', '==', seriesId),
+      where('date', '>=', fromDate),
+    )
+    const snapshot = await getDocs(q)
+    const batch = writeBatch(db)
+    const { date: _date, recurrenceIndex: _idx, ...safe } = updates
+    void _date; void _idx
+    snapshot.docs.forEach((d) => {
+      batch.update(d.ref, { ...safe, updatedAt: serverTimestamp() })
+    })
+    await batch.commit()
+    return snapshot.size
+  },
+
   async deleteEvent(eventId: string): Promise<void> {
     await deleteDoc(doc(db, 'events', eventId))
+  },
+
+  async deleteEventSeries(seriesId: string, fromDate?: string): Promise<number> {
+    const constraints: ReturnType<typeof where>[] = [where('seriesId', '==', seriesId)]
+    if (fromDate) constraints.push(where('date', '>=', fromDate))
+    const q = query(collection(db, 'events'), ...constraints)
+    const snapshot = await getDocs(q)
+    const batch = writeBatch(db)
+    snapshot.docs.forEach((d) => batch.delete(d.ref))
+    await batch.commit()
+    return snapshot.size
   },
 
   // ============================================
