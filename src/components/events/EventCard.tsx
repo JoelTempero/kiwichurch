@@ -1,6 +1,7 @@
 import { cn } from '@/utils/cn'
 import type { Event } from '@/types'
 import { Badge } from '@/components/common'
+import { Repeat } from 'lucide-react'
 
 interface EventCardProps {
   event: Event
@@ -52,7 +53,12 @@ export function EventCard({ event, onClick, rsvpStatus, compact = false }: Event
         <span className="text-base font-semibold text-cream leading-tight">{day}</span>
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-text-primary text-[15px] truncate">{event.title}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold text-text-primary text-[15px] truncate">{event.title}</span>
+          {event.seriesId && (
+            <Repeat size={12} className="text-text-light shrink-0" aria-label="Recurring event" />
+          )}
+        </div>
         <div className="text-sm text-text-light">
           {weekday} {formatTime(event.time)}
           {event.location && ` · ${event.location}`}

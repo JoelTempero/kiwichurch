@@ -177,6 +177,16 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
+### 2026-05-12: Autopilot — profile expansion, directory rethink, family RSVP, recurring events, hosting overhaul
+- **Profile expansion**: new sections `FamilySection`, `InterestsSection`, `GallerySection`, `PrivacySection` in `src/components/profile/`. User type extended with `privacy: PrivacySettings`, `interests: string[]`, `gallery: GalleryImage[]`. `DEFAULT_PRIVACY` exported for fallback. Privacy defaults: phone/email/bio/interests/gallery/groups all visible; family hidden by default. Family CRUD via inline modal; interests are chip pills (max 20, 32 chars each); gallery up to 6 images uploaded to `users/{uid}/gallery/` (new storage rule with deletes allowed for owner).
+- **Auth surface widened**: `authService.updateProfile` + `useAuth.updateProfile` signatures now accept `privacy`, `interests`, `gallery`, `dependants`. Firestore self-update rule extended to allow those keys.
+- **Directory rethink**: new `MemberDetailModal` shows full profile card (avatar, role, bio, contact, interests, family, groups, gallery) with mailto/tel and a "Message" CTA that jumps to `/messages/[deterministic-id]`. All privacy toggles respected; admin/host bypass for pastoral care. DirectoryPage gets role filter pills (All/Admins/Hosts/Members) + group dropdown + clear button. Search now matches name, bio, email, and interests.
+- **Family RSVP**: EventModal RSVP form replaced — `selfAttending` checkbox + one checkbox per saved dependant (with child icon) + free-text guest pills + notes. RSVPs now store `attendees: RSVPAttendee[]` with `dependantId` for round-tripping. Attendee list renders real names. Headcount badge counts user + attendees (back-compat with legacy `guestCount`).
+- **Recurring events**: new `EventRecurrence` type ('none' | 'weekly' | 'fortnightly' | 'monthly'). `EventForm` "Repeats" picker on create with 1-26 occurrences; `dbService.createEventSeries` batch-writes siblings sharing `seriesId`. Editing a series event offers "Just this event" vs "This and following" (propagates title/time/etc. via `dbService.updateEventSeries`). Delete on a series offers this-only, this+following, or entire series. New util `src/utils/recurrence.ts`. Series badge appears on EventCard + Hosting events list.
+- **Hosting events overhaul**: Upcoming / Past 6 months toggle (was upcoming-only, 21-day window). Search by title/location/group. Group filter dropdown. Per-event "going" count via `getCountFromServer` aggregate. Series badge with recurrence label. Past events grouped by month. Upcoming window extended to 12 months so recurring series stay visible.
+- 5 commits, typecheck + build clean. Not deployed (autopilot session — Joel deploys).
+- **Next**: Joel to dogfood live; deploy `firebase deploy --only hosting,firestore:rules,storage:rules`.
+
 ### 2026-05-10: Kete Editor Overhaul (deployed, awaiting verification)
 - **Permission flag**: `canPostKete?: boolean` on User; admin toggles per-member in Settings user-edit modal; admin/host always have it; `canPostKete` derived in `useAuth`
 - **New full-page editor** at `/kete/new` and `/kete/:postId/edit` (lazy-loaded, route order: `/kete/new` BEFORE `/kete/:postId` to avoid match collision)
@@ -335,11 +345,11 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ### Feature work (needs brainstorm/planning)
 - [x] **Kete editor overhaul** (deployed 2026-05-10, awaiting Joel's manual verification): full-page editor at `/kete/new` and `/kete/:postId/edit`; per-user `canPostKete` flag toggled by admin in Settings; image uploads + YouTube/Vimeo embeds; manual drafts surfaced on Kete page; Hosting Kete tab removed. Final cleanup pending: delete `src/components/kete/KeteForm.tsx` after verification passes.
-- [ ] **Profile expansion**: family members, connected accounts, hobbies (optional), privacy toggles (show/hide phone/email/groups), personal gallery
-- [ ] **Directory rethink**: make useful for all users — contact info, profile cards, search/filter
-- [ ] **Events admin overhaul**: Hosting page events tab needs full rework — no repetition support, unclear how events system works
+- [x] **Profile expansion** (autopilot 2026-05-12, not yet deployed): family CRUD, interest tags, personal gallery (max 6 images), privacy toggles for phone/email/bio/interests/family/gallery/groups.
+- [x] **Directory rethink** (autopilot 2026-05-12, not yet deployed): MemberDetailModal contact card, role filter pills, group filter, search now matches name/bio/email/interests, "Message" CTA jumps to DM.
+- [x] **Events admin overhaul** (autopilot 2026-05-12, not yet deployed): Upcoming/Past tabs, search, group filter, RSVP counts via aggregate, series badges, recurrence support.
 - [x] **Admin restructure**: Users page merged into Settings with full edit modal; Groups tab → permission-based like proposed Kete model
-- [ ] **RSVP for families**: one person can RSVP kids/family members for events
+- [x] **RSVP for families** (autopilot 2026-05-12, not yet deployed): dependants as checkboxes + guest names + notes; attendees stored on RSVP with dependant linkage.
 - [ ] **Giving page**: review with client how they want this presented
 
 ### Remaining bugs
