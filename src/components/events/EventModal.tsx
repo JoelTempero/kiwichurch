@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { Edit, Calendar, Clock, MapPin, Users, CalendarPlus } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Edit, Calendar, Clock, MapPin, Users, CalendarPlus, Baby, Plus, X } from 'lucide-react'
 import { Modal, Button, Badge, Avatar } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
 import { useEventRSVPs, useUserRSVP, useRSVP, useCancelRSVP } from '@/hooks/useEvents'
 import { useToast } from '@/components/common/Toast'
 import { EventForm } from './EventForm'
 import { buildGoogleCalendarUrl } from '@/utils/googleCalendar'
-import type { Event } from '@/types'
+import type { Event, RSVPAttendee } from '@/types'
 
 interface EventModalProps {
   event: Event | null
@@ -40,7 +40,10 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
   const [showRsvpForm, setShowRsvpForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
   const [rsvpNotes, setRsvpNotes] = useState('')
-  const [guestCount, setGuestCount] = useState(0)
+  const [selfAttending, setSelfAttending] = useState(true)
+  const [dependantSelections, setDependantSelections] = useState<Record<string, boolean>>({})
+  const [guestNames, setGuestNames] = useState<string[]>([])
+  const [guestDraft, setGuestDraft] = useState('')
   const [showAttendees, setShowAttendees] = useState(false)
 
   const { data: rsvps = [] } = useEventRSVPs(event?.id || null)
@@ -49,12 +52,65 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
   const rsvpMutation = useRSVP()
   const cancelRsvpMutation = useCancelRSVP()
 
+  // Hydrate the family-RSVP form from existing RSVP when modal opens
+  useEffect(() => {
+    if (!isOpen) return
+    const sel: Record<string, boolean> = {}
+    const guests: string[] = []
+    const dependants = user?.dependants || []
+    if (userRsvp?.attendees && userRsvp.attendees.length > 0) {
+      for (const a of userRsvp.attendees) {
+        const dep = a.dependantId ? dependants.find((d) => d.id === a.dependantId) : null
+        if (dep) {
+          sel[dep.id] = true
+        } else {
+          guests.push(a.name)
+        }
+      }
+    }
+    setDependantSelections(sel)
+    setGuestNames(guests)
+    setGuestDraft('')
+    setSelfAttending(userRsvp ? userRsvp.selfAttending !== false : true)
+    setRsvpNotes(userRsvp?.notes || '')
+  }, [isOpen, userRsvp, user?.dependants])
+
   if (!event) return null
 
   const canEdit = isAdminOrHost || event.createdBy === user?.id
+  const dependants = user?.dependants || []
+
+  const buildAttendees = (): RSVPAttendee[] => {
+    const fromDeps: RSVPAttendee[] = dependants
+      .filter((d) => dependantSelections[d.id])
+      .map((d) => ({ name: d.name, isChild: !!d.isChild, dependantId: d.id }))
+    const fromGuests: RSVPAttendee[] = guestNames
+      .map((n) => n.trim())
+      .filter(Boolean)
+      .map((name) => ({ name }))
+    return [...fromDeps, ...fromGuests]
+  }
+
+  const toggleDependant = (id: string) => {
+    setDependantSelections((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  const addGuest = () => {
+    const name = guestDraft.trim()
+    if (!name) return
+    setGuestNames((prev) => [...prev, name])
+    setGuestDraft('')
+  }
+
+  const removeGuest = (idx: number) => {
+    setGuestNames((prev) => prev.filter((_, i) => i !== idx))
+  }
 
   const handleRsvp = async (status: 'yes' | 'no' | 'maybe') => {
     if (!user?.id) return
+
+    const attendees = status === 'yes' ? buildAttendees() : []
+    const effectiveSelf = status === 'yes' ? selfAttending : false
 
     setIsRsvping(true)
     try {
@@ -63,16 +119,16 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
         userId: user.id,
         status,
         notes: rsvpNotes,
-        guestCount: status === 'yes' ? guestCount : 0
+        attendees,
+        guestCount: attendees.length,
+        selfAttending: effectiveSelf,
       })
       showToast(
         status === 'yes' ? "You're going!" : status === 'maybe' ? 'Marked as maybe' : 'RSVP updated',
         'success'
       )
       setShowRsvpForm(false)
-      setRsvpNotes('')
-      setGuestCount(0)
-    } catch (error) {
+    } catch {
       showToast('Failed to update RSVP', 'error')
     } finally {
       setIsRsvping(false)
@@ -103,9 +159,15 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
 
   const goingRsvps = rsvps.filter(r => r.status === 'yes')
   const maybeRsvps = rsvps.filter(r => r.status === 'maybe')
-  const goingCount = goingRsvps.length
+  // Each RSVP = the user themselves (if selfAttending !== false) + their attendees
+  const headcountForRsvp = (r: typeof rsvps[number]) => {
+    const self = r.selfAttending !== false ? 1 : 0
+    const extras = r.attendees?.length ?? r.guestCount ?? 0
+    return self + extras
+  }
+  const goingHeadcount = goingRsvps.reduce((sum, r) => sum + headcountForRsvp(r), 0)
   const maybeCount = maybeRsvps.length
-  const totalGuests = goingRsvps.reduce((sum, r) => sum + (r.guestCount || 0), 0)
+  const extraGuests = goingRsvps.reduce((sum, r) => sum + (r.attendees?.length ?? r.guestCount ?? 0), 0)
 
   return (
     <>
@@ -182,8 +244,8 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
                 onClick={() => setShowAttendees(!showAttendees)}
                 aria-expanded={showAttendees}
               >
-                <Badge variant="success">{goingCount} going</Badge>
-                {totalGuests > 0 && <span className="text-sm text-text-light">+{totalGuests} guests</span>}
+                <Badge variant="success">{goingHeadcount} going</Badge>
+                {extraGuests > 0 && <span className="text-sm text-text-light">incl. {extraGuests} family/guests</span>}
               </button>
               {maybeCount > 0 && (
                 <span>
@@ -197,18 +259,37 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
               <div className="bg-cream rounded-md p-3 mb-3">
                 <h4 className="text-sm font-semibold text-text-light mb-2">Who's going</h4>
                 <ul className="space-y-2 list-none p-0 m-0">
-                  {goingRsvps.map(rsvp => (
-                    <li key={rsvp.userId} className="flex items-center gap-2 text-sm">
-                      <Avatar size="sm" name={rsvp.userId} />
-                      <span className="font-medium text-text-primary">
-                        {rsvp.userId === user?.id ? 'You' : rsvp.userId}
-                        {rsvp.guestCount ? ` (+${rsvp.guestCount})` : ''}
-                      </span>
-                      {rsvp.notes && (
-                        <span className="text-text-light ml-auto text-xs italic">{rsvp.notes}</span>
-                      )}
-                    </li>
-                  ))}
+                  {goingRsvps.map(rsvp => {
+                    const isSelf = rsvp.userId === user?.id
+                    const selfLabel = isSelf ? 'You' : rsvp.userId
+                    return (
+                      <li key={rsvp.userId} className="flex items-start gap-2 text-sm">
+                        <Avatar size="sm" name={rsvp.userId} />
+                        <div className="flex-1 min-w-0">
+                          {rsvp.selfAttending !== false && (
+                            <p className="font-medium text-text-primary m-0">{selfLabel}</p>
+                          )}
+                          {rsvp.attendees && rsvp.attendees.length > 0 && (
+                            <p className="text-xs text-text-light m-0">
+                              {rsvp.selfAttending !== false ? 'With ' : ''}
+                              {rsvp.attendees.map((a, i) => (
+                                <span key={i}>
+                                  {a.name}{a.isChild ? ' (child)' : ''}
+                                  {i < rsvp.attendees!.length - 1 ? ', ' : ''}
+                                </span>
+                              ))}
+                            </p>
+                          )}
+                          {rsvp.selfAttending === false && (!rsvp.attendees || rsvp.attendees.length === 0) && (
+                            <p className="text-xs text-text-light italic m-0">RSVP cancelled</p>
+                          )}
+                        </div>
+                        {rsvp.notes && (
+                          <span className="text-text-light text-xs italic">{rsvp.notes}</span>
+                        )}
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             )}
@@ -222,7 +303,9 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
                 <Badge variant={userRsvp.status === 'yes' ? 'success' : userRsvp.status === 'maybe' ? 'warning' : 'default'}>
                   {userRsvp.status === 'yes' ? 'Going' : userRsvp.status === 'maybe' ? 'Maybe' : 'Not going'}
                 </Badge>
-                {userRsvp.guestCount ? ` with ${userRsvp.guestCount} guest${userRsvp.guestCount > 1 ? 's' : ''}` : ''}
+                {userRsvp.status === 'yes' && userRsvp.attendees && userRsvp.attendees.length > 0 && (
+                  <span className="text-text-light"> with {userRsvp.attendees.map((a) => a.name).join(', ')}</span>
+                )}
               </p>
               <div className="flex gap-2 mt-2">
                 <Button variant="outline" size="sm" onClick={() => setShowRsvpForm(true)}>
@@ -242,48 +325,121 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
                 Maybe
               </Button>
               <Button variant="ghost" onClick={() => setShowRsvpForm(true)}>
-                More options
+                RSVP with family
               </Button>
             </div>
           )}
 
-          {/* RSVP Form with Guest Count */}
+          {/* Family-aware RSVP form */}
           {showRsvpForm && (
-            <div className="space-y-3 bg-cream rounded-md p-3">
-              <div className="mb-4">
-                <label className="block font-medium mb-2" htmlFor="rsvp-guests">
-                  Bringing guests?
-                </label>
-                <select
-                  id="rsvp-guests"
-                  className="w-full px-3 py-3 border border-sage-light rounded-md font-body text-base transition-colors focus:outline-none focus:border-forest"
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(parseInt(e.target.value))}
-                >
-                  <option value={0}>Just me</option>
-                  <option value={1}>+1 guest</option>
-                  <option value={2}>+2 guests</option>
-                  <option value={3}>+3 guests</option>
-                  <option value={4}>+4 guests</option>
-                  <option value={5}>+5 guests</option>
-                </select>
+            <div className="space-y-4 bg-cream rounded-md p-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-2">Who’s coming?</p>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded-md hover:bg-cream-dark/40">
+                    <input
+                      type="checkbox"
+                      className="w-[18px] h-[18px] accent-forest"
+                      checked={selfAttending}
+                      onChange={(e) => setSelfAttending(e.target.checked)}
+                    />
+                    <span className="font-medium text-text-primary">
+                      Me{user?.displayName ? ` (${user.displayName})` : ''}
+                    </span>
+                  </label>
+
+                  {dependants.length > 0 && (
+                    <>
+                      {dependants.map((d) => (
+                        <label key={d.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-md hover:bg-cream-dark/40">
+                          <input
+                            type="checkbox"
+                            className="w-[18px] h-[18px] accent-forest"
+                            checked={!!dependantSelections[d.id]}
+                            onChange={() => toggleDependant(d.id)}
+                          />
+                          <span className="flex items-center gap-1.5 text-text-primary">
+                            {d.isChild && <Baby size={14} className="text-text-light" />}
+                            {d.name}
+                            {d.relationship && (
+                              <span className="text-xs text-text-light">— {d.relationship}</span>
+                            )}
+                          </span>
+                        </label>
+                      ))}
+                    </>
+                  )}
+                </div>
+                {dependants.length === 0 && (
+                  <p className="text-xs text-text-light mt-2 m-0">
+                    Want to bring family next time? Add them on your Profile page.
+                  </p>
+                )}
               </div>
-              <div className="mb-4">
-                <label className="block font-medium mb-2" htmlFor="rsvp-notes">
-                  Notes (dietary requirements, etc.)
+
+              <div>
+                <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-2">Other guests</p>
+                {guestNames.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {guestNames.map((name, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-forest/10 text-forest text-sm border border-forest/20">
+                        {name}
+                        <button
+                          type="button"
+                          onClick={() => removeGuest(i)}
+                          className="p-0.5 rounded-full hover:bg-forest/20"
+                          aria-label={`Remove ${name}`}
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={guestDraft}
+                    onChange={(e) => setGuestDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addGuest()
+                      }
+                    }}
+                    placeholder="Add another name (e.g. Aunty Jo)"
+                    className="flex-1 px-3 py-2 rounded-md border border-sage-light text-sm focus:outline-none focus:border-forest"
+                  />
+                  <button
+                    type="button"
+                    onClick={addGuest}
+                    disabled={!guestDraft.trim()}
+                    className="px-3 py-2 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-light disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                  >
+                    <Plus size={14} /> Add
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-sm" htmlFor="rsvp-notes">
+                  Notes (dietary, accessibility, etc.)
                 </label>
                 <textarea
                   id="rsvp-notes"
-                  className="w-full px-4 py-3 rounded-sm border border-gray-200 text-base resize-y focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
+                  className="w-full px-3 py-2 rounded-md border border-sage-light text-sm resize-y focus:outline-none focus:border-forest"
                   value={rsvpNotes}
                   onChange={(e) => setRsvpNotes(e.target.value)}
-                  placeholder="Any notes or dietary requirements?"
+                  placeholder="Anything the host should know?"
                   rows={2}
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
+
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-cream-dark">
                 <Button variant="primary" onClick={() => handleRsvp('yes')} loading={isRsvping}>
-                  Going
+                  Going{(selfAttending || Object.values(dependantSelections).filter(Boolean).length > 0 || guestNames.length > 0)
+                    ? ` (${(selfAttending ? 1 : 0) + Object.values(dependantSelections).filter(Boolean).length + guestNames.length})`
+                    : ''}
                 </Button>
                 <Button variant="outline" onClick={() => handleRsvp('maybe')} loading={isRsvping}>
                   Maybe
