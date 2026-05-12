@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Search, Bell, User } from 'lucide-react'
+import { Search, Bell, User, BookMarked } from 'lucide-react'
 
 interface AppHeaderProps {
   onSearchClick?: () => void
@@ -51,6 +51,15 @@ export function AppHeader({
           aria-label="Search"
         >
           <Search size={20} />
+        </button>
+
+        <button
+          className="inline-flex items-center justify-center p-2 rounded-lg text-text-light hover:bg-cream hover:text-forest transition-colors md:hidden"
+          onClick={() => navigate('/directory')}
+          title="Directory"
+          aria-label="Directory"
+        >
+          <BookMarked size={20} />
         </button>
 
         <button
