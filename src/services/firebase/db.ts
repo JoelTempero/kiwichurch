@@ -144,16 +144,17 @@ export const dbService = {
       updatedAt: serverTimestamp()
     })
     // Re-mirror the public profile if any mirrored field changed.
+    // Fire-and-forget: the caller (e.g. a privacy toggle) doesn't need to
+    // block on the mirror write. If the read-then-write races with a
+    // second toggle, the later write wins via serverTimestamp ordering.
     const mirrorKeys: Array<keyof User> = [
       'displayName', 'photoURL', 'role', 'bio', 'phone', 'email',
       'interests', 'gallery', 'dependants', 'privacy',
     ]
     if (mirrorKeys.some((k) => k in updates)) {
-      // Read the full doc back so the mirror is always coherent with the
-      // current truth — partial updates would otherwise wipe fields the
-      // caller didn't pass.
-      const fresh = await this.getUser(userId)
-      if (fresh) await this.writeUserProfileMirror(fresh)
+      this.getUser(userId)
+        .then((fresh) => fresh ? this.writeUserProfileMirror(fresh) : undefined)
+        .catch((err) => console.error('[db] mirror write failed', err))
     }
   },
 

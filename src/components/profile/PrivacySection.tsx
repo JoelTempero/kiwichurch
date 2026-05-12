@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/common/Toast'
@@ -42,7 +42,16 @@ function Toggle(props: { checked: boolean; onChange: (next: boolean) => void; la
 export function PrivacySection() {
   const { user, updateProfile } = useAuth()
   const { showToast } = useToast()
-  const privacy: PrivacySettings = { ...DEFAULT_PRIVACY, ...(user?.privacy || {}) }
+  const serverPrivacy: PrivacySettings = { ...DEFAULT_PRIVACY, ...(user?.privacy || {}) }
+
+  // Local copy of the privacy map so toggles feel instant — the Firestore
+  // round-trip plus the user-profile mirror write was making each toggle
+  // sit unmoved for a beat or two before flipping. We sync from the auth
+  // store whenever the server state changes (e.g. another tab updates it).
+  const [privacy, setPrivacy] = useState<PrivacySettings>(serverPrivacy)
+  useEffect(() => {
+    setPrivacy({ ...DEFAULT_PRIVACY, ...(user?.privacy || {}) })
+  }, [user?.privacy])
 
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
@@ -52,19 +61,23 @@ export function PrivacySection() {
   const masterOn = privacy.showPhone !== false || privacy.showEmail !== false
 
   const handleMaster = async (next: boolean) => {
+    const optimistic: PrivacySettings = { ...privacy, showPhone: next, showEmail: next }
+    setPrivacy(optimistic)
     try {
-      await updateProfile({
-        privacy: { ...privacy, showPhone: next, showEmail: next },
-      })
+      await updateProfile({ privacy: optimistic })
     } catch {
+      setPrivacy(serverPrivacy)
       showToast('Could not update privacy', 'error')
     }
   }
 
   const handleAdvanced = async (key: PrivacyKey, next: boolean) => {
+    const optimistic: PrivacySettings = { ...privacy, [key]: next }
+    setPrivacy(optimistic)
     try {
-      await updateProfile({ privacy: { ...privacy, [key]: next } })
+      await updateProfile({ privacy: optimistic })
     } catch {
+      setPrivacy(serverPrivacy)
       showToast('Could not update privacy', 'error')
     }
   }
