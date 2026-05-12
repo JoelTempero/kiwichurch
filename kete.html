@@ -210,6 +210,8 @@
 
     <!-- Scripts -->
     <script src="js/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.0/dist/purify.min.js" crossorigin="anonymous"></script>
+    <script src="js/sanitize.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
@@ -430,6 +432,7 @@ So if you've been away for a while, know this: you're still part of us. And when
                 return;
             }
 
+            const S = window.KCSanitize || { sanitizeHtml: function(){return''}, escapeText: function(s){return String(s||'')}, safeUrl: function(u){return ''} };
             container.innerHTML = filteredPosts.map(post => {
                 const date = new Date(post.publishedAt || post.date);
                 const formattedDate = date.toLocaleDateString('en-NZ', {
@@ -439,18 +442,24 @@ So if you've been away for a while, know this: you're still part of us. And when
                 });
                 const readingTime = calculateReadingTime(post.content);
                 const cat = categories[post.category] || { name: post.category || 'Post', color: '#666' };
-                // Check for cover image (portal uses both coverImage and featuredImage)
                 const coverImg = post.coverImage || post.featuredImage;
+                const safeCover = S.safeUrl(coverImg);
+                const safeId = S.escapeText(post.id);
+                const safeTitle = S.escapeText(post.title);
+                const safeExcerpt = S.escapeText(post.excerpt);
+                const safeAuthor = S.escapeText(post.authorName || 'Kiwi Church');
+                const safeCatName = S.escapeText(cat.name);
+                const safeCatColor = /^#[0-9a-fA-F]{3,8}$/.test(cat.color || '') ? cat.color : '#666';
 
                 return `
-                    <article class="blog-card" id="${post.id}" onclick="window.location.href='post.html?id=${post.id}'" style="cursor: pointer;">
-                        <div class="blog-card-image" style="${coverImg ? `background-image: url('${coverImg}'); background-size: cover; background-position: center;` : `display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, ${cat.color} 0%, ${cat.color}cc 100%);`}">
-                            ${coverImg ? `<span style="position: absolute; top: 0.75rem; left: 0.75rem; background: ${cat.color}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.05em;">${cat.name}</span>` : `<span style="color: var(--color-white); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9;">${cat.name}</span>`}
+                    <article class="blog-card" data-post-id="${safeId}" onclick="window.location.href='post.html?id=${encodeURIComponent(post.id)}'" style="cursor: pointer;">
+                        <div class="blog-card-image" style="${safeCover ? `background-image: url('${safeCover}'); background-size: cover; background-position: center;` : `display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, ${safeCatColor} 0%, ${safeCatColor}cc 100%);`}">
+                            ${safeCover ? `<span style="position: absolute; top: 0.75rem; left: 0.75rem; background: ${safeCatColor}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.05em;">${safeCatName}</span>` : `<span style="color: var(--color-white); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9;">${safeCatName}</span>`}
                         </div>
                         <div class="blog-card-content">
-                            <span class="blog-card-date">${formattedDate} &bull; ${post.authorName || 'Kiwi Church'}</span>
-                            <h3 class="blog-card-title">${post.title}</h3>
-                            <p class="blog-card-excerpt">${post.excerpt}</p>
+                            <span class="blog-card-date">${formattedDate} &bull; ${safeAuthor}</span>
+                            <h3 class="blog-card-title">${safeTitle}</h3>
+                            <p class="blog-card-excerpt">${safeExcerpt}</p>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
                                 <span style="font-size: 0.875rem; color: var(--color-sage);">${readingTime} min read</span>
                                 <span class="btn btn-ghost btn-sm">Read More</span>
@@ -502,21 +511,27 @@ So if you've been away for a while, know this: you're still part of us. And when
                 htmlContent = '<p>' + htmlContent + '</p>';
             }
 
+            const S2 = window.KCSanitize || { sanitizeHtml: function(){return''}, escapeText: function(s){return String(s||'')}, safeUrl: function(u){return ''} };
+            const safeTitle = S2.escapeText(post.title);
+            const safeAuthor = S2.escapeText(post.authorName || 'Kiwi Church');
+            const safeCatName = S2.escapeText(cat.name);
+            const safeCatColor = /^#[0-9a-fA-F]{3,8}$/.test(cat.color || '') ? cat.color : '#666';
+            const safeBody = S2.sanitizeHtml(htmlContent);
             content.innerHTML = `
                 <article style="padding: 1rem;">
                     <div style="margin-bottom: 1.5rem;">
-                        <span style="background: ${cat.color}; color: white; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; text-transform: uppercase;">${cat.name}</span>
+                        <span style="background: ${safeCatColor}; color: white; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; text-transform: uppercase;">${safeCatName}</span>
                     </div>
-                    <h1 style="font-family: var(--font-display); font-size: 2rem; color: var(--color-forest); margin: 0 0 1rem;">${post.title}</h1>
+                    <h1 style="font-family: var(--font-display); font-size: 2rem; color: var(--color-forest); margin: 0 0 1rem;">${safeTitle}</h1>
                     <div style="display: flex; gap: 1rem; align-items: center; color: var(--color-text-light); font-size: 0.9375rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-cream-dark);">
-                        <span>${post.authorName || 'Kiwi Church'}</span>
+                        <span>${safeAuthor}</span>
                         <span>&bull;</span>
                         <span>${formattedDate}</span>
                         <span>&bull;</span>
                         <span>${readingTime} min read</span>
                     </div>
                     <div style="font-size: 1.0625rem; line-height: 1.8; color: var(--color-text);">
-                        ${htmlContent}
+                        ${safeBody}
                     </div>
                 </article>
             `;
