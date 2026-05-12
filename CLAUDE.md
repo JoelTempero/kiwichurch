@@ -177,6 +177,27 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
+### 2026-05-13: Council action pass — 13 fixes landed across 10 commits
+- Worked the 2026-05-12 council audit's critical path top-down. Build clean throughout. None deployed yet — Joel deploys.
+- **Deploy-blockers fixed (3)**:
+  - DST drift in recurrence math (`src/utils/recurrence.ts`): switched from millisecond arithmetic to `setDate(d.getDate() + N)` on cloned local-time dates so weekly/fortnightly series no longer shift across NZ DST boundaries.
+  - Attendee names rendered as Firestore IDs: denormalised `userName`/`userPhotoURL` onto RSVP docs; `setRSVP`/`useRSVP`/`EventModal` pass user.displayName. Attendee list reads denormalised value with sensible fallback.
+  - Stored XSS on static Kete render: new `js/sanitize.js` (DOMPurify 3.4.0 from jsDelivr) with iframe allowlist matching the portal. `post.html` + `kete.html` interpolations all routed through `escapeText`/`sanitizeHtml`/`safeUrl`. Removed an `onclick window.open(att.url)` injection surface on attachment images.
+- **Privacy + auth (2)**:
+  - Sentinel's "toggles are theatre" fix: `/users` reads now self+admin/host only; new `/userProfiles` mirror is the public-readable directory source, written by `writeUserProfileMirror` with privacy-filter on every user update. Mirror runs on auth state change so legacy users get a profile on next login. DirectoryPage/SearchPanel/DirectMessagesPage now read `getAllPublicProfiles()` (returning `UserProfile`). MemberDetailModal accepts a `UserProfile` and trusts its contents — no more client-side privacy filtering.
+  - Open self-registration now goes to `pending` status. New `PendingApprovalGate` shows on AppLayout when user is pending. SettingsPage user list floats pending users to the top with yellow row + one-click Approve button. `authService.signUp` writes `status: 'pending'`, `adminCreateUser` writes `status: 'active'`. Firestore `isActive()` rejects pending.
+- **Perf + UX (2)**:
+  - Denormalised `event.rsvpYesCount` via transactional `increment()` in setRSVP/removeRSVP. HostingPage reads the field for free; aggregate `getCountFromServer` is now a per-legacy-event fallback only.
+  - Privacy section: 7 toggles → 1 master "Show my contact details" + collapsible Advanced drawer. Toggles are now proper `role="switch"` with `aria-checked` and `aria-labelledby` (Advocate finding).
+- **A11y + hardening (3)**:
+  - HostingPage: new `TopTabs` primitive with arrow-key navigation, roving tabindex, `aria-controls`. Scope toggle + DirectoryPage role pills use `aria-pressed` and `role="group"`.
+  - `updateEventSeries` strips `gatheringId`/`gatheringName`/`rsvpYesCount` from bulk propagation: Contrarian's silent-group-jump foot-gun closed; group changes must be made on the single event.
+  - Storage rule: group resource delete tightened to `false` (was: any authenticated user could delete any group's files). Brings it in line with kete/events/messageBoards. Admins delete via Firebase Console until Cloud Functions land.
+- **Bus-factor docs (3)**:
+  - `README.md` written (quick-start, commands, layout, two-surface mental model, manual test paths).
+  - `.env.example` added (single `VITE_USE_EMULATORS` flag with explanation).
+  - `HANDOVER.md` stub with TODO markers for Joel to fill: Firebase owners, billing, GitHub transfer, DNS, custom domain, leadership emails to alias-route, admin runbook for common tasks.
+
 ### 2026-05-12: Autopilot — profile expansion, directory rethink, family RSVP, recurring events, hosting overhaul
 - **Profile expansion**: new sections `FamilySection`, `InterestsSection`, `GallerySection`, `PrivacySection` in `src/components/profile/`. User type extended with `privacy: PrivacySettings`, `interests: string[]`, `gallery: GalleryImage[]`. `DEFAULT_PRIVACY` exported for fallback. Privacy defaults: phone/email/bio/interests/gallery/groups all visible; family hidden by default. Family CRUD via inline modal; interests are chip pills (max 20, 32 chars each); gallery up to 6 images uploaded to `users/{uid}/gallery/` (new storage rule with deletes allowed for owner).
 - **Auth surface widened**: `authService.updateProfile` + `useAuth.updateProfile` signatures now accept `privacy`, `interests`, `gallery`, `dependants`. Firestore self-update rule extended to allow those keys.
