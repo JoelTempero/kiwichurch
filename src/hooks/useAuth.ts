@@ -29,6 +29,9 @@ export function useAuth() {
         setUser(userData)
         dbService.ensureCommunityGathering().catch(() => {})
         dbService.ensureCommunityMembership(firebaseUser.uid).catch(() => {})
+        // One-time migration for pre-existing users that have no public
+        // profile mirror yet. Cheap idempotent write — re-runs are fine.
+        dbService.writeUserProfileMirror(userData).catch(() => {})
       } else {
         setUser(null)
       }

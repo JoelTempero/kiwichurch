@@ -7,7 +7,7 @@ import { dbService } from '@/services/firebase'
 import { useQuery } from '@tanstack/react-query'
 import { Avatar, EmptyState, Spinner, FadeIn } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
-import type { Conversation, User } from '@/types'
+import type { Conversation, UserProfile } from '@/types'
 import type { Timestamp } from 'firebase/firestore'
 
 function formatMessageTime(timestamp: Timestamp | Date | undefined): string {
@@ -47,8 +47,8 @@ export function DirectMessagesPage() {
   useConversationsSubscription(user?.id || null)
 
   const { data: allUsers = [] } = useQuery({
-    queryKey: ['directory'],
-    queryFn: () => dbService.getAllUsers(),
+    queryKey: ['directoryProfiles'],
+    queryFn: () => dbService.getAllPublicProfiles(),
     enabled: showNewMessage && !!user,
   })
 
@@ -56,14 +56,14 @@ export function DirectMessagesPage() {
   const createConversation = useCreateConversation()
 
   const filteredMembers = useMemo(() => {
-    if (!memberSearch.trim()) return allUsers.filter((u: User) => u.id !== user?.id)
+    if (!memberSearch.trim()) return allUsers.filter((u: UserProfile) => u.id !== user?.id)
     const q = memberSearch.toLowerCase()
     return allUsers.filter(
-      (u: User) => u.id !== user?.id && u.displayName.toLowerCase().includes(q)
+      (u: UserProfile) => u.id !== user?.id && u.displayName.toLowerCase().includes(q)
     )
   }, [allUsers, memberSearch, user?.id])
 
-  const handleSelectMember = async (member: User) => {
+  const handleSelectMember = async (member: UserProfile) => {
     if (!user) return
     try {
       const conversation = await createConversation.mutateAsync({
@@ -119,7 +119,7 @@ export function DirectMessagesPage() {
             {filteredMembers.length === 0 ? (
               <p className="text-sm text-text-light text-center py-4 m-0">No members found</p>
             ) : (
-              filteredMembers.map((member: User) => (
+              filteredMembers.map((member: UserProfile) => (
                 <button
                   key={member.id}
                   onClick={() => handleSelectMember(member)}

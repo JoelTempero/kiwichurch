@@ -51,11 +51,26 @@ export interface GalleryImage {
   caption?: string
 }
 
+// Public-readable mirror of a User. Mirror is written by the user's own
+// updateProfile / authService.adminCreateUser, gated by their privacy
+// toggles, so anything that appears here has been explicitly opted in.
+//
+// Read this from the directory, DM picker, search panel — never read /users
+// for non-self/non-admin paths.
 export interface UserProfile {
   id: string
   displayName: string
   photoURL?: string
+  role?: UserRole
+  bio?: string
+  interests?: string[]
+  gallery?: GalleryImage[]
+  publicPhone?: string
+  publicEmail?: string
+  // First names + isChild flag only — no relationship, no last names.
+  publicFamily?: Array<{ name: string; isChild?: boolean }>
   createdAt: Timestamp | Date
+  updatedAt?: Timestamp | Date
 }
 
 export interface UsernameMapping {

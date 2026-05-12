@@ -22,6 +22,8 @@ import { db } from './config'
 import type {
   User,
   UserPreferences,
+  UserProfile,
+  PrivacySettings,
   Event,
   EventQueryOptions,
   RSVP,
@@ -40,6 +42,7 @@ import type {
   Report,
   ReportStatus
 } from '@/types'
+import { DEFAULT_PRIVACY } from '@/types'
 import { GroupResource } from '../../types/groupResource'
 import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME, isCommunityGathering } from '@/utils/community'
 
@@ -53,10 +56,25 @@ export const dbService = {
   // USERS
   // ============================================
 
+  // Admin/host-only — reads /users which is gated to self + admin/host.
+  // For everywhere else (directory, DM picker, search), use
+  // `getAllPublicProfiles` which reads the privacy-filtered mirror.
   async getAllUsers(): Promise<User[]> {
     const q = query(collection(db, 'users'), orderBy('displayName'))
     const snapshot = await getDocs(q)
     return snapshot.docs.map(doc => docToObject<User>(doc))
+  },
+
+  // Public-readable mirror — driven by users' privacy toggles.
+  async getAllPublicProfiles(): Promise<UserProfile[]> {
+    const q = query(collection(db, 'userProfiles'), orderBy('displayName'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => docToObject<UserProfile>(doc))
+  },
+
+  async getPublicProfile(userId: string): Promise<UserProfile | null> {
+    const docSnap = await getDoc(doc(db, 'userProfiles', userId))
+    return docSnap.exists() ? docToObject<UserProfile>(docSnap) : null
   },
 
   async getUser(userId: string): Promise<User | null> {
@@ -108,12 +126,9 @@ export const dbService = {
       })
     }
 
-    // Create public profile
-    await setDoc(doc(db, 'userProfiles', userId), {
-      displayName: userData.displayName,
-      photoURL: userData.photoURL || null,
-      createdAt: timestamp
-    })
+    // Initial public profile mirror — uses DEFAULT_PRIVACY (email visible,
+    // phone visible, family hidden) since the new user has no privacy map yet.
+    await this.writeUserProfileMirror({ id: userId, ...user } as User)
 
     return { id: userId, ...user } as User
   },
@@ -124,6 +139,45 @@ export const dbService = {
       ...updates,
       updatedAt: serverTimestamp()
     })
+    // Re-mirror the public profile if any mirrored field changed.
+    const mirrorKeys: Array<keyof User> = [
+      'displayName', 'photoURL', 'role', 'bio', 'phone', 'email',
+      'interests', 'gallery', 'dependants', 'privacy',
+    ]
+    if (mirrorKeys.some((k) => k in updates)) {
+      // Read the full doc back so the mirror is always coherent with the
+      // current truth — partial updates would otherwise wipe fields the
+      // caller didn't pass.
+      const fresh = await this.getUser(userId)
+      if (fresh) await this.writeUserProfileMirror(fresh)
+    }
+  },
+
+  // Build and write the privacy-filtered public profile from a user record.
+  // Called on user create, on update, and on first login as a migration step
+  // for users that pre-date this mirror.
+  async writeUserProfileMirror(user: User): Promise<void> {
+    const privacy: PrivacySettings = { ...DEFAULT_PRIVACY, ...(user.privacy || {}) }
+    const profile: Record<string, unknown> = {
+      displayName: user.displayName || '',
+      photoURL: user.photoURL || '',
+      role: user.role,
+      updatedAt: serverTimestamp(),
+    }
+    if (privacy.showBio !== false && user.bio) profile.bio = user.bio
+    if (privacy.showInterests !== false && user.interests && user.interests.length > 0) profile.interests = user.interests
+    if (privacy.showGallery !== false && user.gallery && user.gallery.length > 0) profile.gallery = user.gallery
+    if (privacy.showPhone !== false && user.phone) profile.publicPhone = user.phone
+    if (privacy.showEmail !== false && user.email) profile.publicEmail = user.email
+    if (privacy.showFamily === true && user.dependants && user.dependants.length > 0) {
+      // First-name-only mirror; no relationship or age. Keep isChild flag so
+      // the directory can show the child icon.
+      profile.publicFamily = user.dependants.map((d) => {
+        const firstName = (d.name || '').trim().split(/\s+/)[0]
+        return { name: firstName, isChild: !!d.isChild }
+      }).filter((d) => d.name)
+    }
+    await setDoc(doc(db, 'userProfiles', user.id), profile, { merge: false })
   },
 
   async checkUsernameAvailable(username: string): Promise<boolean> {

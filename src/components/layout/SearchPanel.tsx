@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { dbService } from '@/services/firebase/db'
 import { Search, X, Calendar, FileText, Users, User, SlidersHorizontal, Clock } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import type { Event, KetePost, User as UserType, Gathering } from '@/types'
+import type { Event, KetePost, UserProfile, Gathering } from '@/types'
 
 interface SearchPanelProps {
   isOpen: boolean
@@ -117,18 +117,18 @@ function useGlobalSearch(query: string) {
         }
       })
 
-      const users = await dbService.getAllUsers()
-      users.forEach((user: UserType) => {
+      const profiles = await dbService.getAllPublicProfiles()
+      profiles.forEach((profile: UserProfile) => {
         if (
-          user.displayName.toLowerCase().includes(normalizedQuery) ||
-          user.email?.toLowerCase().includes(normalizedQuery)
+          profile.displayName.toLowerCase().includes(normalizedQuery) ||
+          profile.publicEmail?.toLowerCase().includes(normalizedQuery)
         ) {
           results.push({
             type: 'user',
-            id: user.id,
-            title: user.displayName,
+            id: profile.id,
+            title: profile.displayName,
             subtitle: 'Member',
-            link: `/directory?highlight=${user.id}`
+            link: `/directory?highlight=${profile.id}`
           })
         }
       })

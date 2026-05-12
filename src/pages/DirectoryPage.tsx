@@ -7,7 +7,7 @@ import { Avatar, EmptyState, Spinner, FadeIn } from '@/components/common'
 import { MemberDetailModal } from '@/components/directory'
 import { useGatherings } from '@/hooks/useGatherings'
 import { cn } from '@/utils/cn'
-import type { User } from '@/types'
+import type { UserProfile } from '@/types'
 
 type RoleFilter = 'all' | 'admin' | 'host' | 'member'
 
@@ -16,11 +16,11 @@ export function DirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [groupFilter, setGroupFilter] = useState<string>('')
-  const [selected, setSelected] = useState<User | null>(null)
+  const [selected, setSelected] = useState<UserProfile | null>(null)
 
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ['directory'],
-    queryFn: () => dbService.getAllUsers(),
+    queryKey: ['directoryProfiles'],
+    queryFn: () => dbService.getAllPublicProfiles(),
     enabled: !!user,
   })
 
@@ -39,13 +39,13 @@ export function DirectoryPage() {
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
-    return users.filter((u: User) => {
+    return users.filter((u: UserProfile) => {
       if (roleFilter !== 'all' && u.role !== roleFilter) return false
       if (groupFilter && !groupMemberIds.has(u.id)) return false
       if (!q) return true
       const haystack = [
         u.displayName,
-        u.email,
+        u.publicEmail || '',
         u.bio || '',
         ...(u.interests || []),
       ]
@@ -56,7 +56,7 @@ export function DirectoryPage() {
   }, [users, searchQuery, roleFilter, groupFilter, groupMemberIds])
 
   const groupedUsers = useMemo(() => {
-    return filteredUsers.reduce((groups: Record<string, User[]>, u: User) => {
+    return filteredUsers.reduce((groups: Record<string, UserProfile[]>, u: UserProfile) => {
       const letter = (u.displayName || '#').charAt(0).toUpperCase()
       if (!groups[letter]) groups[letter] = []
       groups[letter].push(u)
@@ -159,29 +159,25 @@ export function DirectoryPage() {
                 <span className="text-xs font-semibold text-text-light uppercase tracking-wide">{letter}</span>
               </div>
               <div className="divide-y divide-[#ebe6dc]">
-                {groupedUsers[letter].map((member: User) => {
-                  const privacy = member.privacy || {}
-                  const showBio = privacy.showBio !== false
-                  return (
-                    <button
-                      type="button"
-                      key={member.id}
-                      onClick={() => setSelected(member)}
-                      className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-cream/50 transition-colors focus:outline-none focus:bg-cream/70"
-                    >
-                      <Avatar src={member.photoURL} name={member.displayName} size="md" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-[15px] text-text-primary m-0 truncate">{member.displayName}</p>
-                        {showBio && member.bio && (
-                          <p className="text-sm text-text-light m-0 truncate">{member.bio}</p>
-                        )}
-                      </div>
-                      {member.role !== 'member' && (
-                        <span className="text-xs px-2 py-1 bg-forest text-white rounded-sm capitalize">{member.role}</span>
+                {groupedUsers[letter].map((member: UserProfile) => (
+                  <button
+                    type="button"
+                    key={member.id}
+                    onClick={() => setSelected(member)}
+                    className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-cream/50 transition-colors focus:outline-none focus:bg-cream/70"
+                  >
+                    <Avatar src={member.photoURL} name={member.displayName} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-[15px] text-text-primary m-0 truncate">{member.displayName}</p>
+                      {member.bio && (
+                        <p className="text-sm text-text-light m-0 truncate">{member.bio}</p>
                       )}
-                    </button>
-                  )
-                })}
+                    </div>
+                    {member.role && member.role !== 'member' && (
+                      <span className="text-xs px-2 py-1 bg-forest text-white rounded-full capitalize">{member.role}</span>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
           ))}

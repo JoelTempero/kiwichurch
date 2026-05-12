@@ -70,8 +70,14 @@ service cloud.firestore {
     // ============================================
     // USERS COLLECTION
     // ============================================
+    // The /users doc holds the source-of-truth PII (email, phone, dependants,
+    // privacy map). It is NOT readable by other members — they read the
+    // public-visible /userProfiles mirror instead. Members can read their own
+    // doc; admin/host can read everyone for moderation and pastoral care.
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId || isAdminOrHost()
+      );
 
       // Users can create their own profile during registration
       // During initial setup, first user can be admin
@@ -100,10 +106,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Public user profiles (limited info for display)
+    // Public user profiles — the privacy-filtered mirror that the directory,
+    // DM picker, and search panel read. Self-written; the server cannot
+    // verify the mirror matches the source doc, but the user wrote both
+    // sides, so the trust boundary is the same as for /users self-update.
     match /userProfiles/{userId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAuthenticated() && (
+        request.auth.uid == userId || isAdminOrHost()
+      );
     }
 
     // ============================================
