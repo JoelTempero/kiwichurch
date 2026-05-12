@@ -18,7 +18,7 @@ import {
   serverTimestamp,
   writeBatch,
   type Unsubscribe,
-  type DocumentData
+  type DocumentData,
 } from 'firebase/firestore'
 import { db } from './config'
 import type {
@@ -211,7 +211,8 @@ export const dbService = {
     senderName: string,
     recipientId: string,
     recipientName: string,
-    relationship = '',
+    senderLabel = '',
+    recipientLabel = '',
   ): Promise<string> {
     if (senderId === recipientId) throw new Error('Cannot link to yourself')
     const id = familyLinkId(senderId, recipientId)
@@ -222,7 +223,8 @@ export const dbService = {
       recipientId,
       senderName,
       recipientName,
-      relationship,
+      senderLabel,
+      recipientLabel,
       status: 'pending',
       createdAt: serverTimestamp(),
     })
@@ -240,15 +242,31 @@ export const dbService = {
     return id
   },
 
-  async acceptFamilyLink(linkId: string): Promise<void> {
-    await updateDoc(doc(db, 'familyLinks', linkId), {
-      status: 'accepted',
-      acceptedAt: serverTimestamp(),
-    })
+  async acceptFamilyLink(linkId: string, recipientLabel?: string): Promise<void> {
+    if (recipientLabel !== undefined) {
+      await updateDoc(doc(db, 'familyLinks', linkId), {
+        status: 'accepted',
+        acceptedAt: serverTimestamp(),
+        recipientLabel,
+      })
+    } else {
+      await updateDoc(doc(db, 'familyLinks', linkId), {
+        status: 'accepted',
+        acceptedAt: serverTimestamp(),
+      })
+    }
   },
 
-  async updateFamilyLinkRelationship(linkId: string, relationship: string): Promise<void> {
-    await updateDoc(doc(db, 'familyLinks', linkId), { relationship })
+  // Update only the side the current user is on. The caller computes
+  // which side they are; rules enforce sender-edits-senderLabel and
+  // recipient-edits-recipientLabel separately.
+  async updateMyFamilyLinkLabel(
+    linkId: string,
+    side: 'sender' | 'recipient',
+    label: string,
+  ): Promise<void> {
+    const field = side === 'sender' ? 'senderLabel' : 'recipientLabel'
+    await updateDoc(doc(db, 'familyLinks', linkId), { [field]: label })
   },
 
   async deleteFamilyLink(linkId: string): Promise<void> {

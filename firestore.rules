@@ -451,31 +451,39 @@ service cloud.firestore {
 
       // Sender creates a pending invite. They must be one of the
       // participants and the sender. Recipient must be a different user.
-      // Optional `relationship` and name fields ride along.
+      // Optional label fields ride along (senderLabel, recipientLabel,
+      // legacy `relationship`).
       allow create: if isAuthenticated() && isActive() &&
         request.resource.data.status == 'pending' &&
         request.resource.data.senderId == request.auth.uid &&
         request.resource.data.recipientId != request.auth.uid &&
         request.auth.uid in request.resource.data.participants &&
-        request.resource.data.participants.size() == 2 &&
-        (!request.resource.data.keys().hasAny(['relationship']) ||
-         request.resource.data.relationship is string);
+        request.resource.data.participants.size() == 2;
 
       // Recipient accepts: flip status to 'accepted'. Other fields stay.
+      // Recipient is allowed to set their own label at the same time.
       allow update: if isAuthenticated() && isActive() &&
         request.auth.uid == resource.data.recipientId &&
         resource.data.status == 'pending' &&
         request.resource.data.status == 'accepted' &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'acceptedAt']);
+          .hasOnly(['status', 'acceptedAt', 'recipientLabel']);
 
-      // Either party can edit the relationship label on an accepted link.
+      // Sender can edit their own perspective label on an accepted link.
       allow update: if isAuthenticated() && isActive() &&
-        request.auth.uid in resource.data.participants &&
+        request.auth.uid == resource.data.senderId &&
         resource.data.status == 'accepted' &&
         request.resource.data.status == 'accepted' &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['relationship']);
+          .hasOnly(['senderLabel']);
+
+      // Recipient can edit their own perspective label on an accepted link.
+      allow update: if isAuthenticated() && isActive() &&
+        request.auth.uid == resource.data.recipientId &&
+        resource.data.status == 'accepted' &&
+        request.resource.data.status == 'accepted' &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['recipientLabel']);
 
       // Either party can delete — cancels a pending invite, declines an
       // incoming one, or removes an existing link.

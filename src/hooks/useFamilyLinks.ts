@@ -33,7 +33,10 @@ interface SendArgs {
   senderName: string
   recipientId: string
   recipientName: string
-  relationship?: string
+  // Sender's perspective: "They are my __" (e.g. "Son")
+  senderLabel?: string
+  // Recipient's perspective preset: "I am your __" (e.g. "Father")
+  recipientLabel?: string
 }
 
 export function useSendFamilyLink() {
@@ -45,7 +48,8 @@ export function useSendFamilyLink() {
         args.senderName,
         args.recipientId,
         args.recipientName,
-        args.relationship,
+        args.senderLabel,
+        args.recipientLabel,
       ),
     onSuccess: (_, args) => {
       qc.invalidateQueries({ queryKey: KEY(args.senderId) })
@@ -56,7 +60,8 @@ export function useSendFamilyLink() {
 export function useAcceptFamilyLink(currentUserId: string | null) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (linkId: string) => dbService.acceptFamilyLink(linkId),
+    mutationFn: ({ linkId, recipientLabel }: { linkId: string; recipientLabel?: string }) =>
+      dbService.acceptFamilyLink(linkId, recipientLabel),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY(currentUserId) })
     },
@@ -73,11 +78,18 @@ export function useDeleteFamilyLink(currentUserId: string | null) {
   })
 }
 
-export function useUpdateFamilyLinkRelationship(currentUserId: string | null) {
+export function useUpdateMyFamilyLinkLabel(currentUserId: string | null) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ linkId, relationship }: { linkId: string; relationship: string }) =>
-      dbService.updateFamilyLinkRelationship(linkId, relationship),
+    mutationFn: ({
+      linkId,
+      side,
+      label,
+    }: {
+      linkId: string
+      side: 'sender' | 'recipient'
+      label: string
+    }) => dbService.updateMyFamilyLinkLabel(linkId, side, label),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY(currentUserId) })
     },

@@ -12,13 +12,13 @@ import {
   useSendFamilyLink,
   useAcceptFamilyLink,
   useDeleteFamilyLink,
-  useUpdateFamilyLinkRelationship,
+  useUpdateMyFamilyLinkLabel,
 } from '@/hooks/useFamilyLinks'
 import {
   Plus, Pencil, Trash2, Users, Search, Check, X, Heart, UserPlus,
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import type { Dependant, FamilyLink, UserProfile } from '@/types'
+import { labelForViewer, RELATIONSHIP_SUGGESTIONS, type Dependant, type FamilyLink, type UserProfile } from '@/types'
 
 const manualSchema = z.object({
   name: z.string().min(1, 'Name is required').max(80, 'Name too long'),
@@ -45,7 +45,7 @@ export function FamilySection() {
   const sendLink = useSendFamilyLink()
   const acceptLink = useAcceptFamilyLink(user?.id || null)
   const deleteLink = useDeleteFamilyLink(user?.id || null)
-  const updateLinkRel = useUpdateFamilyLinkRelationship(user?.id || null)
+  const updateMyLabel = useUpdateMyFamilyLinkLabel(user?.id || null)
   const accepted = links?.accepted || []
   const incoming = links?.incoming || []
   const outgoing = links?.outgoing || []
@@ -57,7 +57,12 @@ export function FamilySection() {
   // Member-search state
   const [memberSearch, setMemberSearch] = useState('')
   const [pickedMember, setPickedMember] = useState<UserProfile | null>(null)
-  const [memberRelationship, setMemberRelationship] = useState('')
+  // Sender's label = "They are my __" (e.g. "Son")
+  // Recipient's label = "I am your __" (e.g. "Father")
+  // Sender presets both at invite time; recipient can change their own
+  // perspective on accept or later via edit.
+  const [senderLabelDraft, setSenderLabelDraft] = useState('')
+  const [recipientLabelDraft, setRecipientLabelDraft] = useState('')
 
   const manualForm = useForm<ManualInput>({
     resolver: zodResolver(manualSchema),
@@ -71,10 +76,11 @@ export function FamilySection() {
     | null
   >(null)
 
-  // Inline edit for a linked account's relationship label (name + photo
-  // belong to the linked person — only the relationship is editable here).
+  // Inline edit for a linked account's relationship label (only the
+  // current viewer's perspective is editable — the other side has
+  // their own label to manage).
   const [editingLink, setEditingLink] = useState<FamilyLink | null>(null)
-  const [editLinkRelationship, setEditLinkRelationship] = useState('')
+  const [editLabelDraft, setEditLabelDraft] = useState('')
 
   // Profile lookups for accepted links so we get avatars + current display names
   const acceptedIds = accepted
@@ -122,7 +128,8 @@ export function FamilySection() {
     setAddTab('member')
     setMemberSearch('')
     setPickedMember(null)
-    setMemberRelationship('')
+    setSenderLabelDraft('')
+    setRecipientLabelDraft('')
     manualForm.reset({ name: '', relationship: '', isChild: false })
     setEditing(null)
     setIsAddOpen(true)
@@ -167,7 +174,8 @@ export function FamilySection() {
         senderName: user.displayName,
         recipientId: pickedMember.id,
         recipientName: pickedMember.displayName,
-        relationship: memberRelationship.trim(),
+        senderLabel: senderLabelDraft.trim(),
+        recipientLabel: recipientLabelDraft.trim(),
       })
       showToast(`Invite sent to ${pickedMember.displayName}`, 'success')
       setIsAddOpen(false)
@@ -178,7 +186,7 @@ export function FamilySection() {
 
   const handleAccept = async (link: FamilyLink) => {
     try {
-      await acceptLink.mutateAsync(link.id)
+      await acceptLink.mutateAsync({ linkId: link.id })
       showToast('Linked', 'success')
     } catch {
       showToast('Could not accept', 'error')
@@ -187,15 +195,17 @@ export function FamilySection() {
 
   const openEditLink = (link: FamilyLink) => {
     setEditingLink(link)
-    setEditLinkRelationship(link.relationship || '')
+    setEditLabelDraft(labelForViewer(link, user?.id || ''))
   }
 
   const handleSaveLinkRelationship = async () => {
-    if (!editingLink) return
+    if (!editingLink || !user) return
+    const side: 'sender' | 'recipient' = editingLink.senderId === user.id ? 'sender' : 'recipient'
     try {
-      await updateLinkRel.mutateAsync({
+      await updateMyLabel.mutateAsync({
         linkId: editingLink.id,
-        relationship: editLinkRelationship.trim(),
+        side,
+        label: editLabelDraft.trim(),
       })
       showToast('Relationship updated', 'success')
       setEditingLink(null)
@@ -247,16 +257,19 @@ export function FamilySection() {
         </div>
       ) : (
         <ul className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc] list-none p-0 m-0">
-          {/* Incoming invites (action required) — float to top */}
+          {/* Incoming invites (action required) — float to top.
+              For incoming, the sender suggested how the recipient should
+              refer to them (recipientLabel). Recipient can edit later. */}
           {incoming.map((link) => {
             const other = otherInLink(link)
+            const suggestedLabel = link.recipientLabel || link.relationship || ''
             return (
               <li key={link.id} className="flex items-center gap-3 px-4 py-3 bg-amber-50">
                 <Avatar name={other.name} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm m-0">
-                    <strong>{other.name}</strong> wants to link as your{' '}
-                    <em>{link.relationship || 'family'}</em>
+                    <strong>{other.name}</strong> wants to link as family
+                    {suggestedLabel && <> — they suggested <em>{suggestedLabel}</em></>}
                   </p>
                 </div>
                 <Button variant="primary" size="sm" onClick={() => handleAccept(link)}>
@@ -277,6 +290,7 @@ export function FamilySection() {
           {accepted.map((link) => {
             const other = otherInLink(link)
             const profile = profilesById[other.id]
+            const myLabel = labelForViewer(link, user?.id || '')
             return (
               <li key={link.id} className="flex items-center gap-3 px-4 py-3">
                 <Avatar src={profile?.photoURL} name={profile?.displayName || other.name} size="sm" />
@@ -286,7 +300,7 @@ export function FamilySection() {
                     <Heart size={11} className="text-terracotta" aria-label="Linked account" />
                   </p>
                   <p className="text-xs text-text-light m-0">
-                    {link.relationship || 'Family'} · linked, can RSVP for each other
+                    {myLabel || 'Family'} · linked, can RSVP for each other
                   </p>
                 </div>
                 <button
@@ -310,13 +324,14 @@ export function FamilySection() {
           {/* Outgoing pending invites */}
           {outgoing.map((link) => {
             const other = otherInLink(link)
+            const myLabel = labelForViewer(link, user?.id || '')
             return (
               <li key={link.id} className="flex items-center gap-3 px-4 py-3">
                 <Avatar name={other.name} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-text-primary m-0 truncate">{other.name}</p>
                   <p className="text-xs text-text-light m-0 italic">
-                    {link.relationship ? `${link.relationship} · ` : ''}invite sent, waiting for them to accept
+                    {myLabel ? `${myLabel} · ` : ''}invite sent, waiting for them to accept
                   </p>
                 </div>
                 <button
@@ -454,18 +469,47 @@ export function FamilySection() {
             )}
 
             {pickedMember && (
-              <div>
-                <label className="block font-medium mb-2 text-sm" htmlFor="link-rel">Relationship</label>
-                <input
-                  id="link-rel"
-                  type="text"
-                  className={inputBase}
-                  placeholder="e.g. Spouse, Brother, Mother"
-                  value={memberRelationship}
-                  onChange={(e) => setMemberRelationship(e.target.value)}
-                  maxLength={40}
-                />
-              </div>
+              <>
+                <datalist id="relationship-suggestions">
+                  {RELATIONSHIP_SUGGESTIONS.map((r) => <option key={r} value={r} />)}
+                </datalist>
+                <div>
+                  <label className="block font-medium mb-1 text-sm" htmlFor="link-sender-label">
+                    They are my…
+                  </label>
+                  <input
+                    id="link-sender-label"
+                    type="text"
+                    list="relationship-suggestions"
+                    className={inputBase}
+                    placeholder="e.g. Son, Daughter, Spouse"
+                    value={senderLabelDraft}
+                    onChange={(e) => setSenderLabelDraft(e.target.value)}
+                    maxLength={40}
+                  />
+                  <p className="text-xs text-text-light mt-1 m-0">
+                    What you see on your profile for them.
+                  </p>
+                </div>
+                <div>
+                  <label className="block font-medium mb-1 text-sm" htmlFor="link-recipient-label">
+                    I am their…
+                  </label>
+                  <input
+                    id="link-recipient-label"
+                    type="text"
+                    list="relationship-suggestions"
+                    className={inputBase}
+                    placeholder="e.g. Father, Mother, Spouse"
+                    value={recipientLabelDraft}
+                    onChange={(e) => setRecipientLabelDraft(e.target.value)}
+                    maxLength={40}
+                  />
+                  <p className="text-xs text-text-light mt-1 m-0">
+                    What {pickedMember.displayName} will see on their profile for you. They can change it after accepting.
+                  </p>
+                </div>
+              </>
             )}
 
             <div className="flex gap-3 pt-2">
@@ -559,26 +603,32 @@ export function FamilySection() {
                 {profilesById[otherInLink(editingLink).id]?.displayName || otherInLink(editingLink).name}
               </p>
             </div>
+            <datalist id="relationship-suggestions-edit">
+              {RELATIONSHIP_SUGGESTIONS.map((r) => <option key={r} value={r} />)}
+            </datalist>
             <div>
-              <label className="block font-medium mb-2 text-sm" htmlFor="link-rel-edit">Relationship</label>
+              <label className="block font-medium mb-2 text-sm" htmlFor="link-rel-edit">
+                They are my…
+              </label>
               <input
                 id="link-rel-edit"
                 type="text"
+                list="relationship-suggestions-edit"
                 className={inputBase}
-                placeholder="e.g. Spouse, Brother, Mother"
-                value={editLinkRelationship}
-                onChange={(e) => setEditLinkRelationship(e.target.value)}
+                placeholder="e.g. Father, Mother, Spouse, Son"
+                value={editLabelDraft}
+                onChange={(e) => setEditLabelDraft(e.target.value)}
                 maxLength={40}
               />
               <p className="text-xs text-text-light mt-1 m-0">
-                Both of you will see this label.
+                Only you see this label. They have their own label for you.
               </p>
             </div>
             <div className="flex gap-3 pt-2">
               <Button
                 variant="primary"
                 onClick={handleSaveLinkRelationship}
-                loading={updateLinkRel.isPending}
+                loading={updateMyLabel.isPending}
               >
                 Save
               </Button>
