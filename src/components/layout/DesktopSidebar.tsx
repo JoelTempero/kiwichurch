@@ -16,12 +16,12 @@ const mainNavItems: NavItem[] = [
   { to: '/groups', label: 'Groups', icon: Users },
   { to: '/messages', label: 'Messages', icon: MessageCircle },
   { to: '/kete', label: 'Kete', icon: BookOpen },
+  { to: '/directory', label: 'Directory', icon: BookMarked },
   { to: '/giving', label: 'Giving', icon: Heart }
 ]
 
 const adminNavItems: NavItem[] = [
   { to: '/hosting', label: 'Hosting', icon: Settings },
-  { to: '/directory', label: 'Directory', icon: BookMarked },
   { to: '/settings', label: 'Settings', icon: SlidersHorizontal },
   { to: '/moderation', label: 'Moderation', icon: Shield }
 ]
