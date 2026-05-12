@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useEvents } from '@/hooks/useEvents'
@@ -36,6 +36,72 @@ function formatDate(dateStr: string) {
 
 function monthLabel(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })
+}
+
+// Top-level tablist with arrow-key keyboard navigation. Roving tabindex
+// keeps a single tab in the tab order; arrow keys move both focus and
+// selection per the WAI-ARIA tabs pattern.
+function TopTabs({
+  activeTab,
+  setActiveTab,
+  showGroups,
+}: {
+  activeTab: TopTab
+  setActiveTab: (t: TopTab) => void
+  showGroups: boolean
+}) {
+  const tabs = showGroups ? (['events', 'groups'] as TopTab[]) : (['events'] as TopTab[])
+  const refs = useRef<Array<HTMLButtonElement | null>>([])
+
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const idx = tabs.indexOf(activeTab)
+    if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      const next = tabs[(idx + 1) % tabs.length]
+      setActiveTab(next)
+      refs.current[tabs.indexOf(next)]?.focus()
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      const next = tabs[(idx - 1 + tabs.length) % tabs.length]
+      setActiveTab(next)
+      refs.current[tabs.indexOf(next)]?.focus()
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      setActiveTab(tabs[0])
+      refs.current[0]?.focus()
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      setActiveTab(tabs[tabs.length - 1])
+      refs.current[tabs.length - 1]?.focus()
+    }
+  }
+
+  return (
+    <div className="flex gap-1 p-1 bg-cream rounded-md mb-6" role="tablist" onKeyDown={onKey} aria-label="Hosting sections">
+      {tabs.map((t, i) => {
+        const selected = activeTab === t
+        return (
+          <button
+            key={t}
+            id={`hosting-tab-${t}`}
+            ref={(el) => { refs.current[i] = el }}
+            role="tab"
+            type="button"
+            aria-selected={selected}
+            aria-controls={`hosting-panel-${t}`}
+            tabIndex={selected ? 0 : -1}
+            className={cn(
+              'px-4 py-2 rounded-sm text-sm font-medium transition-colors capitalize',
+              selected ? 'bg-forest text-cream' : 'text-text-light hover:text-text-primary',
+            )}
+            onClick={() => setActiveTab(t)}
+          >
+            {t}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 export function HostingPage() {
@@ -219,35 +285,10 @@ export function HostingPage() {
       </div>
 
       {/* Top tabs */}
-      <div className="flex gap-1 p-1 bg-cream rounded-md mb-6" role="tablist">
-        <button
-          role="tab"
-          aria-selected={activeTab === 'events'}
-          className={cn(
-            'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
-            activeTab === 'events' ? 'bg-forest text-cream' : 'text-text-light hover:text-text-primary',
-          )}
-          onClick={() => setActiveTab('events')}
-        >
-          Events
-        </button>
-        {isAdmin && (
-          <button
-            role="tab"
-            aria-selected={activeTab === 'groups'}
-            className={cn(
-              'px-4 py-2 rounded-sm text-sm font-medium transition-colors',
-              activeTab === 'groups' ? 'bg-forest text-cream' : 'text-text-light hover:text-text-primary',
-            )}
-            onClick={() => setActiveTab('groups')}
-          >
-            Groups
-          </button>
-        )}
-      </div>
+      <TopTabs activeTab={activeTab} setActiveTab={setActiveTab} showGroups={isAdmin} />
 
       {activeTab === 'events' && (
-        <div className="mb-8" role="tabpanel">
+        <div id="hosting-panel-events" role="tabpanel" aria-labelledby="hosting-tab-events" className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-forest">Events</h2>
             <Button variant="primary" size="sm" onClick={handleCreateEvent}>
@@ -257,11 +298,12 @@ export function HostingPage() {
           </div>
 
           {/* Scope toggle */}
-          <div className="flex gap-1 p-1 bg-cream rounded-md mb-3">
+          <div className="flex gap-1 p-1 bg-cream rounded-md mb-3" role="group" aria-label="Event time range">
             {(['upcoming', 'past'] as EventScope[]).map((s) => (
               <button
                 key={s}
                 onClick={() => setEventScope(s)}
+                aria-pressed={eventScope === s}
                 className={cn(
                   'flex-1 px-3 py-1.5 rounded-sm text-sm font-medium transition-colors capitalize',
                   eventScope === s ? 'bg-forest text-cream' : 'text-text-light hover:text-text-primary',
@@ -336,7 +378,7 @@ export function HostingPage() {
       )}
 
       {activeTab === 'groups' && isAdmin && (
-        <div className="mb-8" role="tabpanel">
+        <div id="hosting-panel-groups" role="tabpanel" aria-labelledby="hosting-tab-groups" className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-forest">Groups</h2>
             <Button variant="primary" size="sm" onClick={handleCreateGroup}>

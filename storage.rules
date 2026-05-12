@@ -118,7 +118,11 @@ service firebase.storage {
       allow write: if isAuthenticated()
         && isAllowedType()
         && isValidSize(25);
-      allow delete: if isAuthenticated();
+      // Client deletes blocked. Storage rules can't query Firestore to
+      // confirm the deleter is the uploader, and the prior "any auth user"
+      // policy let any member nuke any group's files. Admins delete via
+      // Firebase Console for now; revisit when Cloud Functions are added.
+      allow delete: if false;
     }
 
     // ============================================

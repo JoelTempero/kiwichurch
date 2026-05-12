@@ -393,7 +393,10 @@ export const dbService = {
   },
 
   // Update every event in a series whose date is >= the pivot event's date.
-  // Title/description/etc. are propagated; date/recurrenceIndex stay intact.
+  // Title/description/time/location are propagated; date/recurrenceIndex
+  // stay intact, and gatheringId is stripped — changing the group of a
+  // whole series with attached RSVPs needs to be an explicit choice on the
+  // single event, not a silent bulk side-effect.
   async updateEventSeries(
     seriesId: string,
     fromDate: string,
@@ -406,8 +409,15 @@ export const dbService = {
     )
     const snapshot = await getDocs(q)
     const batch = writeBatch(db)
-    const { date: _date, recurrenceIndex: _idx, ...safe } = updates
-    void _date; void _idx
+    const {
+      date: _date,
+      recurrenceIndex: _idx,
+      gatheringId: _gid,
+      gatheringName: _gname,
+      rsvpYesCount: _rc,
+      ...safe
+    } = updates
+    void _date; void _idx; void _gid; void _gname; void _rc
     snapshot.docs.forEach((d) => {
       batch.update(d.ref, { ...safe, updatedAt: serverTimestamp() })
     })
