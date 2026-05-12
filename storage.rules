@@ -47,6 +47,20 @@ service firebase.storage {
         isValidSize(5); // Max 5MB
     }
 
+    // User personal gallery — images shown on member profile
+    match /users/{userId}/gallery/{fileName} {
+      allow read: if isAuthenticated();
+
+      // Users can upload to their own gallery
+      allow write: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        isImage() &&
+        isValidSize(8);
+
+      // Users can delete their own gallery items
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
     // ============================================
     // KETE (BLOG) IMAGES
     // ============================================

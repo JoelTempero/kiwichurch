@@ -94,6 +94,28 @@ export const storageService = {
   },
 
   // ============================================
+  // USER GALLERY IMAGES
+  // ============================================
+
+  async uploadGalleryImage(userId: string, file: File, onProgress?: ProgressCallback): Promise<UploadResult> {
+    if (!isValidImage(file)) {
+      throw new Error('Please upload a valid image (JPEG, PNG, GIF, or WebP)')
+    }
+    if (!isValidSize(file, 8)) {
+      throw new Error('Image must be smaller than 8MB')
+    }
+
+    const fileName = generateFileName(file.name)
+    const path = `users/${userId}/gallery/${fileName}`
+    return this.uploadFile(path, file, onProgress)
+  },
+
+  async deleteGalleryImage(userId: string, fileName: string): Promise<void> {
+    const path = `users/${userId}/gallery/${fileName}`
+    return this.deleteFile(path)
+  },
+
+  // ============================================
   // KETE (BLOG) IMAGES
   // ============================================
 

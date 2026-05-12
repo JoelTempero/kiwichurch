@@ -1,5 +1,7 @@
 import type { Timestamp } from 'firebase/firestore'
 
+export type EventRecurrence = 'none' | 'weekly' | 'fortnightly' | 'monthly'
+
 export interface Event {
   id: string
   title: string
@@ -13,6 +15,12 @@ export interface Event {
   isPublic: boolean
   imageURL?: string
   createdBy?: string
+  // Recurrence: when an event is part of a series, all siblings share `seriesId`.
+  // The original (first) event also stores the recurrence rule.
+  seriesId?: string
+  recurrence?: EventRecurrence
+  recurrenceCount?: number // total occurrences in the series (incl. this one)
+  recurrenceIndex?: number // 0-based index within the series
   createdAt: Timestamp | Date
   updatedAt: Timestamp | Date
 }
@@ -34,6 +42,9 @@ export interface RSVP {
 export interface RSVPAttendee {
   name: string
   isChild?: boolean
+  // When the attendee is a saved dependant, this is the dependant id
+  // so we can pre-check the right rows in the family RSVP form.
+  dependantId?: string
 }
 
 export interface EventQueryOptions {

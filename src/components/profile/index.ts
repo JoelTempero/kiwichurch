@@ -1,0 +1,4 @@
+export { FamilySection } from './FamilySection'
+export { PrivacySection } from './PrivacySection'
+export { InterestsSection } from './InterestsSection'
+export { GallerySection } from './GallerySection'

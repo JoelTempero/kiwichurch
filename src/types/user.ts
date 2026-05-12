@@ -12,6 +12,9 @@ export interface User {
   bio?: string
   role: UserRole
   preferences?: UserPreferences
+  privacy?: PrivacySettings
+  interests?: string[]
+  gallery?: GalleryImage[]
   dependants?: Dependant[]
   assignedGatherings?: string[]
   canPostKete?: boolean
@@ -25,10 +28,27 @@ export interface UserPreferences {
   darkMode?: boolean
 }
 
+export interface PrivacySettings {
+  showPhone?: boolean
+  showEmail?: boolean
+  showGroups?: boolean
+  showBio?: boolean
+  showInterests?: boolean
+  showFamily?: boolean
+  showGallery?: boolean
+}
+
 export interface Dependant {
   id: string
   name: string
   relationship?: string
+  isChild?: boolean
+}
+
+export interface GalleryImage {
+  url: string
+  fileName: string
+  caption?: string
 }
 
 export interface UserProfile {
@@ -41,4 +61,14 @@ export interface UserProfile {
 export interface UsernameMapping {
   uid: string
   createdAt: Timestamp | Date
+}
+
+export const DEFAULT_PRIVACY: Required<PrivacySettings> = {
+  showPhone: true,
+  showEmail: true,
+  showGroups: true,
+  showBio: true,
+  showInterests: true,
+  showFamily: false,
+  showGallery: true,
 }

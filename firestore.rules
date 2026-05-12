@@ -91,7 +91,7 @@ service cloud.firestore {
       // Users can update their own profile (limited fields)
       allow update: if isAuthenticated() && isActive() && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName', 'phone', 'bio', 'photoURL', 'preferences', 'dependants', 'updatedAt']);
+          .hasOnly(['displayName', 'phone', 'bio', 'photoURL', 'preferences', 'privacy', 'interests', 'gallery', 'dependants', 'updatedAt']);
 
       // Admins can update any user (including role)
       allow update: if isAdmin();

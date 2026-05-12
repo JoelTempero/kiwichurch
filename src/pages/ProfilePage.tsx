@@ -6,6 +6,12 @@ import { Avatar, Button, Modal } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { storageService } from '@/services/firebase'
 import { Camera, Pencil, Lock, LogOut, Loader2 } from 'lucide-react'
+import {
+  FamilySection,
+  PrivacySection,
+  InterestsSection,
+  GallerySection,
+} from '@/components/profile'
 import { profileSchema, passwordSchema } from '@/utils/schemas'
 import type { ProfileInput, PasswordInput } from '@/utils/schemas'
 import { cn } from '@/utils/cn'
@@ -180,7 +186,7 @@ export function ProfilePage() {
             </span>
           </div>
 
-          <div className="flex gap-3 mt-6">
+          <div className="flex gap-3 mt-6 mb-8">
             <Button variant="primary" onClick={() => setIsEditing(true)}>
               <Pencil size={18} aria-hidden="true" />
               Edit Profile
@@ -190,6 +196,11 @@ export function ProfilePage() {
               Change Password
             </Button>
           </div>
+
+          <FamilySection />
+          <InterestsSection />
+          <GallerySection />
+          <PrivacySection />
         </div>
       ) : (
         <form onSubmit={handleSaveProfile} className="mb-4 space-y-4" noValidate>
