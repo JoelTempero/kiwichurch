@@ -404,11 +404,12 @@ export const dbService = {
     }
     await batch.commit()
 
-    // Notify for each truly new membership (skip the community gathering — it auto-joins everyone)
-    for (const gid of newGatheringIds) {
-      if (gid === COMMUNITY_GATHERING_ID) continue
+    // Notify for each truly new membership (skip the community gathering — it auto-joins everyone).
+    // Parallelize getDoc calls via Promise.all
+    const notifyTargets = newGatheringIds.filter(gid => gid !== COMMUNITY_GATHERING_ID)
+    await Promise.all(notifyTargets.map(async gid => {
       const gSnap = await getDoc(doc(db, 'gatherings', gid))
-      addDoc(collection(db, 'notifications'), {
+      return addDoc(collection(db, 'notifications'), {
         userId,
         type: 'group_invite' as const,
         title: `You were added to ${gSnap.data()?.name || 'a group'}`,
@@ -417,7 +418,7 @@ export const dbService = {
         read: false,
         createdAt: serverTimestamp(),
       }).catch(err => console.error('[db] group-add notify failed', err))
-    }
+    }))
   },
 
   async leaveGathering(gatheringId: string, userId: string): Promise<void> {
