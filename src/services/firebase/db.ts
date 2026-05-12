@@ -381,8 +381,19 @@ export const dbService = {
   // Make sure the user is a member of every gathering in `gatheringIds`.
   // Idempotent — re-running is fine. Used after admin assigns a host
   // their gatherings so the host shows up under "My Groups" too.
+  // Emits a `group_invite` notification for each genuinely new membership
+  // (i.e. the member doc didn't exist before), skipping the community gathering.
   async ensureMembershipsForUser(userId: string, gatheringIds: string[]): Promise<void> {
     if (gatheringIds.length === 0) return
+
+    // Check which memberships are new before writing
+    const memberRefs = gatheringIds.map(gid =>
+      doc(db, 'gatherings', gid, 'members', userId)
+    )
+    const existingSnaps = await Promise.all(memberRefs.map(ref => getDoc(ref)))
+    const newGatheringIds = gatheringIds.filter((_, i) => !existingSnaps[i].exists())
+
+    // Batch-write all memberships (merge so existing joinedAt is preserved)
     const batch = writeBatch(db)
     for (const gid of gatheringIds) {
       batch.set(
@@ -392,6 +403,21 @@ export const dbService = {
       )
     }
     await batch.commit()
+
+    // Notify for each truly new membership (skip the community gathering — it auto-joins everyone)
+    for (const gid of newGatheringIds) {
+      if (gid === COMMUNITY_GATHERING_ID) continue
+      const gSnap = await getDoc(doc(db, 'gatherings', gid))
+      addDoc(collection(db, 'notifications'), {
+        userId,
+        type: 'group_invite' as const,
+        title: `You were added to ${gSnap.data()?.name || 'a group'}`,
+        message: '',
+        link: `/groups/${gid}`,
+        read: false,
+        createdAt: serverTimestamp(),
+      }).catch(err => console.error('[db] group-add notify failed', err))
+    }
   },
 
   async leaveGathering(gatheringId: string, userId: string): Promise<void> {
