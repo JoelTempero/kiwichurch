@@ -50,9 +50,13 @@ export interface RSVP {
 export interface RSVPAttendee {
   name: string
   isChild?: boolean
-  // When the attendee is a saved dependant, this is the dependant id
-  // so we can pre-check the right rows in the family RSVP form.
+  // When the attendee is a saved dependant (non-account family), this
+  // is the dependant id so we can pre-check the right rows on edit.
   dependantId?: string
+  // When the attendee is a linked account-holding family member, this
+  // is their user id. Lets the RSVP modal show "Already RSVP'd by X"
+  // when that user opens the event independently.
+  linkedUserId?: string
 }
 
 export interface EventQueryOptions {

@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react'
-import { Edit, Calendar, Clock, MapPin, Users, CalendarPlus, Baby, Plus, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Edit, Calendar, Clock, MapPin, Users, CalendarPlus, Baby, Plus, X, Heart } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { Modal, Button, Badge, Avatar } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
 import { useEventRSVPs, useUserRSVP, useRSVP, useCancelRSVP } from '@/hooks/useEvents'
+import { useFamilyLinks } from '@/hooks/useFamilyLinks'
 import { useToast } from '@/components/common/Toast'
 import { EventForm } from './EventForm'
 import { buildGoogleCalendarUrl } from '@/utils/googleCalendar'
-import type { Event, RSVPAttendee } from '@/types'
+import { dbService } from '@/services/firebase'
+import type { Event, RSVPAttendee, UserProfile } from '@/types'
 
 interface EventModalProps {
   event: Event | null
@@ -42,12 +45,33 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
   const [rsvpNotes, setRsvpNotes] = useState('')
   const [selfAttending, setSelfAttending] = useState(true)
   const [dependantSelections, setDependantSelections] = useState<Record<string, boolean>>({})
+  const [linkedSelections, setLinkedSelections] = useState<Record<string, boolean>>({})
   const [guestNames, setGuestNames] = useState<string[]>([])
   const [guestDraft, setGuestDraft] = useState('')
   const [showAttendees, setShowAttendees] = useState(false)
 
   const { data: rsvps = [] } = useEventRSVPs(event?.id || null)
   const { data: userRsvp } = useUserRSVP(event?.id || null, user?.id || null)
+  const { data: familyLinks } = useFamilyLinks(user?.id || null)
+
+  // Resolve accepted family links into UserProfiles for display in the picker.
+  const linkedIds = useMemo(() => {
+    const ids: string[] = []
+    for (const link of familyLinks?.accepted || []) {
+      const otherId = link.participants.find((p) => p !== user?.id)
+      if (otherId) ids.push(otherId)
+    }
+    return ids
+  }, [familyLinks?.accepted, user?.id])
+
+  const { data: linkedProfiles = [] } = useQuery<UserProfile[]>({
+    queryKey: ['rsvpLinkedProfiles', user?.id, linkedIds.join(',')],
+    enabled: linkedIds.length > 0 && isOpen,
+    queryFn: async () => {
+      const results = await Promise.all(linkedIds.map((id) => dbService.getPublicProfile(id)))
+      return results.filter((p): p is UserProfile => !!p)
+    },
+  })
 
   const rsvpMutation = useRSVP()
   const cancelRsvpMutation = useCancelRSVP()
@@ -55,20 +79,23 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
   // Hydrate the family-RSVP form from existing RSVP when modal opens
   useEffect(() => {
     if (!isOpen) return
-    const sel: Record<string, boolean> = {}
+    const depSel: Record<string, boolean> = {}
+    const linkSel: Record<string, boolean> = {}
     const guests: string[] = []
     const dependants = user?.dependants || []
     if (userRsvp?.attendees && userRsvp.attendees.length > 0) {
       for (const a of userRsvp.attendees) {
-        const dep = a.dependantId ? dependants.find((d) => d.id === a.dependantId) : null
-        if (dep) {
-          sel[dep.id] = true
+        if (a.dependantId && dependants.find((d) => d.id === a.dependantId)) {
+          depSel[a.dependantId] = true
+        } else if (a.linkedUserId) {
+          linkSel[a.linkedUserId] = true
         } else {
           guests.push(a.name)
         }
       }
     }
-    setDependantSelections(sel)
+    setDependantSelections(depSel)
+    setLinkedSelections(linkSel)
     setGuestNames(guests)
     setGuestDraft('')
     setSelfAttending(userRsvp ? userRsvp.selfAttending !== false : true)
@@ -81,6 +108,9 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
   const dependants = user?.dependants || []
 
   const buildAttendees = (): RSVPAttendee[] => {
+    const fromLinked: RSVPAttendee[] = linkedProfiles
+      .filter((p) => linkedSelections[p.id])
+      .map((p) => ({ name: p.displayName, linkedUserId: p.id }))
     const fromDeps: RSVPAttendee[] = dependants
       .filter((d) => dependantSelections[d.id])
       .map((d) => ({ name: d.name, isChild: !!d.isChild, dependantId: d.id }))
@@ -88,12 +118,29 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
       .map((n) => n.trim())
       .filter(Boolean)
       .map((name) => ({ name }))
-    return [...fromDeps, ...fromGuests]
+    return [...fromLinked, ...fromDeps, ...fromGuests]
   }
 
   const toggleDependant = (id: string) => {
     setDependantSelections((prev) => ({ ...prev, [id]: !prev[id] }))
   }
+
+  const toggleLinked = (id: string) => {
+    setLinkedSelections((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  // If the current user appears in someone else's RSVP attendees, surface
+  // that as "Already brought by X" so they know they're already accounted
+  // for. They can still RSVP themselves to override.
+  const broughtBy = useMemo(() => {
+    if (!user?.id) return null
+    for (const r of rsvps) {
+      if (r.userId === user.id) continue
+      const match = r.attendees?.some((a) => a.linkedUserId === user.id)
+      if (match) return { userId: r.userId, name: r.userName || 'A family member' }
+    }
+    return null
+  }, [rsvps, user?.id])
 
   const addGuest = () => {
     const name = guestDraft.trim()
@@ -321,16 +368,36 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
               </div>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button variant="primary" onClick={() => handleRsvp('yes')} loading={isRsvping}>
-                I'm going
-              </Button>
-              <Button variant="outline" onClick={() => handleRsvp('maybe')} loading={isRsvping}>
-                Maybe
-              </Button>
-              <Button variant="ghost" onClick={() => setShowRsvpForm(true)}>
-                RSVP with family
-              </Button>
+            <div className="space-y-2">
+              {broughtBy && (
+                <div className="flex items-start gap-2 p-3 bg-cream rounded-md text-sm">
+                  <Heart size={16} className="text-terracotta mt-0.5 shrink-0" />
+                  <span className="text-text-primary">
+                    Already going — <strong>{broughtBy.name}</strong> has RSVP'd you to this event. You can still RSVP yourself below to override.
+                  </span>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {/* Members with saved family or linked accounts skip the
+                    one-tap yes — the picker handles their flow. */}
+                {(dependants.length > 0 || linkedProfiles.length > 0) ? (
+                  <Button variant="primary" onClick={() => setShowRsvpForm(true)}>
+                    I'm going
+                  </Button>
+                ) : (
+                  <Button variant="primary" onClick={() => handleRsvp('yes')} loading={isRsvping}>
+                    I'm going
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => handleRsvp('maybe')} loading={isRsvping}>
+                  Maybe
+                </Button>
+                {dependants.length === 0 && linkedProfiles.length === 0 && (
+                  <Button variant="ghost" onClick={() => setShowRsvpForm(true)}>
+                    More options
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
@@ -352,31 +419,42 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
                     </span>
                   </label>
 
-                  {dependants.length > 0 && (
-                    <>
-                      {dependants.map((d) => (
-                        <label key={d.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-md hover:bg-cream-dark/40">
-                          <input
-                            type="checkbox"
-                            className="w-[18px] h-[18px] accent-forest"
-                            checked={!!dependantSelections[d.id]}
-                            onChange={() => toggleDependant(d.id)}
-                          />
-                          <span className="flex items-center gap-1.5 text-text-primary">
-                            {d.isChild && <Baby size={14} className="text-text-light" />}
-                            {d.name}
-                            {d.relationship && (
-                              <span className="text-xs text-text-light">— {d.relationship}</span>
-                            )}
-                          </span>
-                        </label>
-                      ))}
-                    </>
-                  )}
+                  {linkedProfiles.length > 0 && linkedProfiles.map((p) => (
+                    <label key={p.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-md hover:bg-cream-dark/40">
+                      <input
+                        type="checkbox"
+                        className="w-[18px] h-[18px] accent-forest"
+                        checked={!!linkedSelections[p.id]}
+                        onChange={() => toggleLinked(p.id)}
+                      />
+                      <span className="flex items-center gap-2 text-text-primary">
+                        <Avatar src={p.photoURL} name={p.displayName} size="sm" />
+                        {p.displayName}
+                        <Heart size={11} className="text-terracotta" aria-label="Linked family" />
+                      </span>
+                    </label>
+                  ))}
+                  {dependants.length > 0 && dependants.map((d) => (
+                    <label key={d.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-md hover:bg-cream-dark/40">
+                      <input
+                        type="checkbox"
+                        className="w-[18px] h-[18px] accent-forest"
+                        checked={!!dependantSelections[d.id]}
+                        onChange={() => toggleDependant(d.id)}
+                      />
+                      <span className="flex items-center gap-1.5 text-text-primary">
+                        {d.isChild && <Baby size={14} className="text-text-light" />}
+                        {d.name}
+                        {d.relationship && (
+                          <span className="text-xs text-text-light">— {d.relationship}</span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
                 </div>
-                {dependants.length === 0 && (
+                {dependants.length === 0 && linkedProfiles.length === 0 && (
                   <p className="text-xs text-text-light mt-2 m-0">
-                    Want to bring family next time? Add them on your Profile page.
+                    Want to bring family next time? Link a partner account or add family members on your Profile page.
                   </p>
                 )}
               </div>
@@ -441,9 +519,14 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
 
               <div className="flex flex-wrap gap-2 pt-2 border-t border-cream-dark">
                 <Button variant="primary" onClick={() => handleRsvp('yes')} loading={isRsvping}>
-                  Going{(selfAttending || Object.values(dependantSelections).filter(Boolean).length > 0 || guestNames.length > 0)
-                    ? ` (${(selfAttending ? 1 : 0) + Object.values(dependantSelections).filter(Boolean).length + guestNames.length})`
-                    : ''}
+                  {(() => {
+                    const count =
+                      (selfAttending ? 1 : 0) +
+                      Object.values(linkedSelections).filter(Boolean).length +
+                      Object.values(dependantSelections).filter(Boolean).length +
+                      guestNames.length
+                    return count > 0 ? `Going (${count})` : 'Going'
+                  })()}
                 </Button>
                 <Button variant="outline" onClick={() => handleRsvp('maybe')} loading={isRsvping}>
                   Maybe

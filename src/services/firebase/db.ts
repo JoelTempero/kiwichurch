@@ -42,9 +42,10 @@ import type {
   ConversationParticipant,
   DirectMessage,
   Report,
-  ReportStatus
+  ReportStatus,
+  FamilyLink,
 } from '@/types'
-import { DEFAULT_PRIVACY } from '@/types'
+import { DEFAULT_PRIVACY, familyLinkId } from '@/types'
 import { GroupResource } from '../../types/groupResource'
 import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME, isCommunityGathering } from '@/utils/community'
 
@@ -199,6 +200,64 @@ export const dbService = {
 
   async deleteUsername(username: string): Promise<void> {
     await deleteDoc(doc(db, 'usernames', username.toLowerCase()))
+  },
+
+  // ============================================
+  // FAMILY LINKS
+  // ============================================
+
+  async sendFamilyLink(
+    senderId: string,
+    senderName: string,
+    recipientId: string,
+    recipientName: string,
+  ): Promise<string> {
+    if (senderId === recipientId) throw new Error('Cannot link to yourself')
+    const id = familyLinkId(senderId, recipientId)
+    const participants = [senderId, recipientId].sort() as [string, string]
+    await setDoc(doc(db, 'familyLinks', id), {
+      participants,
+      senderId,
+      recipientId,
+      senderName,
+      recipientName,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    })
+    // Notify the recipient. Non-blocking from the caller's view — if it
+    // fails (rate limit, rule shift) the link itself still exists.
+    addDoc(collection(db, 'notifications'), {
+      userId: recipientId,
+      type: 'family_link' as const,
+      title: `${senderName} wants to link as family`,
+      message: 'Accept on your Profile to RSVP for each other.',
+      link: '/profile',
+      read: false,
+      createdAt: serverTimestamp(),
+    }).catch((err) => console.error('[db] family-link notify failed', err))
+    return id
+  },
+
+  async acceptFamilyLink(linkId: string): Promise<void> {
+    await updateDoc(doc(db, 'familyLinks', linkId), {
+      status: 'accepted',
+      acceptedAt: serverTimestamp(),
+    })
+  },
+
+  async deleteFamilyLink(linkId: string): Promise<void> {
+    await deleteDoc(doc(db, 'familyLinks', linkId))
+  },
+
+  // All links (pending + accepted) where this user is a participant.
+  // The component layer splits them into incoming/outgoing/accepted.
+  async getFamilyLinks(userId: string): Promise<FamilyLink[]> {
+    const q = query(
+      collection(db, 'familyLinks'),
+      where('participants', 'array-contains', userId),
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((d) => docToObject<FamilyLink>(d))
   },
 
   async updateUserRole(userId: string, role: User['role']): Promise<void> {

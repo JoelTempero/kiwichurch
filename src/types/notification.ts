@@ -7,6 +7,7 @@ export type NotificationType =
   | 'new_comment'
   | 'mention'
   | 'group_invite'
+  | 'family_link'
   | 'direct_message'
   | 'system'
 

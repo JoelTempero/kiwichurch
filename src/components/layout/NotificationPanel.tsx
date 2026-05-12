@@ -8,7 +8,7 @@ import {
   useMarkNotificationRead,
   useMarkAllNotificationsRead
 } from '@/hooks/useNotifications'
-import { Calendar, FileText, MessageCircle, AtSign, Users, Info, Bell, X } from 'lucide-react'
+import { Calendar, FileText, MessageCircle, AtSign, Users, Info, Bell, X, Heart } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import type { Notification } from '@/types'
 
@@ -48,6 +48,8 @@ function getNotificationIcon(type: Notification['type']): JSX.Element {
       return <MessageCircle size={18} />
     case 'group_invite':
       return <Users size={18} />
+    case 'family_link':
+      return <Heart size={18} />
     default:
       return <Info size={18} />
   }
