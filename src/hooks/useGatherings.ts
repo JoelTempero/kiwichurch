@@ -314,10 +314,12 @@ export function useAddPostComment() {
       }
 
       // Notify post author on new comment, or replied-to commenter on reply
+      // Skip if the recipient was already notified via an @mention in this comment
       const recipientId = commentData.replyToId
         ? commentData.replyToAuthorId
         : postAuthorId
-      if (recipientId) {
+      const alreadyMentioned = commentData.mentions?.includes(recipientId ?? '') ?? false
+      if (recipientId && !alreadyMentioned) {
         dbService.createCommentNotification({
           recipientId,
           authorId: commentData.authorId,
