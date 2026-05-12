@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Avatar, Button, Modal, ConfirmModal } from '@/components/common'
+import { Avatar, Button, Combobox, Modal, ConfirmModal } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/hooks/useAuth'
 import { dbService } from '@/services/firebase'
@@ -470,21 +470,16 @@ export function FamilySection() {
 
             {pickedMember && (
               <>
-                <datalist id="relationship-suggestions">
-                  {RELATIONSHIP_SUGGESTIONS.map((r) => <option key={r} value={r} />)}
-                </datalist>
                 <div>
                   <label className="block font-medium mb-1 text-sm" htmlFor="link-sender-label">
                     They are my…
                   </label>
-                  <input
+                  <Combobox
                     id="link-sender-label"
-                    type="text"
-                    list="relationship-suggestions"
-                    className={inputBase}
-                    placeholder="e.g. Son, Daughter, Spouse"
                     value={senderLabelDraft}
-                    onChange={(e) => setSenderLabelDraft(e.target.value)}
+                    onChange={setSenderLabelDraft}
+                    suggestions={RELATIONSHIP_SUGGESTIONS}
+                    placeholder="e.g. Son, Daughter, Spouse"
                     maxLength={40}
                   />
                   <p className="text-xs text-text-light mt-1 m-0">
@@ -495,14 +490,12 @@ export function FamilySection() {
                   <label className="block font-medium mb-1 text-sm" htmlFor="link-recipient-label">
                     I am their…
                   </label>
-                  <input
+                  <Combobox
                     id="link-recipient-label"
-                    type="text"
-                    list="relationship-suggestions"
-                    className={inputBase}
-                    placeholder="e.g. Father, Mother, Spouse"
                     value={recipientLabelDraft}
-                    onChange={(e) => setRecipientLabelDraft(e.target.value)}
+                    onChange={setRecipientLabelDraft}
+                    suggestions={RELATIONSHIP_SUGGESTIONS}
+                    placeholder="e.g. Father, Mother, Spouse"
                     maxLength={40}
                   />
                   <p className="text-xs text-text-light mt-1 m-0">
@@ -603,21 +596,16 @@ export function FamilySection() {
                 {profilesById[otherInLink(editingLink).id]?.displayName || otherInLink(editingLink).name}
               </p>
             </div>
-            <datalist id="relationship-suggestions-edit">
-              {RELATIONSHIP_SUGGESTIONS.map((r) => <option key={r} value={r} />)}
-            </datalist>
             <div>
               <label className="block font-medium mb-2 text-sm" htmlFor="link-rel-edit">
                 They are my…
               </label>
-              <input
+              <Combobox
                 id="link-rel-edit"
-                type="text"
-                list="relationship-suggestions-edit"
-                className={inputBase}
-                placeholder="e.g. Father, Mother, Spouse, Son"
                 value={editLabelDraft}
-                onChange={(e) => setEditLabelDraft(e.target.value)}
+                onChange={setEditLabelDraft}
+                suggestions={RELATIONSHIP_SUGGESTIONS}
+                placeholder="e.g. Father, Mother, Spouse, Son"
                 maxLength={40}
               />
               <p className="text-xs text-text-light mt-1 m-0">
