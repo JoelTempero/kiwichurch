@@ -9,6 +9,7 @@ export type NotificationType =
   | 'group_invite'
   | 'family_link'
   | 'direct_message'
+  | 'announcement'
   | 'system'
 
 export interface Notification {

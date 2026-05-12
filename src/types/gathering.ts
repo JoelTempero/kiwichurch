@@ -38,9 +38,13 @@ export interface BoardPost {
   attachmentType?: string
   attachmentName?: string
   pinned?: boolean
+  pinnedAt?: Timestamp | Date
+  pinnedBy?: string
   reactions?: Record<string, string[]> // emoji -> userIds
   poll?: BoardPoll
   mentions?: string[]
+  announcementBroadcastStatus?: 'pending' | 'sent'
+  broadcastCompletedAt?: Timestamp | Date
   createdAt: Timestamp | Date
   updatedAt?: Timestamp | Date
 }
@@ -54,5 +58,6 @@ export interface BoardComment {
   mentions?: string[]
   replyToId?: string
   replyToAuthorName?: string
+  replyToAuthorId?: string
   createdAt: Timestamp | Date
 }
