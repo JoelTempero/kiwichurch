@@ -105,7 +105,13 @@ function TopTabs({
 }
 
 export function HostingPage() {
-  const { isAdminOrHost, isAdmin } = useAuth()
+  const { user, isAdminOrHost, isAdmin } = useAuth()
+
+  // Hosts are scoped to the groups admin has assigned them; admins see all.
+  const hostedGatheringIds = useMemo(() => {
+    if (isAdmin) return null // null = unrestricted
+    return new Set(user?.hostedGatherings || [])
+  }, [isAdmin, user?.hostedGatherings])
 
   const [activeTab, setActiveTab] = useState<TopTab>('events')
 
@@ -159,6 +165,10 @@ export function HostingPage() {
   const filteredEvents = useMemo(() => {
     const q = eventQuery.toLowerCase().trim()
     const filtered = events.filter((e) => {
+      // Hosts only see events for groups they've been assigned to.
+      if (hostedGatheringIds && (!e.gatheringId || !hostedGatheringIds.has(e.gatheringId))) {
+        return false
+      }
       if (eventGroupFilter && e.gatheringId !== eventGroupFilter) return false
       if (!q) return true
       return (
@@ -169,7 +179,17 @@ export function HostingPage() {
     })
     if (eventScope === 'past') filtered.reverse() // newest past first
     return filtered
-  }, [events, eventQuery, eventGroupFilter, eventScope])
+  }, [events, eventQuery, eventGroupFilter, eventScope, hostedGatheringIds])
+
+  // For the group-filter dropdown, hosts only see their assigned groups.
+  const visibleGroupsForFilter = useMemo(() => {
+    if (!hostedGatheringIds) return groups
+    return groups.filter((g) => hostedGatheringIds.has(g.id))
+  }, [groups, hostedGatheringIds])
+
+  // Hosts with no assigned groups get a clear empty state instead of a
+  // blank events list with no idea why.
+  const hostUnassigned = !!hostedGatheringIds && hostedGatheringIds.size === 0
 
   // For Past: group events by month for easier scanning
   const groupedByMonth = useMemo(() => {
@@ -332,14 +352,20 @@ export function HostingPage() {
               className="sm:w-48 px-3 py-2 rounded-md border border-[#e0dbd2] bg-transparent text-sm focus:outline-none focus:border-forest"
               aria-label="Filter by group"
             >
-              <option value="">All groups</option>
-              {groups.map((g) => (
+              <option value="">{isAdmin ? 'All groups' : 'My groups'}</option>
+              {visibleGroupsForFilter.map((g) => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </select>
           </div>
 
-          {loadingEvents ? (
+          {hostUnassigned ? (
+            <EmptyState
+              icon="users"
+              title="No groups assigned yet"
+              message="Ask an admin to assign you one or more groups in Settings — once they have, you'll see and manage events for those groups here."
+            />
+          ) : loadingEvents ? (
             <Spinner />
           ) : filteredEvents.length === 0 ? (
             <EmptyState

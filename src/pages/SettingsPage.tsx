@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/hooks/useAuth'
 import { dbService, authService } from '@/services/firebase'
+import { useGatherings } from '@/hooks/useGatherings'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Avatar, Button, Modal, Badge, EmptyState, Spinner, FadeIn } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
@@ -28,6 +29,7 @@ const editUserSchema = z.object({
   bio: z.string().optional(),
   role: z.enum(['member', 'host', 'admin']),
   canPostKete: z.boolean(),
+  hostedGatherings: z.array(z.string()).default([]),
 })
 
 const inputBase = 'w-full px-3 py-2 border border-sage-light rounded-md text-base focus:outline-none focus:border-forest'
@@ -56,6 +58,8 @@ export function SettingsPage() {
     enabled: isAdmin,
   })
 
+  const { data: allGatherings = [] } = useGatherings()
+
   const updateUserMutation = useMutation({
     mutationFn: ({ userId, updates }: { userId: string; updates: Partial<User> }) =>
       dbService.updateUser(userId, updates),
@@ -76,7 +80,7 @@ export function SettingsPage() {
     defaultValues: { displayName: '', email: '', password: '', role: 'member' },
   })
 
-  const editUserForm = useForm<z.infer<typeof editUserSchema>>({
+  const editUserForm = useForm<z.input<typeof editUserSchema>>({
     resolver: zodResolver(editUserSchema),
   })
 
@@ -143,12 +147,17 @@ export function SettingsPage() {
       bio: u.bio || '',
       role: u.role,
       canPostKete: u.canPostKete === true,
+      hostedGatherings: u.hostedGatherings || [],
     })
     setShowEditModal(true)
   }
 
   const handleEditUser = editUserForm.handleSubmit((data) => {
     if (!selectedUser) return
+    // Only persist hostedGatherings for the host role — clearing it when
+    // someone is demoted to member or promoted to admin keeps the data
+    // honest (admin already has full access).
+    const hostedGatherings = data.role === 'host' ? data.hostedGatherings : []
     updateUserMutation.mutate({
       userId: selectedUser.id,
       updates: {
@@ -157,9 +166,20 @@ export function SettingsPage() {
         bio: data.bio?.trim() || '',
         role: data.role,
         canPostKete: data.canPostKete,
+        hostedGatherings,
       },
     })
   })
+
+  // Watch role + hostedGatherings so the picker appears as soon as
+  // the admin sets the role to "host" in the edit modal.
+  const editRole = editUserForm.watch('role')
+  const editHostedGatherings = editUserForm.watch('hostedGatherings') || []
+  const toggleHostedGathering = (id: string) => {
+    const set = new Set(editHostedGatherings)
+    if (set.has(id)) set.delete(id); else set.add(id)
+    editUserForm.setValue('hostedGatherings', Array.from(set), { shouldDirty: true })
+  }
 
   return (
     <div className="max-w-[600px] mx-auto p-4">
@@ -345,6 +365,43 @@ export function SettingsPage() {
                 <option value="admin">Admin</option>
               </select>
             </div>
+
+            {editRole === 'host' && (
+              <div>
+                <p className="text-sm font-medium mb-1">Hosts which groups?</p>
+                <p className="text-xs text-text-light mb-2">
+                  This host will only see Hosting for these groups and can only create events for them. Admins host everything.
+                </p>
+                {allGatherings.length === 0 ? (
+                  <p className="text-xs text-text-lighter italic">No groups yet — create one first.</p>
+                ) : (
+                  <div className="border border-[#e0dbd2] rounded-md divide-y divide-[#ebe6dc] max-h-[200px] overflow-y-auto">
+                    {allGatherings.map((g) => {
+                      const checked = editHostedGatherings.includes(g.id)
+                      return (
+                        <label
+                          key={g.id}
+                          className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-cream/40 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            className="w-[16px] h-[16px] accent-forest"
+                            checked={checked}
+                            onChange={() => toggleHostedGathering(g.id)}
+                          />
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: g.color || '#2d5a4a' }}
+                            aria-hidden
+                          />
+                          <span className="text-sm text-text-primary flex-1">{g.name}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="flex items-center gap-2 cursor-pointer">

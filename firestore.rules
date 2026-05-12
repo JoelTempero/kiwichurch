@@ -54,10 +54,16 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/gatherings/$(gatheringId)/members/$(request.auth.uid));
     }
 
-    // Check if user is host of a specific gathering
+    // Check if user is host of a specific gathering.
+    // Two equivalent paths: the gathering names them via hostId (legacy
+    // single-host model), OR the user's hostedGatherings array includes
+    // this gathering (admin-assigned multi-host model).
     function isHostOfGathering(gatheringId) {
-      let gathering = get(/databases/$(database)/documents/gatherings/$(gatheringId)).data;
-      return isAuthenticated() && gathering.hostId == request.auth.uid;
+      let data = getUserData();
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/gatherings/$(gatheringId)).data.hostId == request.auth.uid ||
+        (data.keys().hasAny(['hostedGatherings']) && gatheringId in data.hostedGatherings)
+      );
     }
 
     // Check if a gathering is public
@@ -103,6 +109,8 @@ service cloud.firestore {
       // can still update their own profile so they can fill in details
       // while awaiting approval, but isActive() gating elsewhere blocks
       // their writes to community content.
+      // hostedGatherings is intentionally NOT in this list — only admins
+      // can assign host scope (handled by the admin update rule below).
       allow update: if isAuthenticated() && request.auth.uid == userId &&
         getUserData().status != 'deactivated' &&
         request.resource.data.diff(resource.data).affectedKeys()
@@ -207,11 +215,24 @@ service cloud.firestore {
       // Public events readable by anyone (static site calendar); all events readable by authenticated users
       allow read: if isAuthenticated() || resource.data.isPublic == true;
 
-      // Admins and hosts can create/update events
-      allow create, update: if isAdminOrHost();
+      // Admin can create/edit/delete any event (incl. church-wide events
+      // with no gatheringId). Hosts can only act on events for groups
+      // they've been assigned to.
+      allow create: if isAdmin() ||
+        (isHost() && request.resource.data.gatheringId is string &&
+         request.resource.data.gatheringId != '' &&
+         isHostOfGathering(request.resource.data.gatheringId));
 
-      // Only admins can delete events
-      allow delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (isHost() && resource.data.gatheringId is string &&
+         resource.data.gatheringId != '' &&
+         isHostOfGathering(resource.data.gatheringId));
+
+      // Only admins can delete events (matches existing behaviour for now).
+      allow delete: if isAdmin() ||
+        (isHost() && resource.data.gatheringId is string &&
+         resource.data.gatheringId != '' &&
+         isHostOfGathering(resource.data.gatheringId));
 
       // RSVPs subcollection
       match /rsvps/{rsvpId} {

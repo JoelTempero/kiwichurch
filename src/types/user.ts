@@ -24,6 +24,11 @@ export interface User {
   gallery?: GalleryImage[]
   dependants?: Dependant[]
   assignedGatherings?: string[]
+  // Hosts can only edit events / view Hosting for groups admin has
+  // assigned to them. Admin always has access to everything; member
+  // role ignores this field. Empty array = host with no assignments
+  // yet (admin needs to pick groups for them).
+  hostedGatherings?: string[]
   canPostKete?: boolean
   createdAt: Timestamp | Date
   updatedAt: Timestamp | Date

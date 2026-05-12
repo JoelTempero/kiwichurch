@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
@@ -28,10 +28,18 @@ const inputBase = 'w-full px-3 py-3 border border-sage-light rounded-md font-bod
 const inputError = 'border-red-600 focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
 
 export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const { showToast } = useToast()
-  const { data: gatherings = [] } = useGatherings()
+  const { data: allGatherings = [] } = useGatherings()
   const queryClient = useQueryClient()
+
+  // Hosts can only create events for groups admin has assigned to them.
+  // Admin sees every group plus the "Whole church" option.
+  const gatherings = useMemo(() => {
+    if (isAdmin) return allGatherings
+    const allowed = new Set(user?.hostedGatherings || [])
+    return allGatherings.filter((g) => allowed.has(g.id))
+  }, [isAdmin, allGatherings, user?.hostedGatherings])
 
   const createEvent = useCreateEvent()
   const updateEvent = useUpdateEvent()
@@ -79,6 +87,13 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
 
   const handleSubmit = form.handleSubmit(async (data) => {
     if (!user) return
+
+    // Hosts must pick a group — church-wide events are admin-only and
+    // the Firestore rule will reject a host's empty-gatheringId create.
+    if (!isAdmin && !data.gatheringId) {
+      showToast('Pick a group for this event', 'error')
+      return
+    }
 
     const gathering = gatherings.find((g) => g.id === data.gatheringId)
     const sharedData = {
@@ -303,14 +318,26 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
           </div>
 
           <div>
-            <label className="block font-medium mb-2" htmlFor="event-group">Group</label>
+            <label className="block font-medium mb-2" htmlFor="event-group">
+              Group {!isAdmin && <span className="text-red-600">*</span>}
+            </label>
             <select id="event-group" className={inputBase} {...form.register('gatheringId')}>
-              <option value="">No group (church-wide event)</option>
+              {isAdmin && <option value="">No group (church-wide event)</option>}
+              {!isAdmin && gatherings.length === 0 && (
+                <option value="" disabled>You haven’t been assigned any groups yet</option>
+              )}
+              {!isAdmin && gatherings.length > 0 && (
+                <option value="" disabled>Choose a group…</option>
+              )}
               {gatherings.map((g) => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </select>
-            <span className="text-sm text-text-light mt-1 block">Assign this event to a specific group</span>
+            <span className="text-sm text-text-light mt-1 block">
+              {isAdmin
+                ? 'Assign this event to a specific group, or leave blank for the whole church.'
+                : 'You can only create events for groups assigned to you. Ask an admin to add more.'}
+            </span>
           </div>
 
           {/* Repeats — create-only. Editing the recurrence rule on a series is intentionally
