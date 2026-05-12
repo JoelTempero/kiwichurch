@@ -593,9 +593,10 @@ export const dbService = {
   ): Promise<void> {
     const eventRef = doc(db, 'events', eventId)
     const rsvpRef = doc(db, 'events', eventId, 'rsvps', userId)
+    let prevStatus: string | undefined
     await runTransaction(db, async (txn) => {
       const existing = await txn.get(rsvpRef)
-      const prevStatus = existing.exists() ? (existing.data().status as string | undefined) : undefined
+      prevStatus = existing.exists() ? (existing.data().status as string | undefined) : undefined
       txn.set(rsvpRef, {
         userId,
         userName,
@@ -615,6 +616,25 @@ export const dbService = {
         })
       }
     })
+    // Notify event host when someone transitions TO yes/maybe (best-effort, non-blocking)
+    const wasGoing = prevStatus === 'yes' || prevStatus === 'maybe'
+    const isGoing = status === 'yes' || status === 'maybe'
+    if (isGoing && !wasGoing) {
+      getDoc(eventRef).then((eventSnap) => {
+        const event = eventSnap.data() as Event | undefined
+        if (event?.createdBy && event.createdBy !== userId) {
+          addDoc(collection(db, 'notifications'), {
+            userId: event.createdBy,
+            type: 'event_update' as const,
+            title: `${userName} RSVP'd to ${event.title}`,
+            message: '',
+            link: `/events/${eventId}`,
+            read: false,
+            createdAt: serverTimestamp(),
+          }).catch((err) => console.error('[db] rsvp notify failed', err))
+        }
+      }).catch((err) => console.error('[db] rsvp notify event fetch failed', err))
+    }
   },
 
   async removeRSVP(eventId: string, userId: string): Promise<void> {
