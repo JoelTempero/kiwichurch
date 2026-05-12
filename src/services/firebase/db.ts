@@ -247,6 +247,10 @@ export const dbService = {
     })
   },
 
+  async updateFamilyLinkRelationship(linkId: string, relationship: string): Promise<void> {
+    await updateDoc(doc(db, 'familyLinks', linkId), { relationship })
+  },
+
   async deleteFamilyLink(linkId: string): Promise<void> {
     await deleteDoc(doc(db, 'familyLinks', linkId))
   },

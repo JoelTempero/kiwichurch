@@ -72,3 +72,14 @@ export function useDeleteFamilyLink(currentUserId: string | null) {
     },
   })
 }
+
+export function useUpdateFamilyLinkRelationship(currentUserId: string | null) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ linkId, relationship }: { linkId: string; relationship: string }) =>
+      dbService.updateFamilyLinkRelationship(linkId, relationship),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY(currentUserId) })
+    },
+  })
+}

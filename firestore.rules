@@ -469,6 +469,14 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['status', 'acceptedAt']);
 
+      // Either party can edit the relationship label on an accepted link.
+      allow update: if isAuthenticated() && isActive() &&
+        request.auth.uid in resource.data.participants &&
+        resource.data.status == 'accepted' &&
+        request.resource.data.status == 'accepted' &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['relationship']);
+
       // Either party can delete — cancels a pending invite, declines an
       // incoming one, or removes an existing link.
       allow delete: if isAuthenticated() &&

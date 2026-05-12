@@ -12,6 +12,7 @@ import {
   useSendFamilyLink,
   useAcceptFamilyLink,
   useDeleteFamilyLink,
+  useUpdateFamilyLinkRelationship,
 } from '@/hooks/useFamilyLinks'
 import {
   Plus, Pencil, Trash2, Users, Search, Check, X, Heart, UserPlus,
@@ -44,6 +45,7 @@ export function FamilySection() {
   const sendLink = useSendFamilyLink()
   const acceptLink = useAcceptFamilyLink(user?.id || null)
   const deleteLink = useDeleteFamilyLink(user?.id || null)
+  const updateLinkRel = useUpdateFamilyLinkRelationship(user?.id || null)
   const accepted = links?.accepted || []
   const incoming = links?.incoming || []
   const outgoing = links?.outgoing || []
@@ -68,6 +70,11 @@ export function FamilySection() {
     | { kind: 'link'; link: FamilyLink }
     | null
   >(null)
+
+  // Inline edit for a linked account's relationship label (name + photo
+  // belong to the linked person — only the relationship is editable here).
+  const [editingLink, setEditingLink] = useState<FamilyLink | null>(null)
+  const [editLinkRelationship, setEditLinkRelationship] = useState('')
 
   // Profile lookups for accepted links so we get avatars + current display names
   const acceptedIds = accepted
@@ -178,6 +185,25 @@ export function FamilySection() {
     }
   }
 
+  const openEditLink = (link: FamilyLink) => {
+    setEditingLink(link)
+    setEditLinkRelationship(link.relationship || '')
+  }
+
+  const handleSaveLinkRelationship = async () => {
+    if (!editingLink) return
+    try {
+      await updateLinkRel.mutateAsync({
+        linkId: editingLink.id,
+        relationship: editLinkRelationship.trim(),
+      })
+      showToast('Relationship updated', 'success')
+      setEditingLink(null)
+    } catch {
+      showToast('Could not update', 'error')
+    }
+  }
+
   const handleRemove = async () => {
     if (!confirmRemove) return
     try {
@@ -263,6 +289,13 @@ export function FamilySection() {
                     {link.relationship || 'Family'} · linked, can RSVP for each other
                   </p>
                 </div>
+                <button
+                  onClick={() => openEditLink(link)}
+                  className="p-2 rounded-md text-text-light hover:bg-cream/60 hover:text-text-primary transition-colors"
+                  aria-label={`Edit relationship with ${other.name}`}
+                >
+                  <Pencil size={16} />
+                </button>
                 <button
                   onClick={() => setConfirmRemove({ kind: 'link', link })}
                   className="p-2 rounded-md text-red-500 hover:bg-red-50 transition-colors"
@@ -367,6 +400,9 @@ export function FamilySection() {
             <p className="text-sm text-text-light m-0">
               Pick another Kiwi Church member to link as family. They'll need to accept the invite before you can RSVP for each other.
             </p>
+            <p className="text-xs text-text-lighter m-0 italic">
+              You can adjust family visibility in Privacy settings below.
+            </p>
 
             {pickedMember ? (
               <div className="flex items-center gap-3 p-3 border border-[#e0dbd2] rounded-md bg-[#faf8f4]">
@@ -452,9 +488,14 @@ export function FamilySection() {
         {(editing || addTab === 'manual') && (
           <form onSubmit={handleManualSave} className="space-y-4" noValidate>
             {!editing && (
-              <p className="text-sm text-text-light m-0">
-                Add a family member who doesn't use Kiwi Church. They're private to you — only you and admins can see them.
-              </p>
+              <>
+                <p className="text-sm text-text-light m-0">
+                  Add a family member who doesn't have the app so you can RSVP to events for them — great for kids or grandparents.
+                </p>
+                <p className="text-xs text-text-lighter m-0 italic">
+                  You can adjust family visibility in Privacy settings below.
+                </p>
+              </>
             )}
             <div>
               <label className="block font-medium mb-2" htmlFor="dep-name">
@@ -497,6 +538,55 @@ export function FamilySection() {
               </Button>
             </div>
           </form>
+        )}
+      </Modal>
+
+      {/* Edit relationship for an accepted link */}
+      <Modal
+        isOpen={!!editingLink}
+        onClose={() => setEditingLink(null)}
+        title="Edit family relationship"
+      >
+        {editingLink && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 pb-3 border-b border-cream">
+              <Avatar
+                src={profilesById[otherInLink(editingLink).id]?.photoURL}
+                name={profilesById[otherInLink(editingLink).id]?.displayName || otherInLink(editingLink).name}
+                size="md"
+              />
+              <p className="font-semibold m-0">
+                {profilesById[otherInLink(editingLink).id]?.displayName || otherInLink(editingLink).name}
+              </p>
+            </div>
+            <div>
+              <label className="block font-medium mb-2 text-sm" htmlFor="link-rel-edit">Relationship</label>
+              <input
+                id="link-rel-edit"
+                type="text"
+                className={inputBase}
+                placeholder="e.g. Spouse, Brother, Mother"
+                value={editLinkRelationship}
+                onChange={(e) => setEditLinkRelationship(e.target.value)}
+                maxLength={40}
+              />
+              <p className="text-xs text-text-light mt-1 m-0">
+                Both of you will see this label.
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="primary"
+                onClick={handleSaveLinkRelationship}
+                loading={updateLinkRel.isPending}
+              >
+                Save
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setEditingLink(null)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
         )}
       </Modal>
 
