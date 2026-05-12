@@ -788,6 +788,24 @@ export const dbService = {
     await deleteDoc(doc(db, 'messageBoards', gatheringId, 'posts', postId))
   },
 
+  async pinPost(gatheringId: string, postId: string, userId: string): Promise<void> {
+    const ref = doc(db, 'messageBoards', gatheringId, 'posts', postId)
+    const snap = await getDoc(ref)
+    if (!snap.exists() || snap.data().pinned === true) return
+    const isCommunity = gatheringId === COMMUNITY_GATHERING_ID
+    await updateDoc(ref, {
+      pinned: true,
+      pinnedAt: serverTimestamp(),
+      pinnedBy: userId,
+      ...(isCommunity ? { announcementBroadcastStatus: 'pending' } : {}),
+    })
+  },
+
+  async unpinPost(gatheringId: string, postId: string): Promise<void> {
+    const ref = doc(db, 'messageBoards', gatheringId, 'posts', postId)
+    await updateDoc(ref, { pinned: false, pinnedAt: null, pinnedBy: null })
+  },
+
   async getPostComments(gatheringId: string, postId: string): Promise<BoardComment[]> {
     const q = query(
       collection(db, 'messageBoards', gatheringId, 'posts', postId, 'comments'),
