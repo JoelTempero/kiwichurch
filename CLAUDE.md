@@ -3,7 +3,7 @@
 ## Overview
 - **Client**: Kiwi Church
 - **Type**: Community Platform / Portal / PWA
-- **Status**: Workstream A complete, Workstream B complete, design revision merged + deployed, Kete editor overhaul deployed (awaiting manual verification)
+- **Status**: All council deploy-blockers fixed + deployed. Privacy mirror, pending-approval, host scoping, family link system (invite/accept + cross-account RSVP), recurring events, hosting overhaul all live. Stable.
 
 ## Playbooks In Use
 Read these from the Brain folder at session start. Do not copy into this project.
@@ -177,26 +177,32 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
-### 2026-05-13: Council action pass — 13 fixes landed across 10 commits
-- Worked the 2026-05-12 council audit's critical path top-down. Build clean throughout. None deployed yet — Joel deploys.
-- **Deploy-blockers fixed (3)**:
-  - DST drift in recurrence math (`src/utils/recurrence.ts`): switched from millisecond arithmetic to `setDate(d.getDate() + N)` on cloned local-time dates so weekly/fortnightly series no longer shift across NZ DST boundaries.
-  - Attendee names rendered as Firestore IDs: denormalised `userName`/`userPhotoURL` onto RSVP docs; `setRSVP`/`useRSVP`/`EventModal` pass user.displayName. Attendee list reads denormalised value with sensible fallback.
-  - Stored XSS on static Kete render: new `js/sanitize.js` (DOMPurify 3.4.0 from jsDelivr) with iframe allowlist matching the portal. `post.html` + `kete.html` interpolations all routed through `escapeText`/`sanitizeHtml`/`safeUrl`. Removed an `onclick window.open(att.url)` injection surface on attachment images.
-- **Privacy + auth (2)**:
-  - Sentinel's "toggles are theatre" fix: `/users` reads now self+admin/host only; new `/userProfiles` mirror is the public-readable directory source, written by `writeUserProfileMirror` with privacy-filter on every user update. Mirror runs on auth state change so legacy users get a profile on next login. DirectoryPage/SearchPanel/DirectMessagesPage now read `getAllPublicProfiles()` (returning `UserProfile`). MemberDetailModal accepts a `UserProfile` and trusts its contents — no more client-side privacy filtering.
-  - Open self-registration now goes to `pending` status. New `PendingApprovalGate` shows on AppLayout when user is pending. SettingsPage user list floats pending users to the top with yellow row + one-click Approve button. `authService.signUp` writes `status: 'pending'`, `adminCreateUser` writes `status: 'active'`. Firestore `isActive()` rejects pending.
-- **Perf + UX (2)**:
-  - Denormalised `event.rsvpYesCount` via transactional `increment()` in setRSVP/removeRSVP. HostingPage reads the field for free; aggregate `getCountFromServer` is now a per-legacy-event fallback only.
-  - Privacy section: 7 toggles → 1 master "Show my contact details" + collapsible Advanced drawer. Toggles are now proper `role="switch"` with `aria-checked` and `aria-labelledby` (Advocate finding).
-- **A11y + hardening (3)**:
-  - HostingPage: new `TopTabs` primitive with arrow-key navigation, roving tabindex, `aria-controls`. Scope toggle + DirectoryPage role pills use `aria-pressed` and `role="group"`.
-  - `updateEventSeries` strips `gatheringId`/`gatheringName`/`rsvpYesCount` from bulk propagation: Contrarian's silent-group-jump foot-gun closed; group changes must be made on the single event.
-  - Storage rule: group resource delete tightened to `false` (was: any authenticated user could delete any group's files). Brings it in line with kete/events/messageBoards. Admins delete via Firebase Console until Cloud Functions land.
-- **Bus-factor docs (3)**:
-  - `README.md` written (quick-start, commands, layout, two-surface mental model, manual test paths).
-  - `.env.example` added (single `VITE_USE_EMULATORS` flag with explanation).
-  - `HANDOVER.md` stub with TODO markers for Joel to fill: Firebase owners, billing, GitHub transfer, DNS, custom domain, leadership emails to alias-route, admin runbook for common tasks.
+### 2026-05-13: Council action pass + host scoping + family links — 20 commits, 7 deploys
+**Phase 1 (morning): action the 2026-05-12 council audit critical path.**
+- Deploy-blockers (3): DST drift in `src/utils/recurrence.ts` (millisecond arithmetic → `setDate(+N)` on cloned local-time Date); RSVP attendee names denormalised onto rsvp docs (`userName`/`userPhotoURL` on setRSVP); stored XSS on static Kete patched via new `js/sanitize.js` (DOMPurify 3.4.0 from jsDelivr, iframe allowlist) — `post.html` + `kete.html` interpolations all routed through `escapeText`/`sanitizeHtml`/`safeUrl`.
+- Privacy enforcement: Sentinel's "toggles are theatre" fixed by splitting trust. `/users` reads now self+admin/host only; new `/userProfiles` mirror is the public-readable directory source, written by `dbService.writeUserProfileMirror` with the privacy filter applied per-field. Migration: `useAuth` fires the mirror on every auth state change. DirectoryPage/SearchPanel/DirectMessagesPage switched to `getAllPublicProfiles()` returning `UserProfile`. MemberDetailModal accepts `UserProfile` and trusts its contents.
+- Pending approval flow: `User.status: 'pending'|'active'|'deactivated'`. Self-signup lands pending; `PendingApprovalGate` shown by AppLayout; SettingsPage user list floats pending to top with one-click Approve. `isActive()` Firestore helper now also rejects pending.
+- Perf + UX: denormalised `event.rsvpYesCount` via transactional `increment()` in setRSVP/removeRSVP (was: 60 aggregate reads per Hosting tab switch); 7 privacy toggles → 1 master + Advanced drawer; toggles are real `role="switch"` with aria-checked.
+- A11y: TopTabs primitive with arrow-key keyboard navigation + roving tabindex; aria-pressed on filter pills; updateEventSeries strips gatheringId/Name/rsvpYesCount from bulk propagation (Contrarian's silent-group-jump fix); group resource storage delete tightened to `false`.
+- Bus-factor docs: README, .env.example, HANDOVER.md skeleton with TODO markers for Joel to fill.
+- Deployed and dogfooded with Joel through the full smoke test. Hit one race condition on signup (useAuth fallback created with default 'active' status, rule rejected because new rule requires 'pending') — fixed with poll-before-fallback + try/catch.
+
+**Phase 2 (afternoon): host scoping + family link system.**
+- Host scoping: new `User.hostedGatherings: string[]`, admin-controlled via Settings user-edit modal. HostingPage filters events to assigned groups, "My groups" label, empty state when unassigned. EventForm dropdown restricted; "No group/church-wide" admin-only. Firestore rules: `isHostOfGathering()` extended to accept either legacy hostId match OR hostedGatherings membership; events create/update/delete by host requires non-empty gatheringId they host. Mirror gap fix: assigning hostedGatherings now also writes `gatherings/{id}/members/{uid}` so the host shows up in Groups too (otherwise admin had to manually add them).
+- Family link system (Facebook-style invite/accept):
+  - New `familyLinks` collection. Doc id is deterministic `[a,b].sort().join('_')`. Two states: pending/accepted. Either party can delete. Notifications fire on send (`family_link` type with Heart icon in panel).
+  - Profile FamilySection rewritten as **one unified component** (`LinkedAccountsSection` deleted) — one Add modal with two tabs: "Kiwi Church member" (directory search + relationship inputs + Send invite) vs "Someone else" (manual dependant: name + relationship + isChild). Single combined list shows incoming-pending (Accept/Decline), accepted (heart icon), outgoing-pending, then dependants.
+  - **Per-side relationship labels** (father/son asymmetry): each link stores `senderLabel` (what sender calls recipient) + `recipientLabel` (what recipient calls sender). Invite asks for both ("They are my Son" / "I am their Father"). Edit modal only shows the viewer's own side. New `Combobox` primitive replaces native `<datalist>` for the relationship picker — typeahead suggestions from `RELATIONSHIP_SUGGESTIONS`, free text always accepted.
+  - Cross-account RSVP: EventModal RSVP picker shows linked-family checkboxes alongside dependants. Selected linked accounts become attendees with `linkedUserId` set. When the linked person opens the same event, they see "Already going — X has RSVP'd you" banner (can still override). RSVP "I'm going" button auto-opens the family picker for users with dependants/links (was: one-tap yes for everyone).
+  - `publicFamily` mirror now includes linked accounts' first names (was: dependants-only). `dbService.refreshProfileMirror(userId)` helper called on accept/delete/label-edit so directory stays current.
+
+**Polish + bug fixes shipped along the way:**
+- Optimistic privacy toggles (was: laggy 500ms+ delay per click) — local state + non-blocking mirror write.
+- Mobile: Directory bookmark icon in AppHeader between search and notifications. Desktop sidebar: Directory promoted from admin-only to main nav.
+- White-screen-on-deploy fix: new `src/utils/lazyWithRetry.tsx` wraps every page lazy import; on chunk-load failure (stale SW serving old asset refs) auto-reloads once via sessionStorage flag. New `RouteErrorBoundary` as last-line defence with Refresh/Go home buttons.
+- Firestore rules cleaned up across familyLinks (per-side label edit rules), gathering members (admin/host can add others now), events (host scope enforcement).
+
+**Files created:** 9 — `src/types/familyLink.ts`, `src/hooks/useFamilyLinks.ts`, `src/components/profile/FamilySection.tsx` (rewrite), `src/components/layout/PendingApprovalGate.tsx`, `src/components/common/Combobox.tsx`, `src/components/common/RouteErrorBoundary.tsx`, `src/utils/lazyWithRetry.tsx`, `README.md`, `HANDOVER.md`, `.env.example`. **Files deleted:** `src/components/profile/LinkedAccountsSection.tsx` (folded into FamilySection). **Touched:** ~30 files.
 
 ### 2026-05-12: Autopilot — profile expansion, directory rethink, family RSVP, recurring events, hosting overhaul
 - **Profile expansion**: new sections `FamilySection`, `InterestsSection`, `GallerySection`, `PrivacySection` in `src/components/profile/`. User type extended with `privacy: PrivacySettings`, `interests: string[]`, `gallery: GalleryImage[]`. `DEFAULT_PRIVACY` exported for fallback. Privacy defaults: phone/email/bio/interests/gallery/groups all visible; family hidden by default. Family CRUD via inline modal; interests are chip pills (max 20, 32 chars each); gallery up to 6 images uploaded to `users/{uid}/gallery/` (new storage rule with deletes allowed for owner).
@@ -249,7 +255,12 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - Implementation plan: `docs/superpowers/plans/2026-05-06-group-files-and-attachments.md`
 - 14 commits, typecheck + build clean, deployed to Firebase Hosting
 
-### 2026-05-06d: Admin, Messages, Groups, Kete Fixes + Deploy
+### (Older entries pruned — see git log for history before 2026-05-06e)
+
+<!-- Pruned for length: 2026-05-06d, 2026-05-06c, 2026-05-06b, 2026-05-06, 2026-05-02b, 2026-05-02, 2026-04-27. Recoverable via `git log --all --oneline` and `git show <hash>` if needed. -->
+
+<details>
+<summary>2026-05-06d: Admin, Messages, Groups, Kete Fixes + Deploy</summary>
 - Admin user creation fixed: Firestore rules allowed admin to create user docs for others (was blocked by `request.auth.uid == userId` AND gate); secondary auth uses inMemoryPersistence to avoid Edge tracking prevention blocking storage
 - Created orphaned Firestore docs for d.tempero@xtra.co.nz and racheltempero@gmail.com (Auth accounts existed without user docs from prior failed attempts)
 - Users page merged into Settings: full user list with search, add user, edit user modal (name, phone, bio, role); `/users` route redirects to `/settings`; removed from sidebar nav
@@ -323,6 +334,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - Fixed root URL serving React SPA instead of homepage (renamed SPA entry to app.html)
 - Login button links, "Back to website" link, login page CSS cascade fix
 - Service worker denylist for static pages, PWA start_url → /home
+</details>
 
 ## Key Decisions
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
@@ -341,49 +353,45 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - **Portal design revision** — context-driven containers (flat+featured for dashboards, grouped sections for lists), no shadows except floating overlays, serif h1 only, Source Sans 3 body. Portal typography intentionally diverges from DESIGN.md (which defines serif for all headings on the static site).
 - **Community board on homepage** — "Kiwi Church" is a real gathering in Firestore (`kiwi-church-community`), all members auto-join. Its board renders on the homepage. Clicking "Kiwi Church" in groups list goes to `/home`. Desktop layout: board top, events/files bottom row. Mobile: 3 posts + expand, then events.
 - **Kete editor architecture (2026-05-10)** — per-user `canPostKete` boolean (not a new role). Pre-allocated Firestore doc ID for create flow so image uploads have a stable `kete/{postId}/` Storage path before the post is saved (orphaned files on discard accepted as v1 cost). Video embeds via URL paste only — YouTube/Vimeo regex parser, no .mp4 uploads. DOMPurify allows `<iframe>` but the `uponSanitizeElement` hook strips any iframe whose src isn't `youtube.com/embed/` or `player.vimeo.com/video/`. Hook registration guarded with `DOMPurify.__keteHookInstalled` so Vite HMR doesn't accumulate duplicate hooks.
+- **Privacy model (2026-05-13)** — `/users` is locked to self + admin/host reads. `/userProfiles` is the public-readable mirror, written by `writeUserProfileMirror` with the user's privacy toggles applied per-field on every update. Anything in the mirror is by definition opt-in. Directory/Search/DM picker all read the mirror. Migration runs on every login via `useAuth`. Trade-off: the mirror is eventually-consistent (fire-and-forget background write) but the user doc write is synchronous, so the source of truth never drifts; the mirror catches up within a second.
+- **Pending approval flow (2026-05-13)** — self-signup creates `User.status: 'pending'`, gated by `PendingApprovalGate` at AppLayout level. Admin/host pre-approve via Settings. `authService.adminCreateUser` writes 'active' directly. `isActive()` rule helper rejects pending so even auth'd pending users can't read other members or write content. Backward compat: existing users without a status field are treated as active.
+- **Host scoping (2026-05-13)** — `User.hostedGatherings: string[]`, admin-only writable. Hosts can only see Hosting + create/edit events for their assigned groups; admin still has full access. Assignment ALSO writes group member docs (`ensureMembershipsForUser`) so hosts appear under My Groups and can read private group boards. Un-assigning doesn't remove the member doc (host may have been a regular member separately).
+- **Family link model (2026-05-13)** — Facebook-style invite/accept via `familyLinks` collection (doc id = sorted pair). Per-side labels because most relationships are asymmetric (Father/Son). Linked accounts CAN RSVP for each other but DO NOT share dependants — each account keeps its own non-account family list. Trade-off documented with Joel: small admin overhead (both adults add the kids on their own profiles) in exchange for a much lighter data model than a household entity.
+- **Stale-SW chunk failure recovery (2026-05-13)** — every page-level lazy import wraps in `lazyWithRetry` which catches the chunk-load reject and triggers `window.location.reload()` once per session (sessionStorage flag). `RouteErrorBoundary` is the last-line defence. Pattern is reusable for any future lazy boundary.
 
 ## Next Steps
 
-### Design feedback (Joel has more — deferred to next session)
-- [ ] Joel to review deployed design revision at https://kiwichurch-1ef0f.web.app
-- [ ] Apply any spacing/density/feel feedback
+### Highest leverage next
+- [ ] **Announcements / broadcast** — admin/moderator post type that hits every member, pinnable, distinct from group posts. Picky Client's #2 ask. ~1-2 hours.
+- [ ] **First-login welcome state** — new members currently land on an empty community-board cursor. Brief tour: "here's your gathering, here's this week's events, say hi." Storyteller recommendation. Solid UX win.
+- [ ] **Manual QA pass** through the council deploy-blocker scenarios — DST series across Sep 2026, XSS attempt on Kete, privacy mirror migration on existing users, pending-approval URL bypass. Cheap insurance.
 
-### Brief gaps (from client requirements doc review — 2026-05-06)
-- [x] **File sharing in groups**: group resources library with files + links, tags, search (deployed 2026-05-06)
-- [x] **Post image attachments**: image button on board posts with preview + upload (deployed 2026-05-06)
-- [ ] **File uploads in DMs**: text-only for now — deferred
-- [ ] **File drag-and-drop**: future enhancement
-- [x] **Google Calendar integration**: "Add to Google Calendar" link in EventModal (URL-based, no API key needed)
-- [ ] **Guest/limited access**: brief mentions "external guests (optional/limited access)" — not built
-- [x] **@group mentions**: MentionInput shows groups in autocomplete, `#[Name](id)` markup, notifications to all group members
-- [ ] **Announcements/broadcast**: admin/moderator broadcast feature — no distinct announcement type
-- [x] **Search filters**: type pills, date range, author filter on SearchPanel (collapsible)
-- [ ] **Audit logs**: brief says "audit logs for admin review" — not built
-- [ ] **Surveys**: brief says "polls and surveys" — polls built, no survey feature
-- [ ] **Notification customisation**: per-channel/per-group notification settings
-- [x] **Admin content deletion**: verified — admins can delete board posts, comments, kete posts, group resources
-- [ ] **Mobile push (FCM)**: brief says "push notifications (mobile)" — Web Notifications only
+### Performance polish (Speed Freak)
+- [ ] **AVIF image pipeline** — 880 KB hero JPGs → ~120 KB. Measurable LCP win.
+- [ ] **Firestore vendor chunk split** — `manualChunks` in vite.config so `/login` doesn't pay for Firestore. 1 MB → ~400 KB main chunk.
+- [ ] **Delete `dist/js/portal.js`** (561 KB) if no longer linked anywhere — verify first.
 
-### Feature work (needs brainstorm/planning)
-- [x] **Kete editor overhaul** (deployed 2026-05-10, awaiting Joel's manual verification): full-page editor at `/kete/new` and `/kete/:postId/edit`; per-user `canPostKete` flag toggled by admin in Settings; image uploads + YouTube/Vimeo embeds; manual drafts surfaced on Kete page; Hosting Kete tab removed. Final cleanup pending: delete `src/components/kete/KeteForm.tsx` after verification passes.
-- [x] **Profile expansion** (autopilot 2026-05-12, not yet deployed): family CRUD, interest tags, personal gallery (max 6 images), privacy toggles for phone/email/bio/interests/family/gallery/groups.
-- [x] **Directory rethink** (autopilot 2026-05-12, not yet deployed): MemberDetailModal contact card, role filter pills, group filter, search now matches name/bio/email/interests, "Message" CTA jumps to DM.
-- [x] **Events admin overhaul** (autopilot 2026-05-12, not yet deployed): Upcoming/Past tabs, search, group filter, RSVP counts via aggregate, series badges, recurrence support.
-- [x] **Admin restructure**: Users page merged into Settings with full edit modal; Groups tab → permission-based like proposed Kete model
-- [x] **RSVP for families** (autopilot 2026-05-12, not yet deployed): dependants as checkboxes + guest names + notes; attendees stored on RSVP with dependant linkage.
-- [ ] **Giving page**: review with client how they want this presented
+### Operational (Bus Factor)
+- [ ] **Fill in HANDOVER.md** — second Firebase project owner (Darryl or church Google Workspace), transfer GitHub repo off Joel's personal account, document custom domain if one exists, prune stale branches.
+
+### Brief gaps still open
+- [ ] **Audit logs** — admin-readable trail of role changes, deletions, approvals
+- [ ] **Surveys** — distinct from polls (free-text questions, results export)
+- [ ] **Mobile push (FCM)** — needs Cloud Functions
+- [ ] **File uploads in DMs**, **drag-and-drop**, **notification customisation per channel**, **guest/limited access**
+- [ ] **Giving page** — review with client how they want this presented
+
+### Visual polish (Pixel Perfectionist, still open)
+- [ ] **Tokenise hardcoded card hexes** — `bg-[#faf8f4] border-[#e0dbd2]` repeats 75× across 26 files. Promote to a `card` utility or extend `@theme` tokens.
 
 ### Remaining bugs
-- [ ] **Orphaned Kete images in Storage**: if author uploads images then discards the post, files orphan under `kete/{postId}/` (admin sweep deferred — needs Cloud Functions or manual console cleanup)
-- [ ] No gatherings have `hostId` field — `isHostOfGathering()` always returns false (rules work around it now, but data should be fixed)
-- [ ] DM permission error may persist — now surfaces as toast instead of silent failure; root cause likely Firestore rules interaction, needs testing with live data
-- [x] Homepage "Learn More" CTA links to dead about.html → fixed, now links to communities.html
-- [x] Giving page repeats "give" 14 times → deleted (no public giving page needed, portal only)
-- [ ] Community meeting times say "fortnightly" without specifying which week (Firestore data issue — needs client input)
-- [ ] Website calendar shows "Thin Place" and "Online Prayer" — correct data but may need review with client
+- [ ] **Orphaned Kete images in Storage** — admin sweep deferred until Cloud Functions land
+- [ ] No gatherings have `hostId` field — `isHostOfGathering()` rule helper now accepts `hostedGatherings` membership as the primary signal, so this is no longer load-bearing, but the data should be cleaned up
+- [ ] Community meeting times say "fortnightly" without specifying which week — Firestore data issue, needs client input
+- [ ] Website calendar shows "Thin Place" and "Online Prayer" — correct data but worth a client review
 
 ### Deferred
 - Member blocking feature
-- Dark mode (removed toggle — no theme implementation exists)
-- Email notification preferences (removed toggle — no email system exists)
-- No App Check configured (post-launch hardening)
+- Dark mode (no theme implementation exists)
+- Email notification preferences (no email system exists)
+- App Check (post-launch hardening — Sentinel finding)
