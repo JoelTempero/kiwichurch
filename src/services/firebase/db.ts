@@ -898,6 +898,59 @@ export const dbService = {
       pinnedBy: userId,
       ...(isCommunity ? { announcementBroadcastStatus: 'pending' } : {}),
     })
+    if (isCommunity) {
+      const refreshed = await getDoc(ref)
+      this.runAnnouncementBroadcast(postId, refreshed.data() as BoardPost)
+        .catch(err => console.error('[db] announcement broadcast failed', err))
+    }
+  },
+
+  async runAnnouncementBroadcast(postId: string, post: BoardPost): Promise<void> {
+    const postRef = doc(db, 'messageBoards', COMMUNITY_GATHERING_ID, 'posts', postId)
+    const members = await this.getGatheringMembers(COMMUNITY_GATHERING_ID)
+    const targets = members.map(m => m.id).filter(uid => uid !== post.pinnedBy)
+    if (targets.length === 0) {
+      await updateDoc(postRef, {
+        announcementBroadcastStatus: 'sent',
+        broadcastCompletedAt: serverTimestamp(),
+      })
+      return
+    }
+    const title = `New announcement: ${(post.content || '').replace(/<[^>]+>/g, '').slice(0, 60)}`
+    const now = serverTimestamp()
+
+    for (let i = 0; i < targets.length; i += 450) {
+      const batch = writeBatch(db)
+      targets.slice(i, i + 450).forEach(uid => {
+        batch.set(doc(db, 'notifications', `announce_${postId}_${uid}`), {
+          userId: uid,
+          type: 'announcement' as const,
+          title,
+          message: '',
+          link: '/home',
+          read: false,
+          createdAt: now,
+        })
+      })
+      await batch.commit()
+    }
+
+    await updateDoc(postRef, {
+      announcementBroadcastStatus: 'sent',
+      broadcastCompletedAt: serverTimestamp(),
+    })
+  },
+
+  async resumePendingAnnouncements(): Promise<void> {
+    const pending = await getDocs(query(
+      collection(db, 'messageBoards', COMMUNITY_GATHERING_ID, 'posts'),
+      where('pinned', '==', true),
+      where('announcementBroadcastStatus', '==', 'pending')
+    ))
+    for (const s of pending.docs) {
+      await this.runAnnouncementBroadcast(s.id, s.data() as BoardPost)
+        .catch(err => console.error('[db] resume broadcast failed', s.id, err))
+    }
   },
 
   async unpinPost(gatheringId: string, postId: string): Promise<void> {

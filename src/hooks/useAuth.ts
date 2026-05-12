@@ -3,6 +3,8 @@ import { useAuthStore } from '@/store/authStore'
 import { authService, dbService } from '@/services/firebase'
 import type { User } from '@/types'
 
+let announcementsResumedThisSession = false
+
 export function useAuth() {
   const {
     user,
@@ -55,6 +57,12 @@ export function useAuth() {
           // One-time migration for pre-existing users that have no public
           // profile mirror yet. Cheap idempotent write — re-runs are fine.
           dbService.writeUserProfileMirror(userData).catch(() => {})
+          // Resume any announcement broadcasts that were interrupted (admin only).
+          if (userData.role === 'admin' && !announcementsResumedThisSession) {
+            announcementsResumedThisSession = true
+            dbService.resumePendingAnnouncements()
+              .catch(err => console.error('[auth] resume announcements failed', err))
+          }
         } else {
           // Genuinely stuck — at least surface it to the user.
           console.error('[Auth] Could not load or create user doc for', firebaseUser.uid)
