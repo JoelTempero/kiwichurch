@@ -18,20 +18,48 @@ export function useAuth() {
     const unsubscribe = authService.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         let userData = await dbService.getUser(firebaseUser.uid)
+
+        // Race with authService.signUp: createUserWithEmailAndPassword
+        // fires onAuthStateChanged immediately, and signUp's own createUser
+        // is still in flight. Poll briefly before falling back to a
+        // self-write so we don't race into a permission-denied conflict.
         if (!userData) {
-          userData = await dbService.createUser(firebaseUser.uid, {
-            email: firebaseUser.email || '',
-            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Member',
-            role: 'member',
-            preferences: { emailNotifications: true }
-          })
+          for (let i = 0; i < 5 && !userData; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 250))
+            userData = await dbService.getUser(firebaseUser.uid)
+          }
         }
-        setUser(userData)
-        dbService.ensureCommunityGathering().catch(() => {})
-        dbService.ensureCommunityMembership(firebaseUser.uid).catch(() => {})
-        // One-time migration for pre-existing users that have no public
-        // profile mirror yet. Cheap idempotent write — re-runs are fine.
-        dbService.writeUserProfileMirror(userData).catch(() => {})
+
+        // Fallback recovery for orphaned Auth users with no Firestore doc.
+        // Lands as 'pending' to match the self-signup approval gate; if a
+        // sibling write got there first, getUser picks that up instead.
+        if (!userData) {
+          try {
+            userData = await dbService.createUser(firebaseUser.uid, {
+              email: firebaseUser.email || '',
+              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Member',
+              role: 'member',
+              status: 'pending',
+              preferences: { emailNotifications: true },
+            })
+          } catch {
+            // Most likely the parallel signUp write won — refetch.
+            userData = await dbService.getUser(firebaseUser.uid)
+          }
+        }
+
+        if (userData) {
+          setUser(userData)
+          dbService.ensureCommunityGathering().catch(() => {})
+          dbService.ensureCommunityMembership(firebaseUser.uid).catch(() => {})
+          // One-time migration for pre-existing users that have no public
+          // profile mirror yet. Cheap idempotent write — re-runs are fine.
+          dbService.writeUserProfileMirror(userData).catch(() => {})
+        } else {
+          // Genuinely stuck — at least surface it to the user.
+          console.error('[Auth] Could not load or create user doc for', firebaseUser.uid)
+          setUser(null)
+        }
       } else {
         setUser(null)
       }
