@@ -152,7 +152,7 @@ export function SettingsPage() {
     setShowEditModal(true)
   }
 
-  const handleEditUser = editUserForm.handleSubmit((data) => {
+  const handleEditUser = editUserForm.handleSubmit(async (data) => {
     if (!selectedUser) return
     // Only persist hostedGatherings for the host role — clearing it when
     // someone is demoted to member or promoted to admin keeps the data
@@ -169,6 +169,18 @@ export function SettingsPage() {
         hostedGatherings,
       },
     })
+
+    // Mirror host assignments into actual group memberships so the host
+    // also shows up under "My Groups" and can read private board posts.
+    // Idempotent; un-assigning doesn't remove existing memberships (host
+    // may have been a regular member separately — they can leave manually).
+    if (hostedGatherings.length > 0) {
+      try {
+        await dbService.ensureMembershipsForUser(selectedUser.id, hostedGatherings)
+      } catch (err) {
+        console.error('[Settings] Failed to mirror host memberships', err)
+      }
+    }
   })
 
   // Watch role + hostedGatherings so the picker appears as soon as

@@ -269,6 +269,22 @@ export const dbService = {
     )
   },
 
+  // Make sure the user is a member of every gathering in `gatheringIds`.
+  // Idempotent — re-running is fine. Used after admin assigns a host
+  // their gatherings so the host shows up under "My Groups" too.
+  async ensureMembershipsForUser(userId: string, gatheringIds: string[]): Promise<void> {
+    if (gatheringIds.length === 0) return
+    const batch = writeBatch(db)
+    for (const gid of gatheringIds) {
+      batch.set(
+        doc(db, 'gatherings', gid, 'members', userId),
+        { joinedAt: serverTimestamp() },
+        { merge: true },
+      )
+    }
+    await batch.commit()
+  },
+
   async leaveGathering(gatheringId: string, userId: string): Promise<void> {
     await deleteDoc(doc(db, 'gatherings', gatheringId, 'members', userId))
   },

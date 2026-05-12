@@ -151,8 +151,13 @@ service cloud.firestore {
         // Any authenticated user can see who's in a group
         allow read: if isAuthenticated();
 
-        // Users can join groups themselves (create own member doc)
-        allow create: if isAuthenticated() && isActive() && request.auth.uid == memberId;
+        // Users can join groups themselves; admin/host can add others
+        // (host-of-this-gathering, not any host).
+        allow create: if isAuthenticated() && isActive() && (
+          request.auth.uid == memberId ||
+          isAdmin() ||
+          isHostOfGathering(gatheringId)
+        );
 
         // Users can leave (delete own doc), hosts/admins can remove anyone
         allow delete: if isAuthenticated() &&
