@@ -346,13 +346,17 @@ export const dbService = {
     return snapshot.docs.map(doc => docToObject<GatheringMember>(doc))
   },
 
+  // Read names + photos from the public-readable mirror, not /users.
+  // /users is locked to self + admin/host, so reading it for the whole
+  // members list silently failed for regular members and displayed the
+  // raw uid as the name. Mirror reads work for everyone.
   async getGatheringMembersWithProfiles(gatheringId: string): Promise<Array<{ id: string; displayName: string; photoURL?: string }>> {
     const members = await this.getGatheringMembers(gatheringId)
     const profiles = await Promise.all(
       members.map(async (member) => {
-        const userDoc = await getDoc(doc(db, 'users', member.id))
-        if (userDoc.exists()) {
-          const data = userDoc.data()
+        const profileDoc = await getDoc(doc(db, 'userProfiles', member.id))
+        if (profileDoc.exists()) {
+          const data = profileDoc.data()
           return { id: member.id, displayName: data.displayName || member.id, photoURL: data.photoURL }
         }
         return { id: member.id, displayName: member.id }
@@ -423,6 +427,50 @@ export const dbService = {
 
   async leaveGathering(gatheringId: string, userId: string): Promise<void> {
     await deleteDoc(doc(db, 'gatherings', gatheringId, 'members', userId))
+  },
+
+  // Admin or host-of-this-gathering adds many members at once. Chunked at
+  // 225 user ids per batch (2 ops/user — member doc + notification = 450
+  // ops/batch). Skips users who are already members (silent dedupe).
+  async bulkAddGatheringMembers(
+    gatheringId: string,
+    gatheringName: string,
+    userIds: string[]
+  ): Promise<{ added: number; skipped: number }> {
+    if (userIds.length === 0) return { added: 0, skipped: 0 }
+
+    const memberRefs = userIds.map(uid => doc(db, 'gatherings', gatheringId, 'members', uid))
+    const existingSnaps = await Promise.all(memberRefs.map(ref => getDoc(ref)))
+    const newUserIds = userIds.filter((_, i) => !existingSnaps[i].exists())
+    const skipped = userIds.length - newUserIds.length
+
+    if (newUserIds.length === 0) return { added: 0, skipped }
+
+    for (let i = 0; i < newUserIds.length; i += 225) {
+      const chunk = newUserIds.slice(i, i + 225)
+      const batch = writeBatch(db)
+      const now = serverTimestamp()
+      for (const uid of chunk) {
+        batch.set(
+          doc(db, 'gatherings', gatheringId, 'members', uid),
+          { joinedAt: now },
+        )
+        batch.set(
+          doc(collection(db, 'notifications')),
+          {
+            userId: uid,
+            type: 'group_invite' as const,
+            title: `You were added to ${gatheringName}`,
+            message: '',
+            link: `/groups/${gatheringId}`,
+            read: false,
+            createdAt: now,
+          },
+        )
+      }
+      await batch.commit()
+    }
+    return { added: newUserIds.length, skipped }
   },
 
   async createGathering(gatheringData: Omit<Gathering, 'id' | 'createdAt' | 'updatedAt'>): Promise<Gathering> {

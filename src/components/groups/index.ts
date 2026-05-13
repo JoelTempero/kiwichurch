@@ -1,3 +1,5 @@
 export { GatheringCard } from './GatheringCard'
 export { BoardPost } from './BoardPost'
 export { GroupForm } from './GroupForm'
+export { GroupMembersList } from './GroupMembersList'
+export { AddMembersModal } from './AddMembersModal'

@@ -12,7 +12,7 @@ import {
   useLeaveGathering,
   useCreateBoardPost
 } from '@/hooks/useGatherings'
-import { BoardPost } from '@/components/groups'
+import { BoardPost, GroupMembersList } from '@/components/groups'
 import { Button, EmptyState, Avatar, Spinner, MentionInput, ConfirmModal } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { encodeMention, extractMentionIds } from '@/utils/mentions'
@@ -43,7 +43,7 @@ export function GroupDetailPage() {
   const [showPollCreator, setShowPollCreator] = useState(false)
   const [pollQuestion, setPollQuestion] = useState('')
   const [pollOptions, setPollOptions] = useState(['', ''])
-  const [activeTab, setActiveTab] = useState<'board' | 'files'>('board')
+  const [activeTab, setActiveTab] = useState<'board' | 'files' | 'members'>('board')
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null)
   const attachmentRef = useRef<HTMLInputElement>(null)
@@ -62,6 +62,14 @@ export function GroupDetailPage() {
   const isMember = useMemo(() => {
     return members.some(m => m.id === user?.id)
   }, [members, user?.id])
+
+  const canManageMembers = useMemo(() => {
+    if (!user) return false
+    if (user.role === 'admin') return true
+    if (gathering?.hostId && gathering.hostId === user.id) return true
+    if (user.hostedGatherings?.includes(groupId || '')) return true
+    return false
+  }, [user, gathering?.hostId, groupId])
 
   const sortedPosts = useMemo(() => [...posts].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1
@@ -296,6 +304,16 @@ export function GroupDetailPage() {
             >
               Files
             </button>
+            <button
+              onClick={() => setActiveTab('members')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'members'
+                  ? 'border-b-2 border-[#1a3a2f] text-[#1a3a2f]'
+                  : 'text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              Members
+            </button>
           </div>
 
           {activeTab === 'board' && (
@@ -459,6 +477,16 @@ export function GroupDetailPage() {
             <GroupResourcesList
               gatheringId={groupId!}
               isAdminOrHost={isAdminOrHost}
+            />
+          )}
+
+          {activeTab === 'members' && (
+            <GroupMembersList
+              gatheringId={groupId!}
+              gatheringName={gathering.name}
+              hostId={gathering.hostId}
+              currentUserId={user?.id}
+              canManage={canManageMembers}
             />
           )}
         </div>

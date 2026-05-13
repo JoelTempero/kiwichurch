@@ -126,6 +126,55 @@ export function useJoinGathering() {
   })
 }
 
+// Admin/host adds many members at once via the AddMembersModal.
+// Wraps dbService.bulkAddGatheringMembers and invalidates the members
+// queries so the Members tab refreshes.
+export function useBulkAddGatheringMembers() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      gatheringId,
+      gatheringName,
+      userIds,
+    }: {
+      gatheringId: string
+      gatheringName: string
+      userIds: string[]
+    }) => dbService.bulkAddGatheringMembers(gatheringId, gatheringName, userIds),
+    onSuccess: (_, { gatheringId }) => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.members(gatheringId) })
+      queryClient.invalidateQueries({
+        queryKey: [...gatheringKeys.members(gatheringId), 'profiles'],
+      })
+    },
+  })
+}
+
+// Admin/host removes a member from the group (or user self-removes via
+// the existing Leave Group button). Uses the same Firestore delete as
+// leaveGathering — the rule already permits admin/host/self.
+export function useRemoveGatheringMember() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      gatheringId,
+      userId,
+    }: {
+      gatheringId: string
+      userId: string
+    }) => dbService.leaveGathering(gatheringId, userId),
+    onSuccess: (_, { gatheringId, userId }) => {
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.members(gatheringId) })
+      queryClient.invalidateQueries({
+        queryKey: [...gatheringKeys.members(gatheringId), 'profiles'],
+      })
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.userGatherings(userId) })
+    },
+  })
+}
+
 // Leave gathering mutation
 export function useLeaveGathering() {
   const queryClient = useQueryClient()
