@@ -320,6 +320,13 @@ service cloud.firestore {
         allow update: if isAuthenticated() && isActive() &&
           (resource.data.authorId == request.auth.uid || isAdmin());
 
+        // Admins and hosts can update pin/announcement fields only
+        allow update: if isAuthenticated() && isActive()
+          && (isAdmin() || isHostOfGathering(boardId))
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['pinned', 'pinnedAt', 'pinnedBy',
+                         'announcementBroadcastStatus', 'broadcastCompletedAt']);
+
         // Authors and admins can delete posts
         allow delete: if isAuthenticated() &&
           (resource.data.authorId == request.auth.uid || isAdmin());
@@ -347,8 +354,10 @@ service cloud.firestore {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
       // Authenticated users can create notifications for others (mentions, DMs)
-      allow create: if isAuthenticated() && isActive() &&
-        request.resource.data.userId != request.auth.uid;
+      // Announcement notifications may only be created by admins (prevents spoofing)
+      allow create: if isAuthenticated() && isActive()
+        && request.resource.data.userId != request.auth.uid
+        && (request.resource.data.type != 'announcement' || isAdmin());
 
       // Users can mark their notifications as read
       allow update: if isAuthenticated() &&
