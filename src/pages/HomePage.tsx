@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
-import { Link } from 'react-router-dom'
-import { Settings, BookMarked, BarChart3, Plus, X, Image as ImageIcon, FileText, ExternalLink } from 'lucide-react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Settings, BookMarked, BarChart3, Plus, X, Image as ImageIcon } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useUpcomingEvents } from '@/hooks/useEvents'
 import {
@@ -10,8 +10,8 @@ import {
   useGatherings,
   useCreateBoardPost
 } from '@/hooks/useGatherings'
-import { useGroupResources } from '@/hooks/useGroupResources'
 import { BoardPost } from '@/components/groups'
+import GroupResourcesList from '@/components/groups/GroupResourcesList'
 import { EventCard } from '@/components/events'
 import { Spinner, FadeIn, PullToRefresh, EmptyState, Button, Avatar, MentionInput } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
@@ -21,7 +21,6 @@ import { storageService } from '@/services/firebase/storage'
 import { useFileDrop } from '@/hooks/useFileDrop'
 import { cn } from '@/utils/cn'
 import type { MentionMember, MentionGroup } from '@/components/common/MentionInput'
-import type { GroupResource } from '@/types/groupResource'
 import { Timestamp } from 'firebase/firestore'
 
 function getTimeBasedGreeting(): string {
@@ -40,16 +39,28 @@ function formatTime(time: string | undefined | null): string {
   return `${displayHour}:${minutes}${ampm}`
 }
 
-function formatResourceDate(resource: GroupResource): string {
-  const d = resource.createdAt instanceof Date ? resource.createdAt : resource.createdAt.toDate()
-  return d.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })
-}
-
 export function HomePage() {
   const { user, isAdminOrHost } = useAuth()
   const { showToast } = useToast()
   const greeting = getTimeBasedGreeting()
   const firstName = user?.displayName?.split(' ')[0] || 'there'
+
+  // Tab state: 'board' (default) or 'files', mirrored to ?tab=files
+  // so notifications and shared links can deep-link to the Files tab.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState<'board' | 'files'>(
+    tabParam === 'files' ? 'files' : 'board'
+  )
+  useEffect(() => {
+    if (tabParam === 'files' && activeTab !== 'files') setActiveTab('files')
+    if (tabParam !== 'files' && activeTab !== 'board') setActiveTab('board')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam])
+  const handleTabChange = useCallback((tab: 'board' | 'files') => {
+    setActiveTab(tab)
+    setSearchParams(tab === 'files' ? { tab: 'files' } : {}, { replace: true })
+  }, [setSearchParams])
 
   // Board state
   const [newPostContent, setNewPostContent] = useState('')
@@ -68,7 +79,6 @@ export function HomePage() {
   const { data: events = [], isLoading: loadingEvents, refetch: refetchEvents } = useUpcomingEvents(5)
   const { data: posts = [], isLoading: loadingPosts, refetch: refetchPosts } = useBoardPosts(COMMUNITY_GATHERING_ID)
   const { data: memberProfiles = [] } = useGatheringMemberProfiles(COMMUNITY_GATHERING_ID)
-  const { data: resources = [] } = useGroupResources(COMMUNITY_GATHERING_ID)
   const { data: allGatherings = [] } = useGatherings()
   const createPost = useCreateBoardPost()
 
@@ -208,23 +218,52 @@ export function HomePage() {
     return 0
   }), [posts])
   const visiblePosts = showAllPosts ? sortedPosts : sortedPosts.slice(0, 3)
-  const latestResources = resources.slice(0, 5)
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="max-w-5xl mx-auto p-4">
         <h1 className="font-display text-2xl text-forest mb-1">{greeting}, {firstName}</h1>
 
-        {/* Community Board */}
+        {/* Community: Board + Files tabs, mirroring the GroupDetailPage pattern */}
         <section className="mt-6">
-          <span className="text-xs uppercase tracking-widest font-medium text-terracotta">Community Board</span>
+          <span className="text-xs uppercase tracking-widest font-medium text-terracotta">
+            {COMMUNITY_GATHERING_NAME}
+          </span>
+          <div className="mt-3 mb-4 flex border-b border-stone-200">
+            <button
+              type="button"
+              onClick={() => handleTabChange('board')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'board'
+                  ? 'border-b-2 border-[#1a3a2f] text-[#1a3a2f]'
+                  : 'text-stone-500 hover:text-stone-700'
+              }`}
+              aria-current={activeTab === 'board' ? 'page' : undefined}
+            >
+              Board
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('files')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'files'
+                  ? 'border-b-2 border-[#1a3a2f] text-[#1a3a2f]'
+                  : 'text-stone-500 hover:text-stone-700'
+              }`}
+              aria-current={activeTab === 'files' ? 'page' : undefined}
+            >
+              Files
+            </button>
+          </div>
 
+          {activeTab === 'board' && (
+            <>
           {/* Post form */}
           <form
             onSubmit={handleCreatePost}
             {...dropHandlers}
             className={cn(
-              'bg-[#faf8f4] border rounded-lg p-4 mt-3 mb-4 transition-colors',
+              'bg-[#faf8f4] border rounded-lg p-4 mb-4 transition-colors',
               isDraggingOver ? 'border-forest border-dashed bg-forest/5' : 'border-[#e0dbd2]'
             )}
           >
@@ -383,12 +422,19 @@ export function HomePage() {
               )}
             </FadeIn>
           )}
+            </>
+          )}
+
+          {activeTab === 'files' && (
+            <GroupResourcesList
+              gatheringId={COMMUNITY_GATHERING_ID}
+              isAdminOrHost={isAdminOrHost}
+            />
+          )}
         </section>
 
-        {/* Bottom row: Events + Files (2-col on desktop, stacked on mobile) */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Upcoming Events */}
-          <section>
+        {/* Upcoming Events (church-wide; lives below the community tabs, full-width) */}
+        <section className="mt-8">
             <div className="flex justify-between items-center mb-3">
               <span className="text-xs uppercase tracking-widest font-medium text-terracotta">Upcoming Events</span>
               <Link to="/events" className="text-sm text-sage font-medium no-underline hover:text-forest">See all →</Link>
@@ -425,44 +471,7 @@ export function HomePage() {
                 )}
               </FadeIn>
             )}
-          </section>
-
-          {/* Latest Files */}
-          <section>
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-xs uppercase tracking-widest font-medium text-terracotta">Latest Files</span>
-              <Link to="/groups" className="text-sm text-sage font-medium no-underline hover:text-forest">All groups →</Link>
-            </div>
-
-            {latestResources.length === 0 ? (
-              <p className="text-sm text-text-light">No shared files yet.</p>
-            ) : (
-              <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-                {latestResources.map(resource => (
-                  <a
-                    key={resource.id}
-                    href={resource.type === 'file' ? resource.fileURL : resource.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 py-3 px-3 hover:bg-cream/50 transition-colors no-underline text-inherit"
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 rounded bg-cream-dark flex items-center justify-center">
-                      {resource.type === 'file' ? (
-                        <FileText size={16} className="text-text-light" />
-                      ) : (
-                        <ExternalLink size={16} className="text-text-light" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate m-0">{resource.title}</p>
-                      <p className="text-xs text-text-light m-0">{resource.uploadedByName} · {formatResourceDate(resource)}</p>
-                    </div>
-                  </a>
-                ))}
-              </FadeIn>
-            )}
-          </section>
-        </div>
+        </section>
 
         {/* Admin Quick Links */}
         {isAdminOrHost && (
