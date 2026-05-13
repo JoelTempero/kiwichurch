@@ -104,6 +104,20 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
     setRsvpNotes(userRsvp?.notes || '')
   }, [isOpen, userRsvp, user?.dependants])
 
+  // If the current user appears in someone else's RSVP attendees, surface
+  // that as "Already brought by X" so they know they're already accounted
+  // for. They can still RSVP themselves to override.
+  // Must run before any early return so the hook count stays stable.
+  const broughtBy = useMemo(() => {
+    if (!user?.id) return null
+    for (const r of rsvps) {
+      if (r.userId === user.id) continue
+      const match = r.attendees?.some((a) => a.linkedUserId === user.id)
+      if (match) return { userId: r.userId, name: r.userName || 'A family member' }
+    }
+    return null
+  }, [rsvps, user?.id])
+
   if (!event) return null
 
   const canEdit = isAdminOrHost || event.createdBy === user?.id
@@ -130,19 +144,6 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
   const toggleLinked = (id: string) => {
     setLinkedSelections((prev) => ({ ...prev, [id]: !prev[id] }))
   }
-
-  // If the current user appears in someone else's RSVP attendees, surface
-  // that as "Already brought by X" so they know they're already accounted
-  // for. They can still RSVP themselves to override.
-  const broughtBy = useMemo(() => {
-    if (!user?.id) return null
-    for (const r of rsvps) {
-      if (r.userId === user.id) continue
-      const match = r.attendees?.some((a) => a.linkedUserId === user.id)
-      if (match) return { userId: r.userId, name: r.userName || 'A family member' }
-    }
-    return null
-  }, [rsvps, user?.id])
 
   const addGuest = () => {
     const name = guestDraft.trim()
