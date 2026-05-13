@@ -32,6 +32,7 @@ export function useNotificationsSubscription(userId: string | null) {
 
     const unsubscribe = dbService.subscribeToNotifications(userId, (notifications: Notification[]) => {
       queryClient.setQueryData(notificationKeys.unread(userId), notifications)
+      queryClient.invalidateQueries({ queryKey: notificationKeys.user(userId) })
 
       for (const notif of notifications) {
         if (!prevIdsRef.current.has(notif.id) && !notif.read) {
