@@ -118,11 +118,11 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
   const unpinPost = useUnpinPost()
 
   const isCommunity = gatheringId === COMMUNITY_GATHERING_ID
-  const isHost = !!user && (
+  const isAdminOrGatheringHost = !!user && (
     user.role === 'admin' ||
     (user.hostedGatherings ?? []).includes(gatheringId)
   )
-  const canPin = isCommunity ? user?.role === 'admin' : isHost
+  const canPin = isCommunity ? user?.role === 'admin' : isAdminOrGatheringHost
   const pinLabel = post.pinned
     ? (isCommunity ? 'Unpin announcement' : 'Unpin')
     : (isCommunity ? 'Pin as announcement' : 'Pin to top')
