@@ -899,8 +899,8 @@ export const dbService = {
       ...(isCommunity ? { announcementBroadcastStatus: 'pending' } : {}),
     })
     if (isCommunity) {
-      const refreshed = await getDoc(ref)
-      this.runAnnouncementBroadcast(postId, refreshed.data() as BoardPost)
+      const postData = { ...snap.data(), pinnedBy: userId } as BoardPost
+      this.runAnnouncementBroadcast(postId, postData)
         .catch(err => console.error('[db] announcement broadcast failed', err))
     }
   },
