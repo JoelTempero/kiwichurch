@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Calendar, Users, MessageCircle, BookOpen, Heart, Settings, BookMarked, SlidersHorizontal, Shield } from 'lucide-react'
+import { Home, Calendar, Users, MessageCircle, BookOpen, Settings, BookMarked, SlidersHorizontal, Shield } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useUnreadMessageCount } from '@/hooks/useUnreadMessages'
 import type { LucideIcon } from 'lucide-react'
@@ -16,8 +16,7 @@ const mainNavItems: NavItem[] = [
   { to: '/groups', label: 'Groups', icon: Users },
   { to: '/messages', label: 'Messages', icon: MessageCircle },
   { to: '/kete', label: 'Kete', icon: BookOpen },
-  { to: '/directory', label: 'Directory', icon: BookMarked },
-  { to: '/giving', label: 'Giving', icon: Heart }
+  { to: '/directory', label: 'Directory', icon: BookMarked }
 ]
 
 const adminNavItems: NavItem[] = [

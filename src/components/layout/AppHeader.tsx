@@ -13,7 +13,6 @@ const pageTitles: Record<string, string> = {
   '/groups': 'Groups',
   '/kete': 'Kete',
   '/profile': 'Profile',
-  '/giving': 'Giving',
   '/hosting': 'Hosting',
   '/settings': 'Settings',
   '/directory': 'Directory',

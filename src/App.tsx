@@ -19,7 +19,6 @@ const KetePage = lazyWithRetry(() => import('@/pages/KetePage').then(m => ({ def
 const KetePostPage = lazyWithRetry(() => import('@/pages/KetePostPage').then(m => ({ default: m.KetePostPage })))
 const KetePostEditor = lazyWithRetry(() => import('@/pages/KetePostEditor').then(m => ({ default: m.KetePostEditor })))
 const ProfilePage = lazyWithRetry(() => import('@/pages/ProfilePage').then(m => ({ default: m.ProfilePage })))
-const GivingPage = lazyWithRetry(() => import('@/pages/GivingPage').then(m => ({ default: m.GivingPage })))
 const HostingPage = lazyWithRetry(() => import('@/pages/HostingPage').then(m => ({ default: m.HostingPage })))
 const SettingsPage = lazyWithRetry(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const DirectoryPage = lazyWithRetry(() => import('@/pages/DirectoryPage').then(m => ({ default: m.DirectoryPage })))
@@ -67,7 +66,7 @@ function App() {
             <Route path="/kete/:postId" element={<KetePostPage />} />
             <Route path="/kete/:postId/edit" element={<KetePostEditor />} />
             <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/giving" element={<GivingPage />} />
+            <Route path="/giving" element={<Navigate to="/profile" replace />} />
             <Route path="/hosting" element={<HostingPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/users" element={<Navigate to="/settings" replace />} />

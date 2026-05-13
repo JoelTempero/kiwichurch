@@ -11,6 +11,7 @@ import {
   PrivacySection,
   InterestsSection,
   GallerySection,
+  GivingSection,
 } from '@/components/profile'
 import { profileSchema, passwordSchema } from '@/utils/schemas'
 import type { ProfileInput, PasswordInput } from '@/utils/schemas'
@@ -200,6 +201,7 @@ export function ProfilePage() {
           <FamilySection />
           <InterestsSection />
           <GallerySection />
+          <GivingSection />
           <PrivacySection />
         </div>
       ) : (
