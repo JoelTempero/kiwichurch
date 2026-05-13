@@ -122,7 +122,7 @@ export function useAuth() {
   }, [])
 
   // Update profile
-  const updateProfile = useCallback(async (updates: Partial<Pick<User, 'displayName' | 'photoURL' | 'phone' | 'bio' | 'privacy' | 'interests' | 'gallery' | 'dependants'>>) => {
+  const updateProfile = useCallback(async (updates: Partial<Pick<User, 'displayName' | 'photoURL' | 'phone' | 'bio' | 'privacy' | 'interests' | 'gallery' | 'dependants' | 'mutedNotificationCategories'>>) => {
     const updatedUser = await authService.updateProfile(updates)
     if (updatedUser) {
       setUser(updatedUser)

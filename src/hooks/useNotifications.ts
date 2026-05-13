@@ -23,9 +23,14 @@ export function useNotifications(userId: string | null, options: { unreadOnly?: 
 }
 
 // Subscribe to real-time notifications
-export function useNotificationsSubscription(userId: string | null) {
+export function useNotificationsSubscription(
+  userId: string | null,
+  mutedCategories: Notification['type'][] = []
+) {
   const queryClient = useQueryClient()
   const prevIdsRef = useRef<Set<string>>(new Set())
+  const mutedRef = useRef(mutedCategories)
+  mutedRef.current = mutedCategories
 
   useEffect(() => {
     if (!userId) return
@@ -35,7 +40,7 @@ export function useNotificationsSubscription(userId: string | null) {
       queryClient.invalidateQueries({ queryKey: notificationKeys.user(userId) })
 
       for (const notif of notifications) {
-        if (!prevIdsRef.current.has(notif.id) && !notif.read) {
+        if (!prevIdsRef.current.has(notif.id) && !notif.read && !mutedRef.current.includes(notif.type)) {
           showNotification(notif.title, {
             body: notif.message,
             tag: notif.id,
@@ -51,9 +56,14 @@ export function useNotificationsSubscription(userId: string | null) {
 }
 
 // Get unread notification count
-export function useUnreadNotificationCount(userId: string | null) {
+export function useUnreadNotificationCount(
+  userId: string | null,
+  mutedCategories: Notification['type'][] = []
+) {
   const { data: notifications } = useNotifications(userId, { unreadOnly: true, limit: 50 })
-  return notifications?.length ?? 0
+  if (!notifications) return 0
+  if (mutedCategories.length === 0) return notifications.length
+  return notifications.filter((n) => !mutedCategories.includes(n.type)).length
 }
 
 // Mark notification as read

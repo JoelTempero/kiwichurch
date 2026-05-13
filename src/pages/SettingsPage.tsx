@@ -14,7 +14,7 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
 } from '@/utils/webNotifications'
-import type { User } from '@/types'
+import type { User, NotificationType } from '@/types'
 
 const addUserSchema = z.object({
   displayName: z.string().min(1, 'Name is required'),
@@ -34,8 +34,18 @@ const editUserSchema = z.object({
 
 const inputBase = 'w-full px-3 py-2 border border-sage-light rounded-md text-base focus:outline-none focus:border-forest'
 
+const NOTIFICATION_CATEGORIES: Array<{ type: NotificationType; label: string; description: string }> = [
+  { type: 'announcement', label: 'Announcements', description: 'Pinned posts from admins on the community board' },
+  { type: 'mention', label: '@mentions', description: 'When someone @mentions you in a post or comment' },
+  { type: 'new_comment', label: 'Comments and replies', description: 'When someone comments on your post or replies to your comment' },
+  { type: 'event_update', label: 'Event updates and RSVPs', description: 'When an event you RSVP\'d to changes, or someone RSVPs to your event' },
+  { type: 'group_invite', label: 'Added to groups', description: 'When an admin adds you to a group' },
+  { type: 'direct_message', label: 'Direct messages', description: 'When someone sends you a DM' },
+  { type: 'family_link', label: 'Family link invites', description: 'When someone invites you to link as family' },
+]
+
 export function SettingsPage() {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, updateProfile } = useAuth()
   const { showToast } = useToast()
   const queryClient = useQueryClient()
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>(
@@ -48,6 +58,26 @@ export function SettingsPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [mutedCategories, setMutedCategories] = useState<NotificationType[]>(
+    user?.mutedNotificationCategories || []
+  )
+
+  useEffect(() => {
+    setMutedCategories(user?.mutedNotificationCategories || [])
+  }, [user?.mutedNotificationCategories])
+
+  const handleToggleCategory = async (type: NotificationType) => {
+    const next = mutedCategories.includes(type)
+      ? mutedCategories.filter((t) => t !== type)
+      : [...mutedCategories, type]
+    setMutedCategories(next)
+    try {
+      await updateProfile({ mutedNotificationCategories: next })
+    } catch {
+      setMutedCategories(mutedCategories)
+      showToast('Could not update preferences', 'error')
+    }
+  }
 
   const handleForceRefresh = async () => {
     setIsRefreshing(true)
@@ -252,6 +282,27 @@ export function SettingsPage() {
             <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-forest/30 rounded-full peer-checked:bg-forest transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5" />
           </label>
         </div>
+
+        {NOTIFICATION_CATEGORIES.map((cat) => {
+          const enabled = !mutedCategories.includes(cat.type)
+          return (
+            <div key={cat.type} className="flex items-center justify-between py-3 border-b border-[#e0dbd2]">
+              <div className="flex-1 pr-4">
+                <h3 className="text-sm font-semibold text-text-primary">{cat.label}</h3>
+                <p className="text-xs text-text-light mt-0.5">{cat.description}</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={enabled}
+                  onChange={() => handleToggleCategory(cat.type)}
+                />
+                <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-forest/30 rounded-full peer-checked:bg-forest transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5" />
+              </label>
+            </div>
+          )
+        })}
       </section>
 
       {/* App */}

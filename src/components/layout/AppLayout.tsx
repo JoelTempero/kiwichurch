@@ -16,8 +16,8 @@ export function AppLayout() {
   const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
-  const unreadCount = useUnreadNotificationCount(user?.id || null)
-  useNotificationsSubscription(user?.id || null)
+  const unreadCount = useUnreadNotificationCount(user?.id || null, user?.mutedNotificationCategories || [])
+  useNotificationsSubscription(user?.id || null, user?.mutedNotificationCategories || [])
   useConversationsSubscription(user?.id ?? null)
 
   // Pending self-signups see only the approval gate.

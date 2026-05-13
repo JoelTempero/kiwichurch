@@ -114,7 +114,7 @@ service cloud.firestore {
       allow update: if isAuthenticated() && request.auth.uid == userId &&
         getUserData().status != 'deactivated' &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName', 'phone', 'bio', 'photoURL', 'preferences', 'privacy', 'interests', 'gallery', 'dependants', 'updatedAt']);
+          .hasOnly(['displayName', 'phone', 'bio', 'photoURL', 'preferences', 'privacy', 'interests', 'gallery', 'dependants', 'mutedNotificationCategories', 'updatedAt']);
 
       // Admins can update any user (including role)
       allow update: if isAdmin();

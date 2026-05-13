@@ -1,4 +1,5 @@
 import type { Timestamp } from 'firebase/firestore'
+import type { NotificationType } from './notification'
 
 export type UserRole = 'admin' | 'host' | 'member'
 
@@ -30,6 +31,10 @@ export interface User {
   // yet (admin needs to pick groups for them).
   hostedGatherings?: string[]
   canPostKete?: boolean
+  // Per-category mute list. Notifications of these types are still written
+  // to the user's inbox but hidden from the panel and skipped by browser
+  // web push. Empty/undefined = all categories visible (default).
+  mutedNotificationCategories?: NotificationType[]
   createdAt: Timestamp | Date
   updatedAt: Timestamp | Date
 }

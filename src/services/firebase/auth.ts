@@ -175,7 +175,7 @@ export const authService = {
   /**
    * Update user profile
    */
-  async updateProfile(updates: Partial<Pick<User, 'displayName' | 'photoURL' | 'phone' | 'bio' | 'privacy' | 'interests' | 'gallery' | 'dependants'>>): Promise<User | null> {
+  async updateProfile(updates: Partial<Pick<User, 'displayName' | 'photoURL' | 'phone' | 'bio' | 'privacy' | 'interests' | 'gallery' | 'dependants' | 'mutedNotificationCategories'>>): Promise<User | null> {
     const user = auth.currentUser
     if (!user) {
       throw new Error('No user signed in')

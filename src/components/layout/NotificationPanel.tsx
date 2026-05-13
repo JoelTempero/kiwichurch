@@ -60,7 +60,11 @@ function getNotificationIcon(type: Notification['type']): JSX.Element {
 export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { data: notifications = [], isLoading } = useNotifications(user?.id || null, { limit: 20 })
+  const { data: rawNotifications = [], isLoading } = useNotifications(user?.id || null, { limit: 20 })
+  const muted = user?.mutedNotificationCategories || []
+  const notifications = muted.length === 0
+    ? rawNotifications
+    : rawNotifications.filter((n) => !muted.includes(n.type))
   const markRead = useMarkNotificationRead()
   const markAllRead = useMarkAllNotificationsRead()
 
