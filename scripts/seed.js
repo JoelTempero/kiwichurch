@@ -167,7 +167,10 @@ for (let i = 1; i < groupsRows.length; i++) {
   })
 }
 
-const groupNameSet = new Set(groups.map(g => g.name))
+// The community gathering is auto-ensured by the script, so it's a
+// valid cross-sheet reference even when the client doesn't list it
+// in the Groups sheet.
+const groupNameSet = new Set([COMMUNITY_GATHERING_NAME, ...groups.map(g => g.name)])
 
 const events = []
 for (let i = 1; i < eventsRows.length; i++) {
