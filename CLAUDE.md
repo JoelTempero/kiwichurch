@@ -3,7 +3,7 @@
 ## Overview
 - **Client**: Kiwi Church
 - **Type**: Community Platform / Portal / PWA
-- **Status**: All council deploy-blockers fixed + deployed. Privacy mirror, pending-approval, host scoping, family link system (invite/accept + cross-account RSVP), recurring events, hosting overhaul all live. Stable.
+- **Status**: All council deploy-blockers fixed + deployed. Privacy mirror, pending-approval, host scoping, family link system, recurring events, announcements + notification sweep, per-category notification prefs, drag-and-drop uploads, force-refresh button, PWA install prompt, and a React-hooks emergency fix in EventModal all live. Stable.
 
 ## Playbooks In Use
 Read these from the Brain folder at session start. Do not copy into this project.
@@ -69,6 +69,13 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - Web Notifications API for browser-level alerts when tab is backgrounded
 - Polls and emoji reactions on group message boards
 - Content reporting and moderation queue for admins/hosts
+- Admin-pinnable community announcements with notification broadcast to all members (deterministic IDs + silent resume on admin app load)
+- Four notification fan-out paths firing live: new comment / reply on your stuff, RSVP to event you host, event time/location/cancel update, added to a group
+- Per-category notification preferences in Settings (7 toggles: announcements, mentions, comments, event updates/RSVPs, group adds, DMs, family links). Recipient-side filtering only
+- Force-refresh button in Settings (unregisters service workers + clears caches + reload) for stale-deploy recovery
+- Drag-and-drop image upload on community + group post composers; drag-and-drop file upload on group resources modal (`useFileDrop` hook)
+- PWA install prompt (Chrome/Android beforeinstallprompt + iOS "Tap Share → Add to Home Screen" hint), explicit apple-touch-icon size hints
+- `lazyWithRetry` hardened to unregister SWs + clear caches before reloading, so a stale-chunk failure actually recovers instead of looping
 - No Cloud Functions yet. FCM deferred — Web Notifications API covers v1 use case
 
 ## Next Steps
@@ -176,6 +183,32 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
   - [x] Copyright 2025 → 2026 across all static pages
 
 ## Session Log
+
+### 2026-05-13 (PM): Announcements + notifications sweep, giving rework, drag-drop, force-refresh, notif prefs, PWA polish, emergency hooks fix — 27 commits, 10 deploys
+**The big workstream: announcements + notifications sweep (12-task plan, executed subagent-driven).** Brainstormed scope, wrote spec + plan in `docs/superpowers/specs/` and `docs/superpowers/plans/`. Implementation:
+- `BoardPost` got `pinnedAt`, `pinnedBy`, `announcementBroadcastStatus`, `broadcastCompletedAt` fields. `BoardComment` got `replyToAuthorId`. `NotificationType` got `'announcement'`. New `Megaphone` icon in panel.
+- New `dbService.pinPost` / `unpinPost`. On community-gathering pin, fires `runAnnouncementBroadcast` — chunked batch writes one `notification` doc per community member with deterministic id `announce_${postId}_${userId}` (idempotent re-runs). `resumePendingAnnouncements` fires on admin app-load via `useAuth` to recover any post stuck at `'pending'` from a tab-died mid-broadcast. New composite Firestore index on `posts(pinned, announcementBroadcastStatus)`.
+- Four new notification fan-out paths wired in `db.ts`: comment→post author (or reply→replied-to commenter) — with `alreadyMentioned` dedupe; RSVP→event creator on yes/maybe transition; event update fans out to all yes/maybe RSVPers via new `notifyEventAttendees` helper; `ensureMembershipsForUser` fires `group_invite` per new non-community membership.
+- Fixed cache-key mismatch in `useNotifications` — subscription was writing to `unread` cache while panel read from `user` cache, so real-time arrivals never appeared until the panel was reopened. Added `invalidateQueries` for the panel cache.
+- UI: pin/unpin menu item on `BoardPost` (admin on community, host on group), `Announcement`/`Pinned` badge at top of card, left-border accent on community pins, pinned-first sort in HomePage + GroupDetailPage consumers.
+- Firestore rules: new pin-fields update clause on `messageBoards/{boardId}/posts/{postId}` (`hasOnly(['pinned', 'pinnedAt', 'pinnedBy', 'announcementBroadcastStatus', 'broadcastCompletedAt'])`); notification create rule now requires `isAdmin()` for `type == 'announcement'`.
+- **Caught in review:** plan referenced `gatherings/{id}/posts/` but the real Firestore path is `messageBoards/{id}/posts/`. Plan corrected before Task 8/11 ran. Also caught: comment-notify-on-mentioned-user double-fired with the @mention notification — fixed with `alreadyMentioned` guard before `createCommentNotification`.
+
+**Giving page → profile section.** Joel said the verbose `/giving` page (bank details, "Why Give?" copy, contact CTA) was off-brand. Deleted the page, dropped a one-line `GivingSection` ("Chat with Darryl if you want to know more about giving.") into ProfilePage between Gallery and Privacy. `/giving` route now redirects to `/profile`. Removed nav link from DesktopSidebar.
+
+**Force-refresh button + drag-and-drop uploads.** Settings → App → Refresh: unregisters all service workers, clears all Cache Storage, reloads. New `useFileDrop` hook (returns `{ isDraggingOver, dropHandlers }`) wired on HomePage post composer, GroupDetailPage post composer, and `ResourceUploadModal`. Forms tint forest-green with a dashed border while dragging over. Image-only on post composers, any file on resource uploads. Kete's `FeaturedImageUpload` already had its own drop handler — left alone.
+
+**Per-category notification preferences.** New `User.mutedNotificationCategories: NotificationType[]` field. Seven toggles in Settings → Notifications. Recipient-side filtering only — notifications still get written, just hidden from the panel + skipped by Web Notifications (`useNotificationsSubscription` now takes the muted list) + excluded from unread count. Zero extra Firestore reads at fan-out time. Optimistic local state; rolls back on update failure. Firestore rule's self-update `hasOnly` list extended.
+
+**PWA polish.** New `usePwaInstall` hook captures `beforeinstallprompt`, detects iOS-Safari-not-standalone, exposes `{ canInstall, isIos, hasNativePrompt, prompt, dismiss }`. `InstallPrompt` component shows a bottom-fixed forest banner with native-prompt button on Chrome/Android, "Tap [share] → Add to Home Screen" hint on iOS, 14-day dismiss cooldown via localStorage. iOS got explicit `apple-touch-icon sizes="192x192"` / `"512x512"` links. **Initially also switched VitePWA to `registerType: 'prompt'`** and added an `UpdatePrompt` banner via `registerSW({ onNeedRefresh })`.
+
+**Emergency 1 — PWA trap.** The prompt-mode switch broke stale tabs: old SW kept serving old `app.html` with chunk hashes the new deploy no longer had; new SW waited in waiting state because prompt mode needs explicit activation; old code couldn't show the new update banner. `lazyWithRetry` reload didn't help because the same stale SW kept intercepting. Surfaced in front of a live client demo. Hotfix: reverted VitePWA to `autoUpdate`; `lazyWithRetry` now unregisters SWs + clears caches before reloading; `UpdatePrompt` left mounted but dead under autoUpdate.
+
+**Emergency 2 — EventModal React #310.** After the SW situation cleared, clicking any event still tripped the route error boundary. Diagnostic version of the boundary (showed the raw error + stack on screen) revealed: "Rendered more hooks than during previous render." EventModal had `if (!event) return null` ahead of a `useMemo` for `broughtBy` — first render with `event=null` ran fewer hooks than subsequent renders with `event=Event`. Pre-existing latent bug. Hoisted the useMemo above the early return. Modal opens cleanly again.
+
+**Files created (this session):** `src/components/profile/GivingSection.tsx`, `src/hooks/useFileDrop.ts`, `src/hooks/usePwaInstall.ts`, `src/components/common/InstallPrompt.tsx`, `src/components/common/UpdatePrompt.tsx`, `docs/superpowers/specs/2026-05-13-announcements-and-notifications-design.md`, `docs/superpowers/plans/2026-05-13-announcements-and-notifications.md`. **Touched:** ~25 files across types, services, hooks, components, pages, rules, indexes, vite config, index.html.
+
+**Awaiting Joel's dogfood** of: announcement broadcast end-to-end, four new notification triggers, notification preference toggles, PWA install prompt on Chrome/Edge + iOS Safari home-screen test.
 
 ### 2026-05-13: Council action pass + host scoping + family links — 20 commits, 7 deploys
 **Phase 1 (morning): action the 2026-05-12 council audit critical path.**
@@ -357,14 +390,24 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - **Pending approval flow (2026-05-13)** — self-signup creates `User.status: 'pending'`, gated by `PendingApprovalGate` at AppLayout level. Admin/host pre-approve via Settings. `authService.adminCreateUser` writes 'active' directly. `isActive()` rule helper rejects pending so even auth'd pending users can't read other members or write content. Backward compat: existing users without a status field are treated as active.
 - **Host scoping (2026-05-13)** — `User.hostedGatherings: string[]`, admin-only writable. Hosts can only see Hosting + create/edit events for their assigned groups; admin still has full access. Assignment ALSO writes group member docs (`ensureMembershipsForUser`) so hosts appear under My Groups and can read private group boards. Un-assigning doesn't remove the member doc (host may have been a regular member separately).
 - **Family link model (2026-05-13)** — Facebook-style invite/accept via `familyLinks` collection (doc id = sorted pair). Per-side labels because most relationships are asymmetric (Father/Son). Linked accounts CAN RSVP for each other but DO NOT share dependants — each account keeps its own non-account family list. Trade-off documented with Joel: small admin overhead (both adults add the kids on their own profiles) in exchange for a much lighter data model than a household entity.
-- **Stale-SW chunk failure recovery (2026-05-13)** — every page-level lazy import wraps in `lazyWithRetry` which catches the chunk-load reject and triggers `window.location.reload()` once per session (sessionStorage flag). `RouteErrorBoundary` is the last-line defence. Pattern is reusable for any future lazy boundary.
+- **Stale-SW chunk failure recovery (2026-05-13)** — every page-level lazy import wraps in `lazyWithRetry`. **Updated PM 2026-05-13:** the retry now ALSO unregisters all service workers and clears all Cache Storage before reloading. The plain `window.location.reload()` wasn't enough when the SW itself was the source of staleness — it just re-served the same stale shell. Nuclear reload is now the recovery default. `RouteErrorBoundary` remains last-line defence.
+- **Announcement broadcast model (2026-05-13 PM)** — admin pin on community board fires a client-side chunked Firestore batch (450 ops/batch) writing one notification per member. Notification doc IDs are deterministic (`announce_${postId}_${userId}`) so a partial-broadcast crash can be silently resumed without producing duplicates. `pinPost` writes `announcementBroadcastStatus: 'pending'` synchronously, kicks the broadcast fire-and-forget, then the broadcast helper flips to `'sent'` after all batches commit. Resume helper runs on admin app load via a module-level `announcementsResumedThisSession` flag in `useAuth`. Trade-off: storage cost of `N notifications × M announcements` is real but trivial at church scale; saves us a Cloud Functions dependency.
+- **Notification preferences model (2026-05-13 PM)** — `User.mutedNotificationCategories: NotificationType[]`. Filtering is RECIPIENT-SIDE ONLY (panel render + `useNotificationsSubscription` web-push trigger + unread count). Notifications still get written to muted users' inboxes. Trade-off: pays in storage to avoid extra Firestore reads at fan-out time. Un-muting a category later surfaces the historical notifications naturally.
+- **PWA update strategy (2026-05-13 PM)** — back on `registerType: 'autoUpdate'`. Briefly tried `'prompt'` for user-controlled updates but it compounded staleness: stale tabs couldn't show the update banner because their old code didn't have the banner component, and the new SW sat in waiting state indefinitely. Surfaced as a hard-stuck error boundary in front of a client demo. AutoUpdate's "surprise mid-message reload" is the lesser evil at this stage. Force-refresh button in Settings remains as the explicit user control.
+- **React hooks discipline (2026-05-13 PM)** — every `if (...) return null` MUST sit below all hook calls. EventModal violated this with a `useMemo` (broughtBy) after the early return — silently latent until a particular render order in this session exposed it as React error #310. Eslint's `react-hooks/rules-of-hooks` would have caught this; worth verifying it's enabled in the project's eslint config.
 
 ## Next Steps
 
+### Cleanup from this session
+- [ ] **Revert the diagnostic boundary** — `RouteErrorBoundary` currently exposes the raw error + stack + component-stack in a `<details>` on the error UI. It was shipped to diagnose the EventModal hooks bug. Should be reverted to the friendly version (or kept behind a `?debug=1` flag) before this gets in front of real members.
+- [ ] **Enable / verify `react-hooks/rules-of-hooks`** in eslint config — would have caught the EventModal #310 statically. Check `eslint.config.js`.
+- [ ] **`UpdatePrompt` is dead code under autoUpdate** — `registerSW({ onNeedRefresh })` doesn't fire when autoUpdate handles activation automatically. Either remove the component or re-enable it with a different update strategy later.
+
 ### Highest leverage next
-- [ ] **Announcements / broadcast** — admin/moderator post type that hits every member, pinnable, distinct from group posts. Picky Client's #2 ask. ~1-2 hours.
+- [ ] **Cloud Functions decision → mobile push (FCM)** — Web Push for closed-app notifications needs server-side VAPID signing. The threshold conversation: do we adopt Cloud Functions now (also unlocks server-side announcement fan-out, audit-log triggers, scheduled events, orphan-image sweep) or keep deferring? See "Brief gaps still open" below for the rest of the FCM-adjacent items.
 - [ ] **First-login welcome state** — new members currently land on an empty community-board cursor. Brief tour: "here's your gathering, here's this week's events, say hi." Storyteller recommendation. Solid UX win.
 - [ ] **Manual QA pass** through the council deploy-blocker scenarios — DST series across Sep 2026, XSS attempt on Kete, privacy mirror migration on existing users, pending-approval URL bypass. Cheap insurance.
+- [ ] **Dogfood the announcements + notifications work** — admin pins community post → every member sees the bell light up; mute a category → notifications stop arriving for that type; trigger the silent-resume path by manually setting `announcementBroadcastStatus: 'pending'` on a pinned post.
 
 ### Performance polish (Speed Freak)
 - [ ] **AVIF image pipeline** — 880 KB hero JPGs → ~120 KB. Measurable LCP win.
@@ -377,9 +420,8 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 ### Brief gaps still open
 - [ ] **Audit logs** — admin-readable trail of role changes, deletions, approvals
 - [ ] **Surveys** — distinct from polls (free-text questions, results export)
-- [ ] **Mobile push (FCM)** — needs Cloud Functions
-- [ ] **File uploads in DMs**, **drag-and-drop**, **notification customisation per channel**, **guest/limited access**
-- [ ] **Giving page** — review with client how they want this presented
+- [ ] **Mobile push (FCM)** — needs Cloud Functions (see "Cloud Functions decision" above)
+- [ ] **File uploads in DMs**, **guest/limited access**, **discussion forums / topic threading**
 
 ### Visual polish (Pixel Perfectionist, still open)
 - [ ] **Tokenise hardcoded card hexes** — `bg-[#faf8f4] border-[#e0dbd2]` repeats 75× across 26 files. Promote to a `card` utility or extend `@theme` tokens.
@@ -389,9 +431,11 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - [ ] No gatherings have `hostId` field — `isHostOfGathering()` rule helper now accepts `hostedGatherings` membership as the primary signal, so this is no longer load-bearing, but the data should be cleaned up
 - [ ] Community meeting times say "fortnightly" without specifying which week — Firestore data issue, needs client input
 - [ ] Website calendar shows "Thin Place" and "Online Prayer" — correct data but worth a client review
+- [ ] **Spot-check events for missing `time` field** — Type says `time: string` but Firestore doesn't enforce. EventModal + EventCard now defend against undefined; still worth ensuring no legacy events have empty time strings.
 
 ### Deferred
 - Member blocking feature
 - Dark mode (no theme implementation exists)
 - Email notification preferences (no email system exists)
 - App Check (post-launch hardening — Sentinel finding)
+- Update banner UX with user-controlled refresh — re-explore after staleness recovery is rock-solid
