@@ -1,5 +1,7 @@
 import type { Timestamp } from 'firebase/firestore'
 
+export type KeteVisibility = 'public' | 'members'
+
 export interface KetePost {
   id: string
   title: string
@@ -10,6 +12,10 @@ export interface KetePost {
   authorPhotoURL?: string
   published: boolean
   publishedAt?: Timestamp | Date | null
+  // 'public' (default) → anonymous read OK (static site).
+  // 'members' → portal-auth required.
+  // Missing field on legacy posts is treated as 'public' on read.
+  visibility?: KeteVisibility
   featuredImage?: string
   category?: string
   series?: string

@@ -20,7 +20,7 @@ import {
 } from '@/components/kete'
 import { keteSchema } from '@/utils/schemas'
 import { cn } from '@/utils/cn'
-import type { KetePost } from '@/types'
+import type { KetePost, KeteVisibility } from '@/types'
 
 type Mode = 'create' | 'edit'
 
@@ -55,6 +55,7 @@ export function KetePostEditor() {
       content: '',
       featuredImage: '',
       published: false,
+      visibility: 'public' as KeteVisibility,
     },
   })
 
@@ -67,6 +68,7 @@ export function KetePostEditor() {
         content: existingPost.content || '',
         featuredImage: existingPost.featuredImage || '',
         published: existingPost.published ?? false,
+        visibility: existingPost.visibility ?? 'public',
       })
     }
   }, [mode, existingPost, form])
@@ -129,6 +131,7 @@ export function KetePostEditor() {
       content: data.content,
       featuredImage: data.featuredImage || '',
       published: publish,
+      visibility: data.visibility,
     }
 
     try {
@@ -182,6 +185,10 @@ export function KetePostEditor() {
         isDirty={form.formState.isDirty}
         isSaving={isSaving}
         publishLabel={publishLabel}
+        visibility={form.watch('visibility') ?? 'public'}
+        onVisibilityChange={(v) =>
+          form.setValue('visibility', v, { shouldDirty: true })
+        }
       />
 
       <div className="max-w-3xl mx-auto p-4 space-y-6">

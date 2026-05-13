@@ -877,6 +877,28 @@ export const dbService = {
     await deleteDoc(doc(db, 'kete', postId))
   },
 
+  // One-shot backfill: any kete docs missing the `visibility` field get
+  // it set to 'public' (matching their existing behaviour — they were
+  // publicly readable before this field existed). Idempotent — safe to
+  // call on every admin session.
+  async migrateKeteVisibility(): Promise<number> {
+    const snapshot = await getDocs(collection(db, 'kete'))
+    const needsMigration = snapshot.docs.filter(d => {
+      const data = d.data()
+      return data.visibility !== 'public' && data.visibility !== 'members'
+    })
+    if (needsMigration.length === 0) return 0
+    for (let i = 0; i < needsMigration.length; i += 450) {
+      const chunk = needsMigration.slice(i, i + 450)
+      const batch = writeBatch(db)
+      for (const d of chunk) {
+        batch.update(d.ref, { visibility: 'public' })
+      }
+      await batch.commit()
+    }
+    return needsMigration.length
+  },
+
   async getKeteComments(postId: string): Promise<KeteComment[]> {
     const q = query(
       collection(db, 'kete', postId, 'comments'),

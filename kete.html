@@ -318,21 +318,25 @@ So if you've been away for a while, know this: you're still part of us. And when
                 const app = initializeApp(firebaseConfig);
                 const db = getFirestore(app);
 
-                // Try the ordered query first
+                // Anonymous static-site reads must narrow to published + public
+                // posts only — members-only posts are gated by Firestore rules
+                // and would cause the whole query to fail if matched.
                 let querySnapshot;
                 try {
                     const q = query(
                         collection(db, 'kete'),
                         where('published', '==', true),
+                        where('visibility', '==', 'public'),
                         orderBy('publishedAt', 'desc')
                     );
                     querySnapshot = await getDocs(q);
                 } catch (indexError) {
-                    // If index doesn't exist, try without ordering (then sort client-side)
+                    // If composite index doesn't exist, try without ordering (then sort client-side)
                     console.log('Index not available, fetching without order:', indexError.message);
                     const q = query(
                         collection(db, 'kete'),
-                        where('published', '==', true)
+                        where('published', '==', true),
+                        where('visibility', '==', 'public')
                     );
                     querySnapshot = await getDocs(q);
                 }

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Trash2, Pencil } from 'lucide-react'
+import { ChevronLeft, Trash2, Pencil, Lock } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { useAuth } from '@/hooks/useAuth'
 import { useKetePost, useKeteComments, useAddKeteComment, useDeleteKeteComment } from '@/hooks/useKete'
@@ -149,7 +149,18 @@ export function KetePostPage() {
       {/* Header */}
       <header className="px-6 py-4 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-display text-forest mb-3">{post.title}</h1>
+          <div className="flex items-start gap-2 mb-3 flex-wrap">
+            <h1 className="text-2xl font-display text-forest m-0">{post.title}</h1>
+            {post.visibility === 'members' && (
+              <span
+                className="flex items-center gap-1 px-2 py-1 rounded-full text-xs uppercase tracking-wider font-medium text-forest bg-forest/10 whitespace-nowrap mt-1"
+                aria-label="Members only"
+              >
+                <Lock size={12} />
+                Members only
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             <Avatar src={post.authorPhotoURL} name={post.authorName} size="md" />
             <div className="flex flex-col">

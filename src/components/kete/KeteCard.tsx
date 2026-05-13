@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Lock } from 'lucide-react'
 import type { KetePost } from '@/types'
 
 interface KeteCardProps {
@@ -31,7 +32,18 @@ export function KeteCard({ post }: KeteCardProps) {
         />
       )}
       <div className="px-4 py-3">
-        <h3 className="font-semibold text-base text-text-primary mb-1 line-clamp-2">{post.title}</h3>
+        <div className="flex items-start gap-2 mb-1">
+          <h3 className="font-semibold text-base text-text-primary line-clamp-2 flex-1">{post.title}</h3>
+          {post.visibility === 'members' && (
+            <span
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-medium text-forest bg-forest/10 whitespace-nowrap"
+              aria-label="Members only"
+            >
+              <Lock size={10} />
+              Members
+            </span>
+          )}
+        </div>
         <p className="text-sm text-text-light">
           {post.authorName}{post.authorName && formatDate(post.publishedAt as Date) ? ' · ' : ''}{formatDate(post.publishedAt as Date)}
         </p>

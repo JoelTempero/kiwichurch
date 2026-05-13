@@ -65,6 +65,7 @@ export const keteSchema = z.object({
     ])
     .default(''),
   published: z.boolean().default(false),
+  visibility: z.enum(['public', 'members']).default('public'),
 })
 
 export const groupSchema = z.object({

@@ -4,6 +4,7 @@ import { authService, dbService } from '@/services/firebase'
 import type { User } from '@/types'
 
 let announcementsResumedThisSession = false
+let keteVisibilityMigratedThisSession = false
 
 export function useAuth() {
   const {
@@ -62,6 +63,16 @@ export function useAuth() {
             announcementsResumedThisSession = true
             dbService.resumePendingAnnouncements()
               .catch(err => console.error('[auth] resume announcements failed', err))
+          }
+          // Backfill kete `visibility` field on legacy posts (admin/host only).
+          // Idempotent — re-runs find nothing to do.
+          if (
+            (userData.role === 'admin' || userData.role === 'host') &&
+            !keteVisibilityMigratedThisSession
+          ) {
+            keteVisibilityMigratedThisSession = true
+            dbService.migrateKeteVisibility()
+              .catch(err => console.error('[auth] kete visibility migration failed', err))
           }
         } else {
           // Genuinely stuck — at least surface it to the user.

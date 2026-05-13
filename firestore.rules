@@ -256,13 +256,23 @@ service cloud.firestore {
     // KETE (BLOG) COLLECTION
     // ============================================
     match /kete/{postId} {
-      // Published posts are publicly readable (static site fetches anonymously).
-      // Drafts: only the author and admin/host.
-      allow read: if resource.data.published == true ||
-        (isAuthenticated() && (
-          resource.data.authorId == request.auth.uid ||
-          isAdminOrHost()
-        ));
+      // Read rules:
+      //   published + visibility='public'   → anonymous read OK (static site)
+      //   published + visibility='members'  → portal-auth required + active
+      //   legacy posts missing the visibility field → treated as public
+      //   drafts (any visibility)            → author + admin/host only
+      allow read:
+        if (resource.data.published == true
+            && (!resource.data.keys().hasAny(['visibility'])
+                || resource.data.visibility == 'public'))
+        || (resource.data.published == true
+            && resource.data.keys().hasAny(['visibility'])
+            && resource.data.visibility == 'members'
+            && isAuthenticated() && isActive())
+        || (isAuthenticated() && (
+             resource.data.authorId == request.auth.uid ||
+             isAdminOrHost()
+           ));
 
       // Permitted users can create posts authored by themselves.
       // Initial setup is allowed (seed data).
