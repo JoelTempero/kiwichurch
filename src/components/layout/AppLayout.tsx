@@ -6,6 +6,8 @@ import { AppHeader } from './AppHeader'
 import { NotificationPanel } from './NotificationPanel'
 import { SearchPanel } from './SearchPanel'
 import { PendingApprovalGate } from './PendingApprovalGate'
+import { InstallPrompt } from '@/components/common/InstallPrompt'
+import { UpdatePrompt } from '@/components/common/UpdatePrompt'
 import { useAuth } from '@/hooks/useAuth'
 import { useUnreadNotificationCount, useNotificationsSubscription } from '@/hooks/useNotifications'
 import { useConversationsSubscription } from '@/hooks/useDirectMessages'
@@ -74,6 +76,9 @@ export function AppLayout() {
         isOpen={showSearch}
         onClose={() => setShowSearch(false)}
       />
+
+      <InstallPrompt />
+      <UpdatePrompt />
     </div>
   )
 }

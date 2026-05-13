@@ -42,7 +42,7 @@ export default defineConfig({
     }),
     renameSpaEntry(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       workbox: {
         globPatterns: ['assets/**/*.{js,css}', 'app.html', 'icons/**/*.png'],
         globIgnores: ['js/**', 'css/**'],
