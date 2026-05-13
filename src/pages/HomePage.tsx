@@ -31,7 +31,8 @@ function getTimeBasedGreeting(): string {
   return 'Good evening'
 }
 
-function formatTime(time: string): string {
+function formatTime(time: string | undefined | null): string {
+  if (!time || typeof time !== 'string' || !time.includes(':')) return ''
   const [hours, minutes] = time.split(':')
   const hour = parseInt(hours, 10)
   const ampm = hour >= 12 ? 'pm' : 'am'

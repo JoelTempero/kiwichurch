@@ -28,9 +28,11 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function formatTime(time: string): string {
+function formatTime(time: string | undefined | null): string {
+  if (!time || typeof time !== 'string' || !time.includes(':')) return ''
   const [hours, minutes] = time.split(':')
   const hour = parseInt(hours, 10)
+  if (Number.isNaN(hour)) return ''
   const ampm = hour >= 12 ? 'pm' : 'am'
   const displayHour = hour % 12 || 12
   return `${displayHour}:${minutes}${ampm}`
@@ -249,10 +251,12 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
               <span>{formatDate(event.date)}</span>
             </div>
 
-            <div className="flex items-center gap-3 text-text-primary">
-              <Clock size={20} aria-hidden="true" />
-              <span>{formatTime(event.time)}{event.endTime && ` - ${formatTime(event.endTime)}`}</span>
-            </div>
+            {event.time && (
+              <div className="flex items-center gap-3 text-text-primary">
+                <Clock size={20} aria-hidden="true" />
+                <span>{formatTime(event.time)}{event.endTime && ` - ${formatTime(event.endTime)}`}</span>
+              </div>
+            )}
 
             {event.location && (
               <div className="flex items-center gap-3 text-text-primary">
@@ -269,15 +273,17 @@ export function EventModal({ event, isOpen, onClose, onEventUpdated }: EventModa
             )}
           </div>
 
-          <a
-            href={buildGoogleCalendarUrl(event)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-forest hover:text-forest-light transition-colors"
-          >
-            <CalendarPlus size={16} aria-hidden="true" />
-            Add to Google Calendar
-          </a>
+          {event.date && event.time && (
+            <a
+              href={buildGoogleCalendarUrl(event)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-forest hover:text-forest-light transition-colors"
+            >
+              <CalendarPlus size={16} aria-hidden="true" />
+              Add to Google Calendar
+            </a>
+          )}
 
           {event.description && (
             <div className="text-text-primary leading-relaxed pt-2 border-t border-cream-dark">

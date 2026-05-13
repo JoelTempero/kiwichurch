@@ -10,9 +10,11 @@ interface EventCardProps {
   compact?: boolean
 }
 
-function formatTime(time: string): string {
+function formatTime(time: string | undefined | null): string {
+  if (!time || typeof time !== 'string' || !time.includes(':')) return ''
   const [hours, minutes] = time.split(':')
   const hour = parseInt(hours, 10)
+  if (Number.isNaN(hour)) return ''
   const ampm = hour >= 12 ? 'pm' : 'am'
   const displayHour = hour % 12 || 12
   return `${displayHour}:${minutes}${ampm}`
