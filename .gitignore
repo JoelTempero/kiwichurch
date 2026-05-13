@@ -29,3 +29,9 @@ npm-debug.log*
 # TypeScript cache
 *.tsbuildinfo
 .superpowers/
+
+# Seed CLI (scripts/seed.js)
+# Firebase Admin SDK service account JSON — never commit.
+serviceAccount.json
+# Seed output CSVs (per-run password-reset links etc.)
+scripts/output/*.csv
