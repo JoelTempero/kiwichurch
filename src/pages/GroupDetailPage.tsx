@@ -20,6 +20,7 @@ import type { MentionMember } from '@/components/common/MentionInput'
 import GroupResourcesList from '@/components/groups/GroupResourcesList'
 import { storageService } from '@/services/firebase/storage'
 import { isCommunityGathering } from '@/utils/community'
+import { Timestamp } from 'firebase/firestore'
 
 export function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>()
@@ -59,6 +60,17 @@ export function GroupDetailPage() {
   const isMember = useMemo(() => {
     return members.some(m => m.id === user?.id)
   }, [members, user?.id])
+
+  const sortedPosts = useMemo(() => [...posts].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1
+    if (!a.pinned && b.pinned) return 1
+    if (a.pinned && b.pinned) {
+      const at = a.pinnedAt instanceof Date ? a.pinnedAt : (a.pinnedAt as Timestamp)?.toDate() ?? new Date(0)
+      const bt = b.pinnedAt instanceof Date ? b.pinnedAt : (b.pinnedAt as Timestamp)?.toDate() ?? new Date(0)
+      return bt.getTime() - at.getTime()
+    }
+    return 0
+  }), [posts])
 
   const mentionMembers: MentionMember[] = useMemo(() => {
     return memberProfiles
@@ -410,7 +422,7 @@ export function GroupDetailPage() {
                 />
               ) : (
                 <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-                  {posts.map(post => (
+                  {sortedPosts.map(post => (
                     <BoardPost
                       key={post.id}
                       post={post}

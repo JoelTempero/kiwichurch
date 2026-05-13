@@ -20,6 +20,7 @@ import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME } from '@/utils/commun
 import { storageService } from '@/services/firebase/storage'
 import type { MentionMember, MentionGroup } from '@/components/common/MentionInput'
 import type { GroupResource } from '@/types/groupResource'
+import { Timestamp } from 'firebase/firestore'
 
 function getTimeBasedGreeting(): string {
   const hour = new Date().getHours()
@@ -183,7 +184,17 @@ export function HomePage() {
   }
 
   const [featuredEvent, ...remainingEvents] = events
-  const visiblePosts = showAllPosts ? posts : posts.slice(0, 3)
+  const sortedPosts = useMemo(() => [...posts].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1
+    if (!a.pinned && b.pinned) return 1
+    if (a.pinned && b.pinned) {
+      const at = a.pinnedAt instanceof Date ? a.pinnedAt : (a.pinnedAt as Timestamp)?.toDate() ?? new Date(0)
+      const bt = b.pinnedAt instanceof Date ? b.pinnedAt : (b.pinnedAt as Timestamp)?.toDate() ?? new Date(0)
+      return bt.getTime() - at.getTime()
+    }
+    return 0
+  }), [posts])
+  const visiblePosts = showAllPosts ? sortedPosts : sortedPosts.slice(0, 3)
   const latestResources = resources.slice(0, 5)
 
   return (
@@ -342,7 +353,7 @@ export function HomePage() {
                   />
                 ))}
               </div>
-              {!showAllPosts && posts.length > 3 && (
+              {!showAllPosts && sortedPosts.length > 3 && (
                 <button
                   onClick={() => setShowAllPosts(true)}
                   className="w-full mt-2 py-2 text-sm text-forest hover:text-forest-light transition-colors font-medium"

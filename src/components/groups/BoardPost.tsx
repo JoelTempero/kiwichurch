@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Pin, MoreVertical, Edit, Trash2, MessageCircle, X, Reply, BarChart3, SmilePlus, Flag } from 'lucide-react'
+import { Pin, Megaphone, MoreVertical, Edit, Trash2, MessageCircle, X, Reply, BarChart3, SmilePlus, Flag } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Avatar, Button, MentionInput, ConfirmModal } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
@@ -11,8 +11,11 @@ import {
   useDeleteBoardPost,
   useDeletePostComment,
   useVotePoll,
-  useToggleReaction
+  useToggleReaction,
+  usePinPost,
+  useUnpinPost
 } from '@/hooks/useGatherings'
+import { COMMUNITY_GATHERING_ID } from '@/utils/community'
 import { useToast } from '@/components/common/Toast'
 import { parseMentions, encodeMention, extractMentionIds } from '@/utils/mentions'
 import type { BoardPost as BoardPostType, BoardComment } from '@/types'
@@ -111,6 +114,18 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
   const deleteComment = useDeletePostComment()
   const votePoll = useVotePoll()
   const toggleReaction = useToggleReaction()
+  const pinPost = usePinPost()
+  const unpinPost = useUnpinPost()
+
+  const isCommunity = gatheringId === COMMUNITY_GATHERING_ID
+  const isHost = !!user && (
+    user.role === 'admin' ||
+    (user.hostedGatherings ?? []).includes(gatheringId)
+  )
+  const canPin = isCommunity ? user?.role === 'admin' : isHost
+  const pinLabel = post.pinned
+    ? (isCommunity ? 'Unpin announcement' : 'Unpin')
+    : (isCommunity ? 'Pin as announcement' : 'Pin to top')
 
   const canEdit = user?.id === post.authorId
   const canDelete = user?.id === post.authorId || isAdminOrHost
@@ -239,12 +254,18 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
   return (
     <div className={cn(
       'p-4',
-      post.pinned && 'bg-cream/50'
+      post.pinned && 'bg-cream/50',
+      post.pinned && isCommunity && 'border-l-4 border-terracotta'
     )}>
       {post.pinned && (
-        <div className="flex items-center gap-1 text-xs text-gold font-semibold mb-2">
-          <Pin size={12} fill="currentColor" />
-          Pinned
+        <div className={cn(
+          'inline-flex items-center gap-1 text-xs font-medium mb-2 px-2 py-0.5 rounded-full',
+          isCommunity
+            ? 'bg-terracotta/10 text-terracotta-dark'
+            : 'bg-cream-dark text-text-light'
+        )}>
+          {isCommunity ? <Megaphone size={14} /> : <Pin size={14} />}
+          {isCommunity ? 'Announcement' : 'Pinned'}
         </div>
       )}
 
@@ -287,6 +308,23 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
                   >
                     <Trash2 size={16} />
                     Delete
+                  </button>
+                )}
+                {canPin && (
+                  <button
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-text-primary hover:bg-cream transition-colors text-left"
+                    onClick={() => {
+                      setShowMenu(false)
+                      if (post.pinned) {
+                        unpinPost.mutate({ gatheringId, postId: post.id })
+                      } else {
+                        pinPost.mutate({ gatheringId, postId: post.id, userId: user!.id })
+                      }
+                    }}
+                    role="menuitem"
+                  >
+                    {post.pinned ? <Pin size={16} /> : <Megaphone size={16} />}
+                    {pinLabel}
                   </button>
                 )}
                 {user.id !== post.authorId && (
