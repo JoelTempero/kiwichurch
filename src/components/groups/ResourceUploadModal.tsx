@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import { Upload } from 'lucide-react'
 import { Modal } from '../common/Modal'
+import { useFileDrop } from '@/hooks/useFileDrop'
+import { cn } from '@/utils/cn'
 
 interface ResourceUploadModalProps {
   isOpen: boolean
@@ -23,9 +25,7 @@ export default function ResourceUploadModal({ isOpen, onClose, onSubmit, isLoadi
   const reset = () => { setTitle(''); setDescription(''); setTagsInput(''); setFile(null); setError('') }
   const handleClose = () => { reset(); onClose() }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0]
-    if (!selected) return
+  const applyFile = (selected: File) => {
     if (selected.size > MAX_SIZE_MB * 1024 * 1024) {
       setError(`File must be smaller than ${MAX_SIZE_MB}MB`)
       return
@@ -34,6 +34,13 @@ export default function ResourceUploadModal({ isOpen, onClose, onSubmit, isLoadi
     setFile(selected)
     if (!title) setTitle(selected.name.replace(/\.[^.]+$/, ''))
   }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0]
+    if (selected) applyFile(selected)
+  }
+
+  const { isDraggingOver, dropHandlers } = useFileDrop({ onFile: applyFile })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,10 +55,19 @@ export default function ResourceUploadModal({ isOpen, onClose, onSubmit, isLoadi
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <input ref={fileRef} type="file" onChange={handleFileChange} className="hidden" accept={ACCEPTED_TYPES} />
-          <button type="button" onClick={() => fileRef.current?.click()}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-stone-300 px-4 py-6 text-sm text-stone-500 hover:border-stone-400 hover:text-stone-600 transition-colors">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            {...dropHandlers}
+            className={cn(
+              'flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-sm transition-colors',
+              isDraggingOver
+                ? 'border-[#1a3a2f] text-[#1a3a2f] bg-[#1a3a2f]/5'
+                : 'border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-600'
+            )}
+          >
             <Upload className="h-5 w-5" />
-            {file ? file.name : 'Choose a file'}
+            {file ? file.name : isDraggingOver ? 'Drop to upload' : 'Choose or drop a file'}
           </button>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}

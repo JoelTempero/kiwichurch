@@ -8,7 +8,7 @@ import { useGatherings } from '@/hooks/useGatherings'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Avatar, Button, Modal, Badge, EmptyState, Spinner, FadeIn } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
-import { Search, Pencil, Check, Plus, Calendar, BookMarked, Shield } from 'lucide-react'
+import { Search, Pencil, Check, Plus, Calendar, BookMarked, Shield, RefreshCw } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import {
   getNotificationPermission,
@@ -47,6 +47,24 @@ export function SettingsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleForceRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(regs.map((r) => r.unregister()))
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys()
+        await Promise.all(keys.map((k) => caches.delete(k)))
+      }
+    } catch (err) {
+      console.error('[settings] force-refresh failed', err)
+    }
+    window.location.reload()
+  }
 
   useEffect(() => {
     setNotifPermission(getNotificationPermission())
@@ -233,6 +251,28 @@ export function SettingsPage() {
             />
             <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-forest/30 rounded-full peer-checked:bg-forest transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5" />
           </label>
+        </div>
+      </section>
+
+      {/* App */}
+      <section className="mb-6">
+        <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3">App</p>
+        <div className="flex items-center justify-between py-3 border-b border-[#e0dbd2]">
+          <div className="flex-1 pr-4">
+            <h3 className="text-sm font-semibold text-text-primary">Force refresh</h3>
+            <p className="text-xs text-text-light mt-0.5">
+              Clears the cache and reloads. Use if the app feels stuck on an old version after a deploy.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleForceRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw size={14} className={cn('mr-1.5', isRefreshing && 'animate-spin')} />
+            {isRefreshing ? 'Refreshing…' : 'Refresh'}
+          </Button>
         </div>
       </section>
 

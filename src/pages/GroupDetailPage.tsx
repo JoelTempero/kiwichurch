@@ -21,6 +21,8 @@ import GroupResourcesList from '@/components/groups/GroupResourcesList'
 import { storageService } from '@/services/firebase/storage'
 import { isCommunityGathering } from '@/utils/community'
 import { Timestamp } from 'firebase/firestore'
+import { useFileDrop } from '@/hooks/useFileDrop'
+import { cn } from '@/utils/cn'
 
 export function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>()
@@ -82,6 +84,11 @@ export function GroupDetailPage() {
     setPostMentions(mentions)
   }, [])
 
+  const applyAttachmentFile = useCallback((file: File) => {
+    setAttachmentFile(file)
+    setAttachmentPreview(URL.createObjectURL(file))
+  }, [])
+
   const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -89,9 +96,14 @@ export function GroupDetailPage() {
       showToast('Only images can be attached to posts', 'error')
       return
     }
-    setAttachmentFile(file)
-    setAttachmentPreview(URL.createObjectURL(file))
+    applyAttachmentFile(file)
   }
+
+  const { isDraggingOver, dropHandlers } = useFileDrop({
+    onFile: applyAttachmentFile,
+    accept: (f) => f.type.startsWith('image/'),
+    onReject: () => showToast('Only images can be attached to posts', 'error'),
+  })
 
   const clearAttachment = () => {
     setAttachmentFile(null)
@@ -289,7 +301,14 @@ export function GroupDetailPage() {
           {activeTab === 'board' && (
             <>
               {/* New Post Form */}
-              <form onSubmit={handleCreatePost} className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg p-4 mb-4">
+              <form
+                onSubmit={handleCreatePost}
+                {...dropHandlers}
+                className={cn(
+                  'bg-[#faf8f4] border rounded-lg p-4 mb-4 transition-colors',
+                  isDraggingOver ? 'border-forest border-dashed bg-forest/5' : 'border-[#e0dbd2]'
+                )}
+              >
                 <input
                   ref={attachmentRef}
                   type="file"

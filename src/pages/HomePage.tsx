@@ -18,6 +18,8 @@ import { useToast } from '@/components/common/Toast'
 import { encodeMention, encodeGroupMention, extractMentionIds, extractGroupMentionIds } from '@/utils/mentions'
 import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME } from '@/utils/community'
 import { storageService } from '@/services/firebase/storage'
+import { useFileDrop } from '@/hooks/useFileDrop'
+import { cn } from '@/utils/cn'
 import type { MentionMember, MentionGroup } from '@/components/common/MentionInput'
 import type { GroupResource } from '@/types/groupResource'
 import { Timestamp } from 'firebase/firestore'
@@ -89,6 +91,11 @@ export function HomePage() {
     setGroupMentions(mentions)
   }, [])
 
+  const applyAttachmentFile = useCallback((file: File) => {
+    setAttachmentFile(file)
+    setAttachmentPreview(URL.createObjectURL(file))
+  }, [])
+
   const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -96,9 +103,14 @@ export function HomePage() {
       showToast('Only images can be attached to posts', 'error')
       return
     }
-    setAttachmentFile(file)
-    setAttachmentPreview(URL.createObjectURL(file))
+    applyAttachmentFile(file)
   }
+
+  const { isDraggingOver, dropHandlers } = useFileDrop({
+    onFile: applyAttachmentFile,
+    accept: (f) => f.type.startsWith('image/'),
+    onReject: () => showToast('Only images can be attached to posts', 'error'),
+  })
 
   const clearAttachment = () => {
     setAttachmentFile(null)
@@ -207,7 +219,14 @@ export function HomePage() {
           <span className="text-xs uppercase tracking-widest font-medium text-terracotta">Community Board</span>
 
           {/* Post form */}
-          <form onSubmit={handleCreatePost} className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg p-4 mt-3 mb-4">
+          <form
+            onSubmit={handleCreatePost}
+            {...dropHandlers}
+            className={cn(
+              'bg-[#faf8f4] border rounded-lg p-4 mt-3 mb-4 transition-colors',
+              isDraggingOver ? 'border-forest border-dashed bg-forest/5' : 'border-[#e0dbd2]'
+            )}
+          >
             <input
               ref={attachmentRef}
               type="file"
