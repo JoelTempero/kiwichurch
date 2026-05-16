@@ -35,3 +35,12 @@ npm-debug.log*
 serviceAccount.json
 # Seed output CSVs (per-run password-reset links etc.)
 scripts/output/*.csv
+# --- sidequest backup .gitignore (managed) ---
+build/
+.next/
+.turbo/
+*.sst
+SITE/site.zip
+*.mp4
+*.mov
+# .env is intentionally NOT ignored (disaster recovery)
