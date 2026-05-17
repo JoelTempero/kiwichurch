@@ -44,3 +44,9 @@ SITE/site.zip
 *.mp4
 *.mov
 # .env is intentionally NOT ignored (disaster recovery)
+# Windows reserved device names — git cannot index a file literally
+# named e.g. 'nul' (stray '> nul' redirects). Skip them so add -A works.
+[Nn][Uu][Ll]
+[Cc][Oo][Nn]
+[Pp][Rr][Nn]
+[Aa][Uu][Xx]
