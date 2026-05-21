@@ -159,6 +159,35 @@ export const dbService = {
     }
   },
 
+  // Admin-triggered soft delete. Marks the user deactivated, removes the
+  // /userProfiles mirror so they vanish from directory/search/DM picker,
+  // and clears their group memberships. Firebase Auth account remains —
+  // hard deletion needs Admin SDK (scripts/delete-user.js). Login is
+  // blocked at the useAuth level for deactivated accounts.
+  async softDeleteUser(userId: string): Promise<void> {
+    // 1) Status flip on /users.
+    await updateDoc(doc(db, 'users', userId), {
+      status: 'deactivated',
+      updatedAt: serverTimestamp(),
+    })
+
+    // 2) Drop the public profile mirror.
+    try {
+      await deleteDoc(doc(db, 'userProfiles', userId))
+    } catch (err) {
+      // Already gone — fine.
+      console.warn('[db] userProfiles delete skipped', err)
+    }
+
+    // 3) Remove the user from every gathering's members subcollection.
+    const gatheringSnap = await getDocs(collection(db, 'gatherings'))
+    await Promise.all(gatheringSnap.docs.map(async (g) => {
+      const ref = doc(db, 'gatherings', g.id, 'members', userId)
+      const m = await getDoc(ref)
+      if (m.exists()) await deleteDoc(ref)
+    }))
+  },
+
   // Build and write the privacy-filtered public profile from a user record.
   // Called on user create, on update, and on first login as a migration step
   // for users that pre-date this mirror.

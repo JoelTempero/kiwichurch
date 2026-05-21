@@ -31,6 +31,10 @@ export interface User {
   // yet (admin needs to pick groups for them).
   hostedGatherings?: string[]
   canPostKete?: boolean
+  // True for accounts seeded by the admin with a shared default password.
+  // The HomePage shows a banner until the user updates their password via
+  // Settings, at which point useAuth.updatePassword clears the flag.
+  mustChangePassword?: boolean
   // Per-category mute list. Notifications of these types are still written
   // to the user's inbox but hidden from the panel and skipped by browser
   // web push. Empty/undefined = all categories visible (default).

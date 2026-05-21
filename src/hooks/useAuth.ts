@@ -51,6 +51,17 @@ export function useAuth() {
           }
         }
 
+        if (userData?.status === 'deactivated') {
+          // Admin has deactivated this account — sign them out immediately
+          // and bail before any reads/writes that would be rule-blocked.
+          await authService.signOut().catch(() => {})
+          setUser(null)
+          if (typeof window !== 'undefined') {
+            alert('This account has been deactivated. Please contact a Kiwi Church admin if this is unexpected.')
+          }
+          return
+        }
+
         if (userData) {
           setUser(userData)
           dbService.ensureCommunityGathering().catch(() => {})
@@ -141,10 +152,20 @@ export function useAuth() {
     return updatedUser
   }, [setUser])
 
-  // Update password
+  // Update password. Also clears the seeded-default-password banner flag
+  // so the HomePage banner disappears once they've set their own.
   const updatePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    return authService.updatePassword(currentPassword, newPassword)
-  }, [])
+    const result = await authService.updatePassword(currentPassword, newPassword)
+    if (user?.mustChangePassword) {
+      try {
+        await dbService.updateUser(user.id, { mustChangePassword: false })
+        setUser({ ...user, mustChangePassword: false })
+      } catch (err) {
+        console.error('[useAuth] failed clearing mustChangePassword flag:', err)
+      }
+    }
+    return result
+  }, [user, setUser])
 
   // Role checks
   const isAdmin = user?.role === 'admin'

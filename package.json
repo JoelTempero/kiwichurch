@@ -10,7 +10,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "build-template": "node scripts/build-template.js",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "seed:kiwichurch": "node scripts/seed-kiwichurch.js",
+    "wipe": "node scripts/wipe.js",
+    "set-test-passwords": "node scripts/set-test-passwords.js",
+    "delete-user": "node scripts/delete-user.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

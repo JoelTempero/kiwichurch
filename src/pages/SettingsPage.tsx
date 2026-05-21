@@ -6,9 +6,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { dbService, authService } from '@/services/firebase'
 import { useGatherings } from '@/hooks/useGatherings'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Avatar, Button, Modal, Badge, EmptyState, Spinner, FadeIn } from '@/components/common'
+import { Avatar, Button, Modal, Badge, ConfirmModal, EmptyState, Spinner, FadeIn } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
-import { Search, Pencil, Check, Plus, Calendar, BookMarked, Shield, RefreshCw } from 'lucide-react'
+import { Search, Pencil, Check, Plus, Calendar, BookMarked, Shield, RefreshCw, Trash2 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import {
   getNotificationPermission,
@@ -56,6 +56,8 @@ export function SettingsPage() {
   const [showRoleModal, setShowRoleModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDeactivated, setShowDeactivated] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [mutedCategories, setMutedCategories] = useState<NotificationType[]>(
@@ -123,6 +125,20 @@ export function SettingsPage() {
     },
   })
 
+  const softDeleteMutation = useMutation({
+    mutationFn: (userId: string) => dbService.softDeleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      showToast('User deactivated', 'success')
+      setShowDeleteConfirm(false)
+      setShowEditModal(false)
+      setSelectedUser(null)
+    },
+    onError: () => {
+      showToast('Failed to deactivate user', 'error')
+    },
+  })
+
   const addUserForm = useForm<z.infer<typeof addUserSchema>>({
     resolver: zodResolver(addUserSchema),
     defaultValues: { displayName: '', email: '', password: '', role: 'member' },
@@ -165,7 +181,9 @@ export function SettingsPage() {
     if (aPending !== bPending) return aPending - bPending
     return a.displayName.localeCompare(b.displayName)
   })
+  const deactivatedCount = sortedUsers.filter(u => u.status === 'deactivated').length
   const filteredUsers = sortedUsers.filter((u: User) => {
+    if (!showDeactivated && u.status === 'deactivated') return false
     const q = searchQuery.toLowerCase()
     return u.displayName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
   })
@@ -350,6 +368,17 @@ export function SettingsPage() {
             />
           </div>
 
+          {deactivatedCount > 0 && (
+            <label className="flex items-center gap-2 text-xs text-text-light mb-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showDeactivated}
+                onChange={(e) => setShowDeactivated(e.target.checked)}
+              />
+              Show deactivated ({deactivatedCount})
+            </label>
+          )}
+
           {usersLoading ? (
             <Spinner />
           ) : filteredUsers.length === 0 ? (
@@ -362,17 +391,25 @@ export function SettingsPage() {
             <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
               {filteredUsers.map((u: User) => {
                 const isPending = u.status === 'pending'
+                const isDeactivated = u.status === 'deactivated'
                 return (
-                  <div key={u.id} className={`flex items-center gap-3 p-3 ${isPending ? 'bg-amber-50' : ''}`}>
+                  <div key={u.id} className={cn(
+                    'flex items-center gap-3 p-3',
+                    isPending && 'bg-amber-50',
+                    isDeactivated && 'opacity-60',
+                  )}>
                     <Avatar src={u.photoURL} name={u.displayName} size="md" />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-text-primary text-sm">{u.displayName}</h3>
                       <p className="text-xs text-text-light truncate">{u.email}</p>
                     </div>
+                    {isDeactivated && (
+                      <Badge variant="default">Deactivated</Badge>
+                    )}
                     {isPending && (
                       <Badge variant="warning">Pending</Badge>
                     )}
-                    {!isPending && (
+                    {!isPending && !isDeactivated && (
                       <Badge variant={getRoleBadgeVariant(u.role)}>{u.role}</Badge>
                     )}
                     {isPending && (
@@ -528,9 +565,36 @@ export function SettingsPage() {
                 Cancel
               </Button>
             </div>
+
+            {selectedUser && selectedUser.id !== user?.id && selectedUser.status !== 'deactivated' && (
+              <div className="pt-4 mt-4 border-t border-cream">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-2 text-sm text-red-700 hover:text-red-800 transition-colors"
+                >
+                  <Trash2 size={16} />
+                  Delete this user
+                </button>
+                <p className="text-xs text-text-lighter mt-1">
+                  Deactivates the account, removes them from all groups, hides them from the directory. Re-enable later with the "Show deactivated" filter. Auth account stays — full purge via the delete-user CLI.
+                </p>
+              </div>
+            )}
           </form>
         )}
       </Modal>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => selectedUser && softDeleteMutation.mutate(selectedUser.id)}
+        title="Delete user?"
+        message={selectedUser ? `${selectedUser.displayName} (${selectedUser.email}) will be deactivated, removed from every group, and hidden from the directory. You can re-enable them by toggling "Show deactivated".` : ''}
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        loading={softDeleteMutation.isPending}
+      />
 
       {/* Role Quick-Change Modal */}
       <Modal

@@ -239,7 +239,7 @@ export function GroupDetailPage() {
           <ChevronLeft size={24} />
         </button>
         <div className="text-center">
-          <h1 className="text-2xl font-display text-white mb-1">{gathering.name}</h1>
+          <h1 className="text-2xl font-display mb-1" style={{ color: 'white' }}>{gathering.name}</h1>
           {gathering.rhythm && (
             <p className="text-sm text-white/80">{gathering.rhythm}</p>
           )}

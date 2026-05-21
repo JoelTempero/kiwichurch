@@ -86,7 +86,7 @@ export function LoginPage() {
         <a href="/homepage.html" className="inline-block mb-4">
           <img src="/Images/KiwiChurch_Old_White_Shadow.png" alt="Kiwi Church" className="h-16 w-auto" />
         </a>
-        <h1 className="text-2xl font-display text-white mb-1">Member Portal</h1>
+        <h1 className="text-2xl font-display mb-1" style={{ color: 'white' }}>Member Portal</h1>
         <p className="text-sage-light text-sm">Welcome to the table</p>
       </div>
 
