@@ -121,7 +121,7 @@ export function FamilySection() {
     return allProfiles
       .filter((p) => !excludedIds.has(p.id))
       .filter((p) => !q || p.displayName.toLowerCase().includes(q))
-      .slice(0, 20)
+      .slice(0, 200)
   }, [allProfiles, excludedIds, memberSearch])
 
   const openAdd = () => {

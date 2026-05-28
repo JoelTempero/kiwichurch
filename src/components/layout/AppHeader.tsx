@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Search, Bell, User, BookMarked } from 'lucide-react'
+import { Search, Bell, User, BookMarked, Globe } from 'lucide-react'
 
 interface AppHeaderProps {
   onSearchClick?: () => void
@@ -60,6 +60,15 @@ export function AppHeader({
         >
           <BookMarked size={20} />
         </button>
+
+        <a
+          href="/"
+          className="inline-flex items-center justify-center p-2 rounded-lg text-text-light hover:bg-cream hover:text-forest transition-colors md:hidden"
+          title="Visit website"
+          aria-label="Visit Kiwi Church website"
+        >
+          <Globe size={20} />
+        </a>
 
         <button
           className="relative inline-flex items-center justify-center p-2 rounded-lg text-text-light hover:bg-cream hover:text-forest transition-colors"

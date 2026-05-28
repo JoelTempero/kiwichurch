@@ -8,7 +8,7 @@ import {
   useMarkNotificationRead,
   useMarkAllNotificationsRead
 } from '@/hooks/useNotifications'
-import { Calendar, FileText, MessageCircle, AtSign, Users, Info, Bell, X, Heart, Megaphone } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, MessageCircle, AtSign, Users, Info, Bell, X, Heart, Megaphone } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import type { Notification } from '@/types'
 
@@ -114,27 +114,32 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
       aria-label="Notifications"
     >
       <div className="w-full max-w-sm bg-white h-full flex flex-col shadow-xl" tabIndex={-1}>
-        <div className="flex items-center justify-between p-4 border-b border-cream-dark">
-          <h3 className="text-lg font-semibold text-forest">Notifications</h3>
-          <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMarkAllRead}
-                disabled={markAllRead.isPending}
-              >
-                Mark all read
-              </Button>
-            )}
-            <button
-              className="p-1 rounded-full hover:bg-cream transition-colors"
-              onClick={onClose}
-              aria-label="Close notifications"
+        <div className="flex items-center gap-2 p-4 border-b border-cream-dark">
+          <button
+            className="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-forest hover:bg-cream transition-colors shrink-0"
+            onClick={onClose}
+            aria-label="Back"
+          >
+            <ArrowLeft size={22} />
+          </button>
+          <h3 className="text-lg font-semibold text-forest flex-1 m-0">Notifications</h3>
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMarkAllRead}
+              disabled={markAllRead.isPending}
             >
-              <X size={20} />
-            </button>
-          </div>
+              Mark all read
+            </Button>
+          )}
+          <button
+            className="flex items-center justify-center w-10 h-10 -mr-2 rounded-full text-forest hover:bg-cream transition-colors shrink-0"
+            onClick={onClose}
+            aria-label="Close notifications"
+          >
+            <X size={22} />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">

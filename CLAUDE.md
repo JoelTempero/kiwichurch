@@ -3,7 +3,7 @@
 ## Overview
 - **Client**: Kiwi Church
 - **Type**: Community Platform / Portal / PWA
-- **Status**: **2026-05-21**: live data wiped + reseeded from client's actual spreadsheet. 18 groups + 61 user accounts live in production with shared test password `freedom`. HomePage banner prompts each tester to change their password. Settings has a Delete-user button (soft delete: deactivate + clear memberships + drop directory mirror) and there's a `delete-user` CLI for the hard purge. Deactivated users are auto-signed-out on next login. Group detail page title now renders white on the colored header (was green-on-green from legacy CSS). Three deploys this session. Joel will dogfood + give feedback next session. Previously: all council deploy-blockers fixed, privacy mirror, pending-approval, host scoping, family link system, recurring events, announcements + notification sweep, per-category notification prefs, drag-and-drop uploads, force-refresh, PWA install prompt, group member management UI, Kete public/members-only toggle, Board/Files tabs on home page, Excel seed template + CLI — all live.
+- **Status**: **2026-05-28**: first batch of tester feedback through. Six fixes shipped in one pass: family picker cap lifted (was cutting off at letter G with 60 seeded users), notifications panel close UX (back-arrow + bigger X close), Visit Website link in 3 spots — desktop sidebar footer, ProfilePage list, and a mobile Globe icon in the AppHeader between Directory and Bell. Settings opened up to all users (was admin-only) + reachable on mobile via new ProfilePage link. DM composer is now an auto-growing textarea (1→6 rows then scrolls, Shift+Enter for newline). Pete + Cass (Peter & Cassandra Down) promoted to Kirwee hosts via Firebase MCP. Two deploys. **Previously 2026-05-21**: live data wiped + reseeded from client's actual spreadsheet. 18 groups + 61 user accounts live with shared test password `freedom`. HomePage banner prompts each tester to change their password. Settings has Delete-user (soft delete) and `delete-user` CLI for hard purge. Deactivated users auto-signed-out on next login. Group/Login titles rendered white on dark headers. Previously: all council deploy-blockers fixed, privacy mirror, pending-approval, host scoping, family link system, recurring events, announcements + notification sweep, per-category notification prefs, drag-and-drop uploads, force-refresh, PWA install prompt, group member management UI, Kete public/members-only toggle, Board/Files tabs on home page, Excel seed template + CLI.
 
 ## Playbooks In Use
 Read these from the Brain folder at session start. Do not copy into this project.
@@ -184,6 +184,37 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 
 ## Session Log
 
+### 2026-05-28: Tester feedback pass — 6 fixes, 2 deploys
+First round of client feedback after the 2026-05-21 wipe+seed. Joel handed over six items, all triaged and shipped in one session.
+
+**1. Family picker stops at G for Ian** — `FamilySection.tsx:124` slice cap of 20 candidates. With 60 alphabetised users from `getAllPublicProfiles()`, the dropdown only showed A through ~G unless the user typed a search query. Bumped cap to 200. Trade-off: still capped to prevent enormous DOM lists at very large scales, but a church of 60-200 members has zero practical limit now.
+
+**2. Notifications screen — couldn't exit, had to quit the app.** Root cause: the panel covers full screen on mobile (`w-full max-w-sm`), so click-outside-to-close has no visible overlay; the only close affordance was a 20px X in the top-right corner of the header — easy to miss on a small screen. Fix: rebuilt the header with a 40×40 back-arrow on the left + 40×40 X on the right, both `onClick={onClose}`. Native-app vibe; either side discoverable.
+
+**3. Visit website link missing from portal.** Three placements:
+- **DesktopSidebar footer** — new `<a href="/">` with ExternalLink icon above the user-info chip
+- **ProfilePage** — appears in a new account-actions section (just above Sign Out) alongside Settings
+- **Mobile AppHeader** — `Globe` icon between Directory and Bell, `md:hidden` (desktop already has the sidebar link). Joel picked icon-in-header over header-title dropdown / homepage footer / sticky top strip after I showed mockups.
+
+**4. Settings unreachable on mobile.** BottomNav (Home/Events/Groups/Messages/Kete) and AppHeader (Search/Directory/Bell/Profile) had no Settings entry. Worse: even on desktop, DesktopSidebar gated `/settings` behind `isAdmin`, so non-admin members couldn't reach their own notification preferences. Fix: removed the `isAdmin` filter from the desktop sidebar (Settings now visible to everyone, below the admin section); added a Settings row in ProfilePage's account-actions section for mobile. SettingsPage already self-gates the admin-only user list internally via `enabled: isAdmin` on the query.
+
+**5. Message box doesn't expand for long messages.** `ConversationPage` was passing `singleLine` to `MentionInput`, which rendered as `<input>` with `!rounded-full`. Long messages just scrolled horizontally inside the pill — unreadable. Rewrote MentionInput to always render `<textarea>`, with auto-resize via a `useEffect` that measures `scrollHeight` against `lineHeight × maxRows` and toggles `overflow-y: auto` once the cap is hit. New `maxRows` prop (default 6). Conversation page bumped to `!rounded-2xl` (rounded-full looks weird wrapping). Behaviour: Enter sends, Shift+Enter inserts newline, textarea grows from 1 row to 6 then scrolls internally. Side benefit: BoardPost comment composer also passes `singleLine` so it gets the same auto-grow.
+
+**6. Add Pete and Cass as hosts of Kirwee.** Pure data, no code. Via Firebase MCP:
+- Resolved to Peter Down (`MPZCq6Pfb0P6jHGHv4GJFth7C1w2`, pcdown58@gmail.com) and Cassandra Down (`qniytehfsoZkMBeUKZ7inORIxiX2`, cassdown@gmail.com) — same surname/domain confirms they're a couple.
+- Kirwee gathering id: `KG4gXWkS0k1KgaN7rdgF` (private group, derived during the 2026-05-21 seed from Users.Host place names).
+- Updated both `/users/{uid}` docs: `role: 'host'` + `hostedGatherings: ['KG4gXWkS0k1KgaN7rdgF']`.
+- Membership docs `/gatherings/.../members/{uid}` already existed from the seed (createTime 2026-05-20). Refreshed `joinedAt` (cosmetic).
+- `userProfiles` mirror updates on next login via `writeUserProfileMirror`; no manual sync needed.
+
+**MCP gotchas this session:**
+- `firestore_query_collection` rejects paths with trailing slashes (`gatherings/` → "invalid because it contains '/'"). Drop the trailing slash.
+- `firestore_query_collection` also rejects subcollection paths (`gatherings/X/members` → same error) despite the docstring claiming they're supported. Worked around by writing direct documents via `firestore_update_document` with full resource names (`projects/.../documents/gatherings/X/members/Y`) — `update` creates the doc if it doesn't exist, so it doubles as add.
+
+**Build + deploy:** Two deploys. Typecheck and build clean throughout. Live at https://kiwichurch-1ef0f.web.app.
+
+**Files touched:** `src/components/profile/FamilySection.tsx`, `src/components/layout/NotificationPanel.tsx`, `src/components/layout/DesktopSidebar.tsx`, `src/pages/ProfilePage.tsx`, `src/components/common/MentionInput.tsx`, `src/pages/ConversationPage.tsx`, `src/components/layout/AppHeader.tsx`.
+
 ### 2026-05-21: Production wipe + real-data seed + shared-password tester onboarding — 3 new scripts, 1 deploy
 Joel handed over `ref/kiwichurch-seed-template-Seeded.xlsx` — the client's actual filled-out seed — and said "wipe everything currently live and seed this." Heavy session, lots of decisions, ended with 60 real test accounts live and a deploy.
 
@@ -334,32 +365,7 @@ Joel handed me four feature requests post-/clear, said "implement as you see fit
 - Spec: `docs/superpowers/specs/2026-05-10-kete-editor-overhaul-design.md`
 - Plan: `docs/superpowers/plans/2026-05-10-kete-editor-overhaul.md`
 
-### 2026-05-07: Community Board, @Group Mentions, Search Filters + Deploy
-- **Google Calendar integration**: "Add to Google Calendar" link in EventModal using URL API (no keys needed)
-- **Search filters**: type pills (Events/Kete/Groups/People), date range dropdown, author filter on SearchPanel — collapsible with reset button
-- **Community gathering**: well-known "Kiwi Church" gathering (`kiwi-church-community`) auto-created on first admin login, all users auto-joined on auth
-- **HomePage reworked as community board**: desktop has board at top, 2-column bottom (events left, latest files right); mobile has board (3 posts + expand) then events
-- **@group mentions**: MentionInput shows groups in autocomplete dropdown (Users icon, terracotta "group" label); group markup `#[Name](id)`; notifications sent to all group members; renders in terracotta in post content
-- **GatheringCard** routes "Kiwi Church" group to `/home`; GroupDetailPage redirects community gathering to `/home`
-- 8 commits, typecheck + build clean, deployed to Firebase Hosting
-
-### 2026-05-06e: Group Files, URL Embeds, Bug Fixes + Deploy
-- Reviewed client requirements doc against what's been built — identified 12 gaps, tracked in CLAUDE.md
-- Deleted about.html (merged into communities previously) and giving.html (public page not needed)
-- Fixed homepage "Learn More" CTA → communities.html (was dead about.html link)
-- Removed giving.html from vite.config.ts static copy and sw.js precache
-- **Group resources library**: new `resources` subcollection per gathering (files + links with tags)
-- GroupResource type, Firestore + Storage rules, db service CRUD, storage upload, TanStack Query hooks
-- Files tab on GroupDetailPage with search bar, tag filter pills, upload/link/edit/delete modals
-- 8 new files: type, utility, hook, 5 components (GroupResourcesList, GroupResourceItem, ResourceUploadModal, ResourceLinkModal, URLEmbed)
-- **Post image attachments**: image button on post creation form, preview, upload to Storage
-- **URL embeds**: YouTube/Vimeo players and link cards auto-detected in board post content
-- Admin deletion verified working across board posts, comments, kete posts, and new group resources
-- Design spec: `docs/superpowers/specs/2026-05-06-group-files-and-attachments.md`
-- Implementation plan: `docs/superpowers/plans/2026-05-06-group-files-and-attachments.md`
-- 14 commits, typecheck + build clean, deployed to Firebase Hosting
-
-### (Older entries pruned — see git log for history before 2026-05-06e)
+### (Older entries pruned — see git log for history before 2026-05-10)
 
 <!-- Pruned for length: 2026-05-06d, 2026-05-06c, 2026-05-06b, 2026-05-06, 2026-05-02b, 2026-05-02, 2026-04-27. Recoverable via `git log --all --oneline` and `git show <hash>` if needed. -->
 
@@ -477,15 +483,20 @@ Joel handed me four feature requests post-/clear, said "implement as you see fit
 - **First-word displayName host resolution (2026-05-21)** — when client provides hosts as first names only (e.g. Groups.Host column `"Darryl, John, Michele"`), seed script matches them to users by exact first-word displayName match, case-insensitive. So `"Simon & Kathryn"` matches `Simon` (first word). Ambiguous matches (3 Johns) and no-match cases (`Di` doesn't match `Dianne`) are surfaced in the dry-run output for human resolution, then baked in as a `HOST_NAME_OVERRIDES` map in the script. Future onboardings with first-name-only host data → expect to need the override map and reserve a question slot in the conversation for resolving ambiguities.
 - **Soft delete + CLI for hard purge (2026-05-21)** — admin user deletion in Settings is a soft delete only (status='deactivated', drop /userProfiles mirror, remove from groups; Auth account stays). Hard deletion needs Admin SDK because client SDK can't delete Auth accounts — handled by `scripts/delete-user.js` + serviceAccount.json, run on demand. Trade-off: Settings UI feels "instant" (user vanishes from list, can't log in), but the email isn't reusable until Joel runs the CLI. When Cloud Functions land, this can collapse to a single Settings action via a callable function. Login defence lives in `useAuth`: on auth state change, if `userData.status === 'deactivated'`, signOut + alert before any other reads. That's load-bearing — without it a soft-deleted user could authenticate with their old password and see (rule-blocked) state.
 - **Legacy CSS beats Tailwind utilities (2026-05-21)** — `src/styles/styles.css` (~2,775 lines, predates Tailwind v4) is imported into `app.css` unlayered. Unlayered CSS WINS over layered Tailwind utilities in CSS Cascade Layers regardless of class specificity. So `h1 { color: forest }` in styles.css beats `.text-white` Tailwind utility. Surfaces as green-on-green text on dark-bg headers (GroupDetailPage, LoginPage). Quick fix per occurrence: replace `text-white` className with inline `style={{ color: 'white' }}` — inline always wins. Proper fix: wrap the import as `@import './styles.css' layer(legacy);` and declare layer order at top of `app.css` — higher risk because parts of the portal may visually depend on legacy CSS winning, so defer to a focused pass. Whenever you see a Tailwind utility unexpectedly losing on a tag-targeted style, suspect this.
+- **Settings is universal, not admin-only (2026-05-28)** — earlier the DesktopSidebar gated `/settings` behind `isAdmin` because the page was originally the admin user-list. But Settings has since accumulated user-level controls: 7 notification preference toggles, web-notification permission, force-refresh button, change-password (mirror of profile). Non-admins legitimately need to reach it. Fix: removed the `isAdmin` filter; SettingsPage already self-gates the admin user-list section internally (`enabled: isAdmin` on the query + `{isAdmin && ...}` render guards). Future content added to Settings: assume every user can land on it; gate admin-only sections inside the page, not at the route level.
+- **Mobile "Visit Website" placement (2026-05-28)** — added Globe icon in AppHeader between Directory and Bell (`md:hidden`). Joel picked icon-in-header over header-title dropdown / homepage footer / sticky top strip after seeing mockups. Reasoning: always visible on every page, predictable position next to other utility icons, no new vertical chrome. Trade-off: header is now 5 icons on mobile (Search/Directory/Globe/Bell/Profile) — getting tight. If we add a sixth, collapse Profile + the new icons into a hamburger overflow.
+- **MentionInput is always a textarea now (2026-05-28)** — was `<input>` when `singleLine`, `<textarea>` otherwise. Switched to textarea always with auto-resize via `useEffect` measuring scrollHeight against `lineHeight × maxRows`. `singleLine` now only changes keyboard behaviour (Enter submits, Shift+Enter newline) and starting `rows={1}`, not the rendered element. New `maxRows` prop (default 6). Side effect: BoardPost comment composer (also `singleLine`) now grows for long comments too — bonus, no callers needed updating.
+- **Firebase MCP path quirks (2026-05-28)** — `firestore_query_collection` rejects paths with trailing slashes ("invalid because contains '/'") and also rejects nested subcollection paths like `gatherings/X/members` even though the tool description claims they work. For subcollection writes, use `firestore_update_document` with the full resource name (`projects/.../documents/gatherings/X/members/Y`) — `update_document` creates the doc if missing, so it doubles as add. For subcollection reads, fall back to reading the parent doc + getting the IDs first, or use Admin SDK locally.
 
 ## Next Steps
 
-### Next session: feedback pass on the seeded data + new features
-Joel said wrapup → next session is feedback. Expect to come back to:
-- [ ] **Tester feedback rollup** — Joel will collect impressions from the 60 testers (or a subset). Likely buckets: data correctness (wrong group, wrong surname, missing person), UX papercuts, bug reports, feature requests.
-- [ ] **Top-up the data** — anyone they forgot, role changes, group membership tweaks. Decide whether to re-edit the spreadsheet and re-run `npm run seed:kiwichurch` (idempotent on existing users via merge semantics) or just edit in the Settings UI for one-offs.
+### Next session: next round of tester feedback
+First batch of feedback shipped 2026-05-28. Expect another wave:
+- [ ] **Verify 2026-05-28 fixes with testers** — family picker now reaches everyone (not just A-G), notifications panel close affordances obvious, Visit website icon discoverable on mobile, Settings reachable on phones, DM composer grows for long messages, Pete + Cass see Kirwee in Hosting and can post as hosts.
+- [ ] **Second-round feedback rollup** — likely UX papercuts and feature requests once testers know how to navigate.
+- [ ] **Top-up the data** — anyone they forgot, role changes, group membership tweaks. Either edit in Settings UI for one-offs or re-edit the spreadsheet and re-run `npm run seed:kiwichurch` (idempotent via merge semantics).
 - [ ] **Hard purge of any deactivated users** — once Joel has soft-deleted via Settings, run `npm run delete-user -- --email=foo@bar.com --apply` to free emails for re-use.
-- [ ] **Tester Joel's wife dup** — Joel was going to use the new Delete button to delete it as a test. Confirm next session whether that worked end-to-end.
+- [ ] **Tester Joel's wife dup** — Joel was going to use the Delete button to delete it as a test. Confirm whether that worked end-to-end.
 
 ### Cleanup from this session
 - [ ] **Decide on `serviceAccount.json`** — currently at repo root, gitignored. Keep for top-ups vs delete for hygiene. Either is fine; if deleted, you regenerate from Firebase Console when needed.

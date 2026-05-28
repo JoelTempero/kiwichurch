@@ -23,6 +23,7 @@ interface MentionInputProps {
   placeholder?: string
   disabled?: boolean
   rows?: number
+  maxRows?: number
   className?: string
   ariaLabel?: string
   singleLine?: boolean
@@ -43,6 +44,7 @@ export function MentionInput({
   placeholder,
   disabled,
   rows = 3,
+  maxRows = 6,
   className,
   ariaLabel,
   singleLine = false,
@@ -54,8 +56,23 @@ export function MentionInput({
   const [mentionStartPos, setMentionStartPos] = useState<number | null>(null)
   const [mentionMap] = useState<Map<string, string>>(() => new Map())
   const [groupMentionMap] = useState<Map<string, string>>(() => new Map())
-  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Auto-resize textarea up to maxRows, then internal scroll
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    const styles = window.getComputedStyle(el)
+    const lineHeight = parseFloat(styles.lineHeight) || parseFloat(styles.fontSize) * 1.4
+    const paddingY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom)
+    const borderY = parseFloat(styles.borderTopWidth) + parseFloat(styles.borderBottomWidth)
+    const maxHeight = lineHeight * maxRows + paddingY + borderY
+    const targetHeight = Math.min(el.scrollHeight, maxHeight)
+    el.style.height = `${targetHeight}px`
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden'
+  }, [value, maxRows])
 
   const filteredItems = useMemo(() => {
     const search = searchText.toLowerCase()
@@ -137,7 +154,7 @@ export function MentionInput({
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!showDropdown || filteredItems.length === 0) {
-      if (singleLine && e.key === 'Enter') {
+      if (singleLine && e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
         onSubmit?.()
       }
@@ -160,23 +177,21 @@ export function MentionInput({
   }
 
   const inputClasses = cn(
-    'w-full px-3 py-2 border border-sage-light rounded-md font-body text-base transition-colors focus:outline-none focus:border-forest',
+    'w-full px-3 py-2 border border-sage-light rounded-md font-body text-base transition-colors focus:outline-none focus:border-forest resize-none block',
     className
   )
 
-  const InputTag = singleLine ? 'input' : 'textarea'
-
   return (
     <div className="relative">
-      <InputTag
-        ref={inputRef as any}
+      <textarea
+        ref={inputRef}
         className={inputClasses}
         value={value}
         onChange={(e) => handleInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        rows={singleLine ? undefined : rows}
+        rows={singleLine ? 1 : rows}
         aria-label={ariaLabel}
       />
 

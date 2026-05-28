@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Calendar, Users, MessageCircle, BookOpen, Settings, BookMarked, SlidersHorizontal, Shield } from 'lucide-react'
+import { Home, Calendar, Users, MessageCircle, BookOpen, Settings, BookMarked, SlidersHorizontal, Shield, ExternalLink } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useUnreadMessageCount } from '@/hooks/useUnreadMessages'
 import type { LucideIcon } from 'lucide-react'
@@ -21,12 +21,11 @@ const mainNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { to: '/hosting', label: 'Hosting', icon: Settings },
-  { to: '/settings', label: 'Settings', icon: SlidersHorizontal },
   { to: '/moderation', label: 'Moderation', icon: Shield }
 ]
 
 export function DesktopSidebar() {
-  const { user, isAdminOrHost, isAdmin } = useAuth()
+  const { user, isAdminOrHost } = useAuth()
   const navigate = useNavigate()
   const unreadCount = useUnreadMessageCount(user?.id ?? null)
 
@@ -63,33 +62,41 @@ export function DesktopSidebar() {
         {isAdminOrHost && (
           <>
             <div className="desktop-nav-divider" />
-            {adminNavItems
-              .filter(item => {
-                if (item.to === '/settings') {
-                  return isAdmin
-                }
-                return true
-              })
-              .map((item) => {
-                const Icon = item.icon
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) =>
-                      `desktop-nav-item ${isActive ? 'active' : ''}`
-                    }
-                  >
-                    <Icon size={20} />
-                    <span>{item.label}</span>
-                  </NavLink>
-                )
-              })}
+            {adminNavItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `desktop-nav-item ${isActive ? 'active' : ''}`
+                  }
+                >
+                  <Icon size={20} />
+                  <span>{item.label}</span>
+                </NavLink>
+              )
+            })}
           </>
         )}
+
+        <div className="desktop-nav-divider" />
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            `desktop-nav-item ${isActive ? 'active' : ''}`
+          }
+        >
+          <SlidersHorizontal size={20} />
+          <span>Settings</span>
+        </NavLink>
       </nav>
 
       <div className="desktop-sidebar-footer">
+        <a href="/" className="desktop-nav-item" aria-label="Visit Kiwi Church website">
+          <ExternalLink size={20} />
+          <span>Visit website</span>
+        </a>
         <div
           className="desktop-user-info"
           onClick={() => navigate('/profile')}

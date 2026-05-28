@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuth } from '@/hooks/useAuth'
 import { Avatar, Button, Modal } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { storageService } from '@/services/firebase'
-import { Camera, Pencil, Lock, LogOut, Loader2 } from 'lucide-react'
+import { Camera, Pencil, Lock, LogOut, Loader2, SlidersHorizontal, ExternalLink, ChevronRight } from 'lucide-react'
 import {
   FamilySection,
   PrivacySection,
@@ -23,6 +24,7 @@ const inputError = 'border-red-600 focus:border-red-600 focus:ring-1 focus:ring-
 export function ProfilePage() {
   const { user, signOut, updateProfile, updatePassword } = useAuth()
   const { showToast } = useToast()
+  const navigate = useNavigate()
 
   const [isEditing, setIsEditing] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
@@ -271,6 +273,29 @@ export function ProfilePage() {
             </Button>
           </div>
         </form>
+      )}
+
+      {/* Account actions */}
+      {!isEditing && (
+        <div className="border-t border-[#e0dbd2] mt-8 pt-2">
+          <button
+            type="button"
+            onClick={() => navigate('/settings')}
+            className="flex items-center gap-3 w-full text-left px-1 py-3 border-b border-[#e0dbd2] hover:bg-cream/50 transition-colors"
+          >
+            <SlidersHorizontal size={18} className="text-forest" aria-hidden="true" />
+            <span className="flex-1 text-text-primary text-sm font-medium">Settings</span>
+            <ChevronRight size={16} className="text-text-light" aria-hidden="true" />
+          </button>
+          <a
+            href="/"
+            className="flex items-center gap-3 w-full text-left px-1 py-3 border-b border-[#e0dbd2] hover:bg-cream/50 transition-colors"
+          >
+            <ExternalLink size={18} className="text-forest" aria-hidden="true" />
+            <span className="flex-1 text-text-primary text-sm font-medium">Visit website</span>
+            <ChevronRight size={16} className="text-text-light" aria-hidden="true" />
+          </a>
+        </div>
       )}
 
       {/* Sign Out */}

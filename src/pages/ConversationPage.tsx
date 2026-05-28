@@ -217,7 +217,8 @@ export function ConversationPage() {
               placeholder="Type a message..."
               singleLine
               rows={1}
-              className="!rounded-full !py-2.5 !px-4 text-sm"
+              maxRows={6}
+              className="!rounded-2xl !py-2.5 !px-4 text-sm leading-snug"
               ariaLabel="Message input"
               onSubmit={handleSend}
             />
