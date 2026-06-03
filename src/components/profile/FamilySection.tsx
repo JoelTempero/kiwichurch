@@ -119,6 +119,8 @@ export function FamilySection() {
   const candidates = useMemo(() => {
     const q = memberSearch.toLowerCase().trim()
     return allProfiles
+      // Only members who opted into the directory can be found here.
+      .filter((p) => p.listInDirectory === true)
       .filter((p) => !excludedIds.has(p.id))
       .filter((p) => !q || p.displayName.toLowerCase().includes(q))
       .slice(0, 200)

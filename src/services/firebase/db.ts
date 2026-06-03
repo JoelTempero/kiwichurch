@@ -54,6 +54,14 @@ function docToObject<T>(doc: DocumentData): T {
   return { id: doc.id, ...doc.data() } as T
 }
 
+// Deep link for a board post, used by comment / mention notifications so the
+// recipient lands on the exact post (the consuming page scrolls to it and
+// auto-opens its comments via the ?post= param) instead of a generic board.
+function boardPostLink(gatheringId: string, postId: string): string {
+  const base = isCommunityGathering(gatheringId) ? '/home' : `/groups/${gatheringId}`
+  return `${base}?post=${postId}`
+}
+
 export const dbService = {
   // ============================================
   // USERS
@@ -197,6 +205,10 @@ export const dbService = {
       displayName: user.displayName || '',
       photoURL: user.photoURL || '',
       role: user.role,
+      // Master discoverability flag. Directory/search/DM-picker filter on this.
+      // Defaults to false (opt-in), so existing members stay hidden until they
+      // toggle "List me in the directory" in their privacy settings.
+      listInDirectory: privacy.listInDirectory === true,
       updatedAt: serverTimestamp(),
     }
     if (privacy.showBio !== false && user.bio) profile.bio = user.bio
@@ -1066,6 +1078,15 @@ export const dbService = {
     return snapshot.docs.map(doc => docToObject<BoardComment>(doc))
   },
 
+  // Cheap aggregate count so the collapsed comment button can show "N comments"
+  // without loading every comment doc for every post on the feed.
+  async getPostCommentCount(gatheringId: string, postId: string): Promise<number> {
+    const snap = await getCountFromServer(
+      collection(db, 'messageBoards', gatheringId, 'posts', postId, 'comments')
+    )
+    return snap.data().count
+  },
+
   async addPostComment(gatheringId: string, postId: string, commentData: Omit<BoardComment, 'id' | 'createdAt'>): Promise<BoardComment> {
     const docRef = await addDoc(
       collection(db, 'messageBoards', gatheringId, 'posts', postId, 'comments'),
@@ -1232,7 +1253,7 @@ export const dbService = {
         message: context.snippet.length > 80
           ? context.snippet.slice(0, 80) + '...'
           : context.snippet,
-        link: `/groups/${context.gatheringId}`,
+        link: boardPostLink(context.gatheringId, context.postId),
         read: false,
         createdAt: timestamp,
       })
@@ -1277,9 +1298,7 @@ export const dbService = {
         message: context.snippet.length > 80
           ? context.snippet.slice(0, 80) + '...'
           : context.snippet,
-        link: isCommunityGathering(context.sourceGatheringId)
-          ? '/home'
-          : `/groups/${context.sourceGatheringId}`,
+        link: boardPostLink(context.sourceGatheringId, context.postId),
         read: false,
         createdAt: timestamp,
       })
@@ -1294,6 +1313,7 @@ export const dbService = {
     authorId: string
     authorName: string
     gatheringId: string
+    postId: string
     isReply: boolean
     snippet: string
   }): void {
@@ -1306,7 +1326,7 @@ export const dbService = {
       message: context.snippet.length > 80
         ? context.snippet.slice(0, 80) + '...'
         : context.snippet,
-      link: isCommunityGathering(context.gatheringId) ? '/home' : `/groups/${context.gatheringId}`,
+      link: boardPostLink(context.gatheringId, context.postId),
       read: false,
       createdAt: serverTimestamp(),
     }).catch((err) => console.error('[db] comment notify failed', err))

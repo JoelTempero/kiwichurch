@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { BottomNav } from './BottomNav'
 import { DesktopSidebar } from './DesktopSidebar'
 import { AppHeader } from './AppHeader'
@@ -16,8 +16,17 @@ import { useKeyboardShortcuts, useNavigationShortcuts } from '@/hooks/useKeyboar
 export function AppLayout() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
+
+  // Dismiss the overlay panels whenever the route changes, so navigating
+  // (bottom nav, sidebar, a notification's link, keyboard shortcuts) always
+  // clears them instead of leaving a panel stuck in front of the new page.
+  useEffect(() => {
+    setShowNotifications(false)
+    setShowSearch(false)
+  }, [location.pathname])
   const unreadCount = useUnreadNotificationCount(user?.id || null, user?.mutedNotificationCategories || [])
   useNotificationsSubscription(user?.id || null, user?.mutedNotificationCategories || [])
   useConversationsSubscription(user?.id ?? null)

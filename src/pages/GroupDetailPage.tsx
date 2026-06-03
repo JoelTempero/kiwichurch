@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, MapPin, Users, BarChart3, Plus, X, Image as ImageIcon } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import {
@@ -81,6 +81,20 @@ export function GroupDetailPage() {
     }
     return 0
   }), [posts])
+
+  // Deep-link from a comment/mention notification (?post=id): switch to the
+  // board tab and scroll to the target post (BoardPost auto-opens its comments).
+  const [searchParams] = useSearchParams()
+  const postParam = searchParams.get('post')
+  useEffect(() => {
+    if (!postParam) return
+    if (!sortedPosts.some(p => p.id === postParam)) return
+    if (activeTab !== 'board') setActiveTab('board')
+    const t = setTimeout(() => {
+      document.getElementById(`post-${postParam}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 150)
+    return () => clearTimeout(t)
+  }, [postParam, sortedPosts, activeTab])
 
   const mentionMembers: MentionMember[] = useMemo(() => {
     return memberProfiles
@@ -458,7 +472,7 @@ export function GroupDetailPage() {
                   message="Be the first to share something!"
                 />
               ) : (
-                <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+                <div className="space-y-3">
                   {sortedPosts.map(post => (
                     <BoardPost
                       key={post.id}
@@ -466,6 +480,7 @@ export function GroupDetailPage() {
                       gatheringId={groupId!}
                       gatheringName={gathering.name}
                       members={mentionMembers}
+                      autoFocusComments={post.id === postParam}
                     />
                   ))}
                 </div>

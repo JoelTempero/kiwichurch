@@ -82,9 +82,32 @@ export function PrivacySection() {
     }
   }
 
+  const listedOn = privacy.listInDirectory === true
+
   return (
     <section className="mb-6">
       <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3">Privacy</p>
+
+      {/* Directory listing — master discoverability switch. Off by default. */}
+      <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden mb-3">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex-1 pr-3">
+            <p id="privacy-listing-label" className="text-sm font-semibold text-text-primary m-0">
+              List me in the member directory
+            </p>
+            <p id="privacy-listing-hint" className="text-xs text-text-light m-0">
+              When off, other members can’t find you in the directory, search, or
+              when starting a new message. You can still use everything yourself.
+            </p>
+          </div>
+          <Toggle
+            checked={listedOn}
+            onChange={(next) => handleAdvanced('listInDirectory', next)}
+            labelId="privacy-listing-label"
+            descId="privacy-listing-hint"
+          />
+        </div>
+      </div>
 
       {/* Master toggle */}
       <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden">

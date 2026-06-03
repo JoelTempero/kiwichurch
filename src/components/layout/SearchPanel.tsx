@@ -119,6 +119,8 @@ function useGlobalSearch(query: string) {
 
       const profiles = await dbService.getAllPublicProfiles()
       profiles.forEach((profile: UserProfile) => {
+        // Only members who opted into the directory are searchable.
+        if (profile.listInDirectory !== true) return
         if (
           profile.displayName.toLowerCase().includes(normalizedQuery) ||
           profile.publicEmail?.toLowerCase().includes(normalizedQuery)
@@ -269,7 +271,7 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-overlay/50 flex items-start justify-center pt-[10vh]"
+      className="fixed inset-0 z-[2000] bg-overlay/50 flex items-start justify-center pt-[10vh]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"

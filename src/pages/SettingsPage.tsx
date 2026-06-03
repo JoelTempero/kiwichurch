@@ -58,6 +58,7 @@ export function SettingsPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showDeactivated, setShowDeactivated] = useState(false)
+  const [showAllUsers, setShowAllUsers] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [mutedCategories, setMutedCategories] = useState<NotificationType[]>(
@@ -187,6 +188,18 @@ export function SettingsPage() {
     const q = searchQuery.toLowerCase()
     return u.displayName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
   })
+
+  // Search-prioritised: with 60+ members, don't dump the whole roster. Show
+  // pending users (they need action) plus a short preview; everything else is
+  // a search away, with a "show all" escape hatch.
+  const USER_PREVIEW_LIMIT = 8
+  const isSearching = searchQuery.trim().length > 0
+  const pendingUsers = filteredUsers.filter((u) => u.status === 'pending')
+  const otherUsers = filteredUsers.filter((u) => u.status !== 'pending')
+  const displayUsers = isSearching || showAllUsers
+    ? filteredUsers
+    : [...pendingUsers, ...otherUsers.slice(0, USER_PREVIEW_LIMIT)]
+  const hiddenUserCount = filteredUsers.length - displayUsers.length
 
   const handleApproveUser = (u: User) => {
     updateUserMutation.mutate({ userId: u.id, updates: { status: 'active' } })
@@ -388,48 +401,74 @@ export function SettingsPage() {
               message={searchQuery ? 'Try a different search term' : 'No users in the system'}
             />
           ) : (
-            <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
-              {filteredUsers.map((u: User) => {
-                const isPending = u.status === 'pending'
-                const isDeactivated = u.status === 'deactivated'
-                return (
-                  <div key={u.id} className={cn(
-                    'flex items-center gap-3 p-3',
-                    isPending && 'bg-amber-50',
-                    isDeactivated && 'opacity-60',
-                  )}>
-                    <Avatar src={u.photoURL} name={u.displayName} size="md" />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-text-primary text-sm">{u.displayName}</h3>
-                      <p className="text-xs text-text-light truncate">{u.email}</p>
-                    </div>
-                    {isDeactivated && (
-                      <Badge variant="default">Deactivated</Badge>
-                    )}
-                    {isPending && (
-                      <Badge variant="warning">Pending</Badge>
-                    )}
-                    {!isPending && !isDeactivated && (
-                      <Badge variant={getRoleBadgeVariant(u.role)}>{u.role}</Badge>
-                    )}
-                    {isPending && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleApproveUser(u)}
-                        disabled={updateUserMutation.isPending}
-                        aria-label={`Approve ${u.displayName}`}
+            <>
+              <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+                {displayUsers.map((u: User) => {
+                  const isPending = u.status === 'pending'
+                  const isDeactivated = u.status === 'deactivated'
+                  return (
+                    <div key={u.id} className={cn(
+                      'flex items-center gap-2.5 px-3 py-2',
+                      isPending && 'bg-amber-50',
+                      isDeactivated && 'opacity-60',
+                    )}>
+                      <Avatar src={u.photoURL} name={u.displayName} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-text-primary text-sm leading-tight truncate">{u.displayName}</h3>
+                        <p className="text-xs text-text-lighter truncate leading-tight">{u.email}</p>
+                      </div>
+                      {isDeactivated && (
+                        <Badge variant="default">Deactivated</Badge>
+                      )}
+                      {isPending && (
+                        <Badge variant="warning">Pending</Badge>
+                      )}
+                      {!isPending && !isDeactivated && u.role !== 'member' && (
+                        <Badge variant={getRoleBadgeVariant(u.role)}>{u.role}</Badge>
+                      )}
+                      {isPending && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleApproveUser(u)}
+                          disabled={updateUserMutation.isPending}
+                          aria-label={`Approve ${u.displayName}`}
+                        >
+                          Approve
+                        </Button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(u)}
+                        aria-label={`Edit ${u.displayName}`}
+                        className="p-1.5 rounded-md text-text-lighter hover:text-forest hover:bg-cream transition-colors shrink-0"
                       >
-                        Approve
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={() => openEditModal(u)} aria-label={`Edit ${u.displayName}`}>
-                      <Pencil size={16} />
-                    </Button>
-                  </div>
-                )
-              })}
-            </FadeIn>
+                        <Pencil size={15} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </FadeIn>
+
+              {!isSearching && hiddenUserCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllUsers(true)}
+                  className="w-full mt-2 py-2 text-sm text-forest hover:text-forest-light transition-colors font-medium"
+                >
+                  Show all {filteredUsers.length} users
+                </button>
+              )}
+              {!isSearching && showAllUsers && filteredUsers.length > USER_PREVIEW_LIMIT && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllUsers(false)}
+                  className="w-full mt-2 py-2 text-sm text-text-light hover:text-text-primary transition-colors"
+                >
+                  Show less
+                </button>
+              )}
+            </>
           )}
         </section>
       )}

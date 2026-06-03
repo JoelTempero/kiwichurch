@@ -219,6 +219,22 @@ export function HomePage() {
   }), [posts])
   const visiblePosts = showAllPosts ? sortedPosts : sortedPosts.slice(0, 3)
 
+  // Deep-link from a comment/mention notification (?post=id): switch to the
+  // board, reveal the target post (expanding past the first 3 if needed), and
+  // scroll to it. BoardPost auto-opens its comments via autoFocusComments.
+  const postParam = searchParams.get('post')
+  useEffect(() => {
+    if (!postParam) return
+    const idx = sortedPosts.findIndex(p => p.id === postParam)
+    if (idx === -1) return
+    if (activeTab !== 'board') setActiveTab('board')
+    if (idx > 2 && !showAllPosts) setShowAllPosts(true)
+    const t = setTimeout(() => {
+      document.getElementById(`post-${postParam}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 150)
+    return () => clearTimeout(t)
+  }, [postParam, sortedPosts, showAllPosts, activeTab])
+
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="max-w-5xl mx-auto p-4">
@@ -413,7 +429,7 @@ export function HomePage() {
             />
           ) : (
             <FadeIn>
-              <div className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden divide-y divide-[#ebe6dc]">
+              <div className="space-y-3">
                 {visiblePosts.map(post => (
                   <BoardPost
                     key={post.id}
@@ -421,6 +437,7 @@ export function HomePage() {
                     gatheringId={COMMUNITY_GATHERING_ID}
                     gatheringName={COMMUNITY_GATHERING_NAME}
                     members={mentionMembers}
+                    autoFocusComments={post.id === postParam}
                   />
                 ))}
               </div>

@@ -50,6 +50,12 @@ export interface UserPreferences {
 }
 
 export interface PrivacySettings {
+  // Master discoverability switch. When false (the default), the user does
+  // NOT appear in the directory, global search, the new-message picker, or
+  // the family-link picker. They can still use everything themselves and
+  // remain visible to fellow members within groups they share. Admins/hosts
+  // can still see them in the directory for pastoral care.
+  listInDirectory?: boolean
   showPhone?: boolean
   showEmail?: boolean
   showGroups?: boolean
@@ -88,6 +94,10 @@ export interface UserProfile {
   gallery?: GalleryImage[]
   publicPhone?: string
   publicEmail?: string
+  // Whether this member opted into being discoverable. Mirrors
+  // PrivacySettings.listInDirectory. Absent on legacy docs = treated as
+  // hidden (the directory/search/picker filters check === true).
+  listInDirectory?: boolean
   // First names + isChild flag only — no relationship, no last names.
   publicFamily?: Array<{ name: string; isChild?: boolean }>
   createdAt: Timestamp | Date
@@ -100,6 +110,8 @@ export interface UsernameMapping {
 }
 
 export const DEFAULT_PRIVACY: Required<PrivacySettings> = {
+  // Opt-in: members are hidden from the directory until they choose to appear.
+  listInDirectory: false,
   showPhone: true,
   showEmail: true,
   showGroups: true,

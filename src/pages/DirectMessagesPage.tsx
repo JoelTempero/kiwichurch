@@ -56,11 +56,14 @@ export function DirectMessagesPage() {
   const createConversation = useCreateConversation()
 
   const filteredMembers = useMemo(() => {
-    if (!memberSearch.trim()) return allUsers.filter((u: UserProfile) => u.id !== user?.id)
-    const q = memberSearch.toLowerCase()
-    return allUsers.filter(
-      (u: UserProfile) => u.id !== user?.id && u.displayName.toLowerCase().includes(q)
+    // Only members who opted into the directory can be started a new chat with.
+    // (Admins reach hidden members via the directory → Message instead.)
+    const discoverable = allUsers.filter(
+      (u: UserProfile) => u.id !== user?.id && u.listInDirectory === true,
     )
+    if (!memberSearch.trim()) return discoverable
+    const q = memberSearch.toLowerCase()
+    return discoverable.filter((u: UserProfile) => u.displayName.toLowerCase().includes(q))
   }, [allUsers, memberSearch, user?.id])
 
   const handleSelectMember = async (member: UserProfile) => {

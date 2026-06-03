@@ -5,6 +5,7 @@ import { Avatar, Button, MentionInput, ConfirmModal } from '@/components/common'
 import { useAuth } from '@/hooks/useAuth'
 import {
   usePostComments,
+  usePostCommentCount,
   usePostCommentsSubscription,
   useAddPostComment,
   useUpdateBoardPost,
@@ -29,6 +30,9 @@ interface BoardPostProps {
   gatheringName: string
   members: MentionMember[]
   onDelete?: () => void
+  // When a notification deep-links to this post (?post=id), open its comments
+  // straight away and highlight it so the recipient sees what they came for.
+  autoFocusComments?: boolean
 }
 
 function formatTimeAgo(date: Date | { toDate: () => Date } | null | undefined): string {
@@ -81,10 +85,10 @@ function ReplyQuote({ comment }: { comment: BoardComment | undefined }) {
 
 const REACTION_EMOJIS = ['❤️', '🙏', '👍', '😂', '🎉', '😢']
 
-export function BoardPost({ post, gatheringId, gatheringName, members, onDelete }: BoardPostProps) {
+export function BoardPost({ post, gatheringId, gatheringName, members, onDelete, autoFocusComments = false }: BoardPostProps) {
   const { user, isAdminOrHost } = useAuth()
   const { showToast } = useToast()
-  const [showComments, setShowComments] = useState(false)
+  const [showComments, setShowComments] = useState(autoFocusComments)
   const [newComment, setNewComment] = useState('')
   const [commentMentions, setCommentMentions] = useState<Map<string, string>>(new Map())
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -107,6 +111,16 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
     showComments ? gatheringId : null,
     showComments ? post.id : null
   )
+
+  // Always-loaded count so the collapsed button can show how many comments
+  // exist. When expanded, the live comments array is the source of truth.
+  const { data: collapsedCommentCount = 0 } = usePostCommentCount(gatheringId, post.id)
+  const commentCount = showComments ? comments.length : collapsedCommentCount
+
+  // If a deep-link targets this post after mount, open its comments.
+  useEffect(() => {
+    if (autoFocusComments) setShowComments(true)
+  }, [autoFocusComments])
 
   const addComment = useAddPostComment()
   const updatePost = useUpdateBoardPost()
@@ -252,11 +266,15 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
   }
 
   return (
-    <div className={cn(
-      'p-4',
-      post.pinned && 'bg-cream/50',
-      post.pinned && isCommunity && 'border-l-4 border-terracotta'
-    )}>
+    <div
+      id={`post-${post.id}`}
+      className={cn(
+        'p-4 scroll-mt-24 bg-white border border-[#e0dbd2] rounded-lg',
+        post.pinned && 'bg-cream/50',
+        post.pinned && isCommunity && 'border-l-4 border-terracotta',
+        autoFocusComments && 'ring-2 ring-forest/40 ring-inset'
+      )}
+    >
       {post.pinned && (
         <div className={cn(
           'inline-flex items-center gap-1 text-xs font-medium mb-2 px-2 py-0.5 rounded-full',
@@ -461,7 +479,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
           aria-expanded={showComments}
         >
           <MessageCircle size={16} />
-          {comments.length > 0 ? `${comments.length} comments` : 'Comment'}
+          {commentCount > 0 ? `${commentCount} comment${commentCount === 1 ? '' : 's'}` : 'Comment'}
         </button>
         <div className="relative">
           <button
@@ -491,7 +509,7 @@ export function BoardPost({ post, gatheringId, gatheringName, members, onDelete 
       </div>
 
       {showComments && (
-        <div className="mt-3 pt-3 border-t border-cream-dark space-y-3">
+        <div className="-mx-4 -mb-4 mt-3 px-4 py-3 bg-cream/40 border-t border-cream-dark rounded-b-lg space-y-3">
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-2">
               <Avatar src={comment.authorPhotoURL} name={comment.authorName} size="sm" />

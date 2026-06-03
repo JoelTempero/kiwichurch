@@ -37,9 +37,17 @@ export function DirectoryPage() {
     enabled: !!groupFilter,
   })
 
+  // Opt-in directory: only members who turned on "List me in the directory"
+  // are visible — for everyone, admins included. Admins get the full roster
+  // from the Settings user list instead.
+  const visibleUsers = useMemo(
+    () => users.filter((u: UserProfile) => u.listInDirectory === true),
+    [users],
+  )
+
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
-    return users.filter((u: UserProfile) => {
+    return visibleUsers.filter((u: UserProfile) => {
       if (roleFilter !== 'all' && u.role !== roleFilter) return false
       if (groupFilter && !groupMemberIds.has(u.id)) return false
       if (!q) return true
@@ -53,7 +61,7 @@ export function DirectoryPage() {
         .toLowerCase()
       return haystack.includes(q)
     })
-  }, [users, searchQuery, roleFilter, groupFilter, groupMemberIds])
+  }, [visibleUsers, searchQuery, roleFilter, groupFilter, groupMemberIds])
 
   const groupedUsers = useMemo(() => {
     return filteredUsers.reduce((groups: Record<string, UserProfile[]>, u: UserProfile) => {
@@ -84,7 +92,7 @@ export function DirectoryPage() {
     <div className="max-w-[800px] mx-auto p-6">
       <div className="mb-4">
         <h1 className="font-display text-2xl text-forest mb-1">Directory</h1>
-        <p className="text-text-light m-0">{users.length} members</p>
+        <p className="text-text-light m-0">{visibleUsers.length} members</p>
       </div>
 
       {/* Search */}
@@ -150,7 +158,11 @@ export function DirectoryPage() {
         <EmptyState
           icon="users"
           title="No members found"
-          message={hasFilters ? 'Try clearing some filters' : 'No members in the directory'}
+          message={
+            hasFilters
+              ? 'Try clearing some filters'
+              : 'Members appear here once they choose to be listed. You can list yourself in Profile → Privacy → “List me in the member directory”.'
+          }
         />
       ) : (
         <FadeIn className="bg-[#faf8f4] border border-[#e0dbd2] rounded-lg overflow-hidden">

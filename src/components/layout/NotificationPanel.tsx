@@ -17,8 +17,18 @@ interface NotificationPanelProps {
   onClose: () => void
 }
 
-function formatNotificationTime(date: Date | { toDate: () => Date }): string {
-  const d = date instanceof Date ? date : date.toDate()
+function formatNotificationTime(date: Date | { toDate: () => Date } | null | undefined): string {
+  // Defensive: a notification doc with a missing/serverTimestamp-pending
+  // createdAt must never throw here — a render crash in this portal takes the
+  // whole app down (it sits outside the route error boundary).
+  if (!date) return ''
+  let d: Date
+  try {
+    d = date instanceof Date ? date : date.toDate()
+  } catch {
+    return ''
+  }
+  if (!(d instanceof Date) || isNaN(d.getTime())) return ''
   const now = new Date()
   const diff = now.getTime() - d.getTime()
 
@@ -60,7 +70,7 @@ function getNotificationIcon(type: Notification['type']): JSX.Element {
 export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { data: rawNotifications = [], isLoading } = useNotifications(user?.id || null, { limit: 20 })
+  const { data: rawNotifications = [], isLoading, isError, refetch } = useNotifications(user?.id || null, { limit: 20 })
   const muted = user?.mutedNotificationCategories || []
   const notifications = muted.length === 0
     ? rawNotifications
@@ -107,7 +117,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-overlay flex justify-end"
+      className="fixed inset-0 z-[2000] bg-overlay flex justify-end"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
@@ -148,6 +158,17 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
               <Skeleton variant="rectangular" height={60} />
               <Skeleton variant="rectangular" height={60} />
               <Skeleton variant="rectangular" height={60} />
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center text-center py-12 px-6 text-text-lighter">
+              <Bell size={48} />
+              <p>Couldn’t load your notifications</p>
+              <span className="text-sm text-text-lighter mt-2 mb-4">
+                Check your connection and try again.
+              </span>
+              <Button variant="secondary" size="sm" onClick={() => refetch()}>
+                Try again
+              </Button>
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center py-12 px-6 text-text-lighter">

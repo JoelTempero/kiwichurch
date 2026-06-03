@@ -14,7 +14,9 @@ export const gatheringKeys = {
   userGatherings: (userId: string) => [...gatheringKeys.all, 'user', userId] as const,
   posts: (gatheringId: string) => [...gatheringKeys.all, 'posts', gatheringId] as const,
   postComments: (gatheringId: string, postId: string) =>
-    [...gatheringKeys.posts(gatheringId), 'comments', postId] as const
+    [...gatheringKeys.posts(gatheringId), 'comments', postId] as const,
+  postCommentCount: (gatheringId: string, postId: string) =>
+    [...gatheringKeys.posts(gatheringId), 'commentCount', postId] as const
 }
 
 // Get all gatherings
@@ -94,6 +96,17 @@ export function usePostComments(gatheringId: string | null, postId: string | nul
     queryKey: gatheringKeys.postComments(gatheringId || '', postId || ''),
     queryFn: () => dbService.getPostComments(gatheringId!, postId!),
     enabled: !!gatheringId && !!postId
+  })
+}
+
+// Lightweight comment count — loaded for every visible post so the collapsed
+// comment button can show how many comments a post has at a glance.
+export function usePostCommentCount(gatheringId: string | null, postId: string | null) {
+  return useQuery({
+    queryKey: gatheringKeys.postCommentCount(gatheringId || '', postId || ''),
+    queryFn: () => dbService.getPostCommentCount(gatheringId!, postId!),
+    enabled: !!gatheringId && !!postId,
+    staleTime: 60 * 1000
   })
 }
 
@@ -374,6 +387,7 @@ export function useAddPostComment() {
           authorId: commentData.authorId,
           authorName: commentData.authorName,
           gatheringId,
+          postId,
           isReply: !!commentData.replyToId,
           snippet,
         })
@@ -383,6 +397,7 @@ export function useAddPostComment() {
     },
     onSuccess: (_, { gatheringId, postId }) => {
       queryClient.invalidateQueries({ queryKey: gatheringKeys.postComments(gatheringId, postId) })
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.postCommentCount(gatheringId, postId) })
     }
   })
 }
@@ -403,6 +418,7 @@ export function useDeletePostComment() {
     }) => dbService.deletePostComment(gatheringId, postId, commentId),
     onSuccess: (_, { gatheringId, postId }) => {
       queryClient.invalidateQueries({ queryKey: gatheringKeys.postComments(gatheringId, postId) })
+      queryClient.invalidateQueries({ queryKey: gatheringKeys.postCommentCount(gatheringId, postId) })
     }
   })
 }
