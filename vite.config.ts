@@ -5,6 +5,23 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 import path from 'path'
 import fs from 'fs'
+import { execSync } from 'child_process'
+
+function gitSha(): string {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch {
+    return 'unknown'
+  }
+}
+
+function appVersion(): string {
+  try {
+    return JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')).version || 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
 
 function renameSpaEntry(): import('vite').Plugin {
   return {
@@ -22,6 +39,11 @@ function renameSpaEntry(): import('vite').Plugin {
 }
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion()),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __GIT_SHA__: JSON.stringify(gitSha()),
+  },
   plugins: [
     react(),
     tailwindcss(),
