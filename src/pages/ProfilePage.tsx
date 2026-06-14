@@ -23,7 +23,7 @@ const inputBase = 'w-full px-3 py-3 border border-sage-light rounded-md font-bod
 const inputError = 'border-red-600 focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
 
 export function ProfilePage() {
-  const { user, signOut, updateProfile, updatePassword } = useAuth()
+  const { user, isAdmin, signOut, updateProfile, updatePassword } = useAuth()
   const { showToast } = useToast()
   const navigate = useNavigate()
 
@@ -306,6 +306,17 @@ export function ProfilePage() {
             <span className="flex-1 text-text-primary text-sm font-medium">Report a problem</span>
             <ChevronRight size={16} className="text-text-light" aria-hidden="true" />
           </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => navigate('/bug-reports')}
+              className="flex items-center gap-3 w-full text-left px-1 py-3 border-b border-[#e0dbd2] hover:bg-cream/50 transition-colors"
+            >
+              <Bug size={18} className="text-terracotta" aria-hidden="true" />
+              <span className="flex-1 text-text-primary text-sm font-medium">Review bug reports</span>
+              <ChevronRight size={16} className="text-text-light" aria-hidden="true" />
+            </button>
+          )}
         </div>
       )}
 
