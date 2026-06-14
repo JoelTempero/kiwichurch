@@ -25,6 +25,7 @@ const DirectoryPage = lazyWithRetry(() => import('@/pages/DirectoryPage').then(m
 const DirectMessagesPage = lazyWithRetry(() => import('@/pages/DirectMessagesPage').then(m => ({ default: m.DirectMessagesPage })))
 const ConversationPage = lazyWithRetry(() => import('@/pages/ConversationPage').then(m => ({ default: m.ConversationPage })))
 const ModerationPage = lazyWithRetry(() => import('@/pages/ModerationPage').then(m => ({ default: m.ModerationPage })))
+const BugReportsPage = lazyWithRetry(() => import('@/pages/BugReportsPage').then(m => ({ default: m.BugReportsPage })))
 
 function PageLoader() {
   return (
@@ -74,6 +75,7 @@ function App() {
             <Route path="/messages" element={<DirectMessagesPage />} />
             <Route path="/messages/:conversationId" element={<ConversationPage />} />
             <Route path="/moderation" element={<ModerationPage />} />
+            <Route path="/bug-reports" element={<BugReportsPage />} />
           </Route>
 
           {/* Fallback */}
