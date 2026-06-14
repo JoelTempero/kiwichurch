@@ -194,6 +194,26 @@ export const storageService = {
   },
 
   // ============================================
+  // BUG REPORT PHOTOS
+  // ============================================
+
+  async uploadBugReportPhoto(
+    reportId: string,
+    file: File,
+    onProgress?: ProgressCallback
+  ): Promise<UploadResult> {
+    if (!isValidImage(file)) {
+      throw new Error('Please upload a valid image (JPEG, PNG, GIF, or WebP)')
+    }
+    if (!isValidSize(file, 8)) {
+      throw new Error('Image must be smaller than 8MB')
+    }
+    const fileName = generateFileName(file.name)
+    const path = `bugReports/${reportId}/${fileName}`
+    return this.uploadFile(path, file, onProgress)
+  },
+
+  // ============================================
   // GROUP RESOURCES
   // ============================================
 

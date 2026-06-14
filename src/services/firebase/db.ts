@@ -46,6 +46,8 @@ import type {
   FamilyLink,
 } from '@/types'
 import { DEFAULT_PRIVACY, familyLinkId } from '@/types'
+import type { BugReport, BugReportStatus } from '@/types/bugReport'
+import type { BugReportDiagnostics } from '@/utils/errorBuffer'
 import { GroupResource } from '../../types/groupResource'
 import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME, isCommunityGathering } from '@/utils/community'
 
@@ -1359,6 +1361,74 @@ export const dbService = {
       status,
       reviewedBy: reviewerId,
       reviewedAt: serverTimestamp(),
+    })
+  },
+
+  // ============================================
+  // BUG REPORTS
+  // ============================================
+
+  // Pre-allocate a doc id so photos can upload to a stable bugReports/{id}/ path
+  // before the report doc's photoURLs/diagnostics are patched in (Kete pattern).
+  createBugReportRef(): string {
+    return doc(collection(db, 'bugReports')).id
+  },
+
+  async createBugReport(
+    id: string,
+    data: {
+      reporterId: string
+      reporterName: string
+      reporterEmail: string
+      description: string
+    }
+  ): Promise<void> {
+    await setDoc(doc(db, 'bugReports', id), {
+      ...data,
+      photoURLs: [],
+      status: 'new',
+      diagnostics: null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  },
+
+  // Reporter's own follow-up write — limited to photoURLs + diagnostics by rules.
+  async finalizeBugReport(
+    id: string,
+    photoURLs: string[],
+    diagnostics: BugReportDiagnostics
+  ): Promise<void> {
+    await updateDoc(doc(db, 'bugReports', id), {
+      photoURLs,
+      diagnostics,
+      updatedAt: serverTimestamp(),
+    })
+  },
+
+  async getBugReports(status?: BugReportStatus): Promise<BugReport[]> {
+    const constraints: Parameters<typeof query>[1][] = [orderBy('createdAt', 'desc')]
+    if (status) {
+      constraints.push(where('status', '==', status))
+    }
+    const q = query(collection(db, 'bugReports'), ...constraints)
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(d => docToObject<BugReport>(d))
+  },
+
+  async getNewBugReportCount(): Promise<number> {
+    const q = query(collection(db, 'bugReports'), where('status', '==', 'new'))
+    const snap = await getCountFromServer(q)
+    return snap.data().count
+  },
+
+  async updateBugReport(
+    id: string,
+    updates: { status?: BugReportStatus; adminNotes?: string }
+  ): Promise<void> {
+    await updateDoc(doc(db, 'bugReports', id), {
+      ...updates,
+      updatedAt: serverTimestamp(),
     })
   },
 
