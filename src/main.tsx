@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import './styles/app.css'
+import { installErrorBuffer } from './utils/errorBuffer'
+
+// Capture runtime errors for bug reports (must run before render).
+installErrorBuffer()
 
 // Add app-mode class to body for styling
 document.body.classList.add('app-mode')
