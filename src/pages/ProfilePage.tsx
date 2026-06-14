@@ -6,7 +6,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { Avatar, Button, Modal } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
 import { storageService } from '@/services/firebase'
-import { Camera, Pencil, Lock, LogOut, Loader2, SlidersHorizontal, ExternalLink, ChevronRight } from 'lucide-react'
+import { Camera, Pencil, Lock, LogOut, Loader2, SlidersHorizontal, ExternalLink, ChevronRight, Bug } from 'lucide-react'
+import { BugReportModal } from '@/components/common/BugReportModal'
 import {
   FamilySection,
   PrivacySection,
@@ -29,6 +30,7 @@ export function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [showBugReport, setShowBugReport] = useState(false)
 
   const profileForm = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
@@ -295,8 +297,19 @@ export function ProfilePage() {
             <span className="flex-1 text-text-primary text-sm font-medium">Visit website</span>
             <ChevronRight size={16} className="text-text-light" aria-hidden="true" />
           </a>
+          <button
+            type="button"
+            onClick={() => setShowBugReport(true)}
+            className="flex items-center gap-3 w-full text-left px-1 py-3 border-b border-[#e0dbd2] hover:bg-cream/50 transition-colors"
+          >
+            <Bug size={18} className="text-forest" aria-hidden="true" />
+            <span className="flex-1 text-text-primary text-sm font-medium">Report a problem</span>
+            <ChevronRight size={16} className="text-text-light" aria-hidden="true" />
+          </button>
         </div>
       )}
+
+      <BugReportModal open={showBugReport} onClose={() => setShowBugReport(false)} />
 
       {/* Sign Out */}
       <div className="text-center py-8">

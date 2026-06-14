@@ -8,7 +8,8 @@ import { useGatherings } from '@/hooks/useGatherings'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Avatar, Button, Modal, Badge, ConfirmModal, EmptyState, Spinner, FadeIn } from '@/components/common'
 import { useToast } from '@/components/common/Toast'
-import { Search, Pencil, Check, Plus, Calendar, BookMarked, Shield, RefreshCw, Trash2 } from 'lucide-react'
+import { Search, Pencil, Check, Plus, Calendar, BookMarked, Shield, RefreshCw, Trash2, Bug } from 'lucide-react'
+import { BugReportModal } from '@/components/common/BugReportModal'
 import { cn } from '@/utils/cn'
 import {
   getNotificationPermission,
@@ -61,6 +62,7 @@ export function SettingsPage() {
   const [showAllUsers, setShowAllUsers] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showBugReport, setShowBugReport] = useState(false)
   const [mutedCategories, setMutedCategories] = useState<NotificationType[]>(
     user?.mutedNotificationCategories || []
   )
@@ -356,7 +358,21 @@ export function SettingsPage() {
             {isRefreshing ? 'Refreshing…' : 'Refresh'}
           </Button>
         </div>
+        <div className="flex items-center justify-between py-3 border-b border-[#e0dbd2]">
+          <div className="flex-1 pr-4">
+            <h3 className="text-sm font-semibold text-text-primary">Report a problem</h3>
+            <p className="text-xs text-text-light mt-0.5">
+              Tell us about something that's not working or a change you'd like. You can attach photos.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowBugReport(true)}>
+            <Bug size={14} className="mr-1.5" />
+            Report
+          </Button>
+        </div>
       </section>
+
+      <BugReportModal open={showBugReport} onClose={() => setShowBugReport(false)} />
 
       {/* Admin: Users */}
       {isAdmin && (
