@@ -65,6 +65,7 @@ export function HomePage() {
   // Board state
   const [newPostContent, setNewPostContent] = useState('')
   const [isPosting, setIsPosting] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [postMentions, setPostMentions] = useState<Map<string, string>>(new Map())
   const [showPollCreator, setShowPollCreator] = useState(false)
   const [pollQuestion, setPollQuestion] = useState('')
@@ -132,7 +133,10 @@ export function HomePage() {
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newPostContent.trim() || !user) return
+    if (!user) return
+    // Allow a post with text, an image, or a poll — any one is enough.
+    const hasPoll = showPollCreator && pollQuestion.trim().length > 0
+    if (!newPostContent.trim() && !attachmentFile && !hasPoll) return
 
     setIsPosting(true)
     try {
@@ -164,7 +168,13 @@ export function HomePage() {
 
       if (attachmentFile) {
         const tempId = crypto.randomUUID()
-        const result = await storageService.uploadBoardAttachment(COMMUNITY_GATHERING_ID, tempId, attachmentFile)
+        setUploadProgress(0)
+        const result = await storageService.uploadBoardAttachment(
+          COMMUNITY_GATHERING_ID,
+          tempId,
+          attachmentFile,
+          (progress) => setUploadProgress(Math.round(progress))
+        )
         attachmentURL = result.url
         attachmentType = attachmentFile.type
         attachmentName = attachmentFile.name
@@ -196,9 +206,13 @@ export function HomePage() {
       showToast('Post shared!', 'success')
     } catch (err) {
       console.error('Failed to create post:', err)
-      showToast('Failed to create post', 'error')
+      showToast(
+        err instanceof Error && err.message ? err.message : 'Failed to create post',
+        'error'
+      )
     } finally {
       setIsPosting(false)
+      setUploadProgress(null)
     }
   }
 
@@ -411,9 +425,15 @@ export function HomePage() {
                 type="submit"
                 variant="primary"
                 loading={isPosting}
-                disabled={!newPostContent.trim()}
+                disabled={
+                  !newPostContent.trim() &&
+                  !attachmentFile &&
+                  !(showPollCreator && pollQuestion.trim())
+                }
               >
-                Post
+                {isPosting && uploadProgress !== null && uploadProgress < 100
+                  ? `Uploading ${uploadProgress}%`
+                  : 'Post'}
               </Button>
             </div>
           </form>

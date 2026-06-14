@@ -27,6 +27,11 @@ export const db = initializeFirestore(app, {
   }),
 })
 export const storage = getStorage(app)
+// Fail fast on flaky mobile connections instead of silently retrying for the
+// 10-minute default — a stalled upload otherwise looks like a frozen "posting…"
+// spinner with no error. 45s is plenty for a 25MB cap on a usable connection.
+storage.maxUploadRetryTime = 45_000
+storage.maxOperationRetryTime = 30_000
 
 // Connect to emulators in development
 if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true') {

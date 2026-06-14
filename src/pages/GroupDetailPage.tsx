@@ -38,6 +38,7 @@ export function GroupDetailPage() {
   const { showToast } = useToast()
   const [newPostContent, setNewPostContent] = useState('')
   const [isPosting, setIsPosting] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [postMentions, setPostMentions] = useState<Map<string, string>>(new Map())
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [showPollCreator, setShowPollCreator] = useState(false)
@@ -157,7 +158,10 @@ export function GroupDetailPage() {
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newPostContent.trim() || !user || !groupId || !gathering) return
+    if (!user || !groupId || !gathering) return
+    // Allow a post with text, an image, or a poll — any one is enough.
+    const hasPoll = showPollCreator && pollQuestion.trim().length > 0
+    if (!newPostContent.trim() && !attachmentFile && !hasPoll) return
 
     setIsPosting(true)
     try {
@@ -182,7 +186,13 @@ export function GroupDetailPage() {
 
       if (attachmentFile) {
         const tempId = crypto.randomUUID()
-        const result = await storageService.uploadBoardAttachment(groupId, tempId, attachmentFile)
+        setUploadProgress(0)
+        const result = await storageService.uploadBoardAttachment(
+          groupId,
+          tempId,
+          attachmentFile,
+          (progress) => setUploadProgress(Math.round(progress))
+        )
         attachmentURL = result.url
         attachmentType = attachmentFile.type
         attachmentName = attachmentFile.name
@@ -212,9 +222,13 @@ export function GroupDetailPage() {
       showToast('Post created!', 'success')
     } catch (err) {
       console.error('Failed to create post:', err)
-      showToast('Failed to create post', 'error')
+      showToast(
+        err instanceof Error && err.message ? err.message : 'Failed to create post',
+        'error'
+      )
     } finally {
       setIsPosting(false)
+      setUploadProgress(null)
     }
   }
 
@@ -455,9 +469,15 @@ export function GroupDetailPage() {
                     type="submit"
                     variant="primary"
                     loading={isPosting}
-                    disabled={!newPostContent.trim()}
+                    disabled={
+                      !newPostContent.trim() &&
+                      !attachmentFile &&
+                      !(showPollCreator && pollQuestion.trim())
+                    }
                   >
-                    Post
+                    {isPosting && uploadProgress !== null && uploadProgress < 100
+                      ? `Uploading ${uploadProgress}%`
+                      : 'Post'}
                   </Button>
                 </div>
               </form>
