@@ -50,3 +50,6 @@ SITE/site.zip
 [Cc][Oo][Nn]
 [Pp][Rr][Nn]
 [Aa][Uu][Xx]
+
+# Local scratch (bug-report screenshots, etc.)
+.tmp/
