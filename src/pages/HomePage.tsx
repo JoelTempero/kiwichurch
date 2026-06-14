@@ -275,7 +275,7 @@ export function HomePage() {
             <button
               type="button"
               onClick={() => handleTabChange('board')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
+              className={`px-4 py-2 text-base font-medium transition-colors ${
                 activeTab === 'board'
                   ? 'border-b-2 border-[#1a3a2f] text-[#1a3a2f]'
                   : 'text-stone-500 hover:text-stone-700'
@@ -287,7 +287,7 @@ export function HomePage() {
             <button
               type="button"
               onClick={() => handleTabChange('files')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
+              className={`px-4 py-2 text-base font-medium transition-colors ${
                 activeTab === 'files'
                   ? 'border-b-2 border-[#1a3a2f] text-[#1a3a2f]'
                   : 'text-stone-500 hover:text-stone-700'

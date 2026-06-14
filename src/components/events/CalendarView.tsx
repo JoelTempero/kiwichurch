@@ -221,7 +221,7 @@ export function CalendarView({ events, onDateClick, onEventClick }: CalendarView
                 {/* Events */}
                 <div className="flex flex-col gap-2">
                   {dayData.events.length === 0 ? (
-                    <span className="text-xs text-text-light italic py-2">No events</span>
+                    <span className="text-sm text-text-light italic py-2">No events</span>
                   ) : (
                     dayData.events.map(event => (
                       <button

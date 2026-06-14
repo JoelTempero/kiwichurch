@@ -156,11 +156,11 @@ export function ConversationPage() {
         {isLoading ? (
           <Spinner />
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
+          <div className="flex flex-col items-center text-center pt-8">
             {otherParticipant && (
               <>
                 <Avatar src={otherParticipant.photoURL} name={otherParticipant.displayName} size="lg" />
-                <p className="text-text-light mt-3 mb-0 text-sm">
+                <p className="text-text-light mt-3 mb-0 text-base">
                   Start a conversation with {otherParticipant.displayName}
                 </p>
               </>
@@ -218,7 +218,7 @@ export function ConversationPage() {
               singleLine
               rows={1}
               maxRows={6}
-              className="!rounded-2xl !py-2.5 !px-4 text-sm leading-snug"
+              className="!rounded-2xl !py-2.5 !px-4 text-base leading-snug placeholder:text-text-light"
               ariaLabel="Message input"
               onSubmit={handleSend}
             />
