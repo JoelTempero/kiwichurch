@@ -139,6 +139,20 @@ service firebase.storage {
     }
 
     // ============================================
+    // BUG REPORT PHOTOS
+    // ============================================
+    match /bugReports/{reportId}/{fileName} {
+      // Authenticated read (admin + reporter); URLs are unguessable.
+      allow read: if isAuthenticated();
+
+      allow write: if isAuthenticated() &&
+        isImage() &&
+        isValidSize(8);
+
+      allow delete: if false;
+    }
+
+    // ============================================
     // SHARED RESOURCES
     // ============================================
     match /resources/{fileName} {

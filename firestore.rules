@@ -406,6 +406,32 @@ service cloud.firestore {
     }
 
     // ============================================
+    // BUG REPORTS (app feedback, photos + diagnostics)
+    // ============================================
+    match /bugReports/{reportId} {
+      // Any active member can file a report about themselves.
+      allow create: if isActive() &&
+        request.resource.data.reporterId == request.auth.uid &&
+        request.resource.data.description is string &&
+        request.resource.data.description.size() > 0 &&
+        request.resource.data.description.size() <= 4000;
+
+      // Admins read all; a reporter can read their own.
+      allow read: if isAdmin() ||
+        (isAuthenticated() && resource.data.reporterId == request.auth.uid);
+
+      // Admins triage (status/notes). The reporter may patch ONLY the
+      // photoURLs + diagnostics in the create→finalize follow-up write.
+      allow update: if isAdmin() ||
+        (isActive() &&
+          resource.data.reporterId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['photoURLs', 'diagnostics', 'updatedAt']));
+
+      allow delete: if isAdmin();
+    }
+
+    // ============================================
     // CONVERSATIONS (Direct Messages)
     // ============================================
     match /conversations/{conversationId} {
