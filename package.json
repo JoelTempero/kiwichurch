@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "build-template": "node scripts/build-template.js",
     "seed": "node scripts/seed.js",
     "seed:kiwichurch": "node scripts/seed-kiwichurch.js",
@@ -45,6 +46,7 @@
     "vite": "^6.0.3",
     "vite-plugin-pwa": "^0.21.1",
     "vite-plugin-static-copy": "^4.0.1",
+    "vitest": "^3.2.4",
     "xlsx": "^0.18.5"
   }
 }
