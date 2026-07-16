@@ -77,6 +77,15 @@ service cloud.firestore {
       return !exists(/databases/$(database)/documents/settings/setup);
     }
 
+    // Check if the current user is a member of the gathering an event
+    // belongs to (used by the events read rule).
+    function isMemberOfEventGroup() {
+      return isAuthenticated()
+        && resource.data.gatheringId is string
+        && resource.data.gatheringId != ''
+        && exists(/databases/$(database)/documents/gatherings/$(resource.data.gatheringId)/members/$(request.auth.uid));
+    }
+
     // ============================================
     // USERS COLLECTION
     // ============================================
@@ -217,8 +226,12 @@ service cloud.firestore {
     // EVENTS COLLECTION
     // ============================================
     match /events/{eventId} {
-      // Public events readable by anyone (static site calendar); all events readable by authenticated users
-      allow read: if isAuthenticated() || resource.data.isPublic == true;
+      // Anonymous static-site calendar: only website-published events.
+      // Authenticated members: events open to all members, church-wide events,
+      // or events of a group they belong to. No blanket authenticated read.
+      allow read: if resource.data.isPublic == true
+        || resource.data.openToAllMembers == true
+        || isMemberOfEventGroup();
 
       // Admin can create/edit/delete any event (incl. church-wide events
       // with no gatheringId). Hosts can only act on events for groups
