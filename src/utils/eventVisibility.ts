@@ -33,8 +33,9 @@ export interface VisibilityEvent {
  *   - A member of the event's group always sees it. Membership beats every flag.
  *   - Otherwise, if the event carries `openToAllMembers`, that flag decides.
  *   - Otherwise (legacy, no flag), fall back to the live gathering's own `isPublic`.
- *     An unknown/deleted group is not treated as a private group's secret — it falls
- *     back to visible.
+ *     An unknown/deleted group is treated as private: a deleted private group's
+ *     events must not become visible to everyone just because the group record
+ *     is gone. Fail closed, not open.
  *
  * No admin bypass, on purpose — the same call the directory makes. A private group is
  * private from everyone outside it. Admins reach these events through the groups they
@@ -49,7 +50,8 @@ export function canSeeEvent(
   if (myGatheringIds.has(event.gatheringId)) return true
   if (typeof event.openToAllMembers === 'boolean') return event.openToAllMembers
   const g = gatheringsById.get(event.gatheringId)
-  return g ? g.isPublic : true // unknown group is not a private group's secret
+  if (g) return g.isPublic
+  return false // unknown/deleted group is treated as private, not public
 }
 
 /** Filter a list of events down to the ones this user may see. */

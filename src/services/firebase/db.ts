@@ -697,8 +697,15 @@ export const dbService = {
       data = {
         ...data,
         openToAllMembers,
-        isPublic: openToAllMembers === false ? false : data.isPublic,
       }
+    }
+    // Invariant, enforced unconditionally: openToAllMembers === false must
+    // always force isPublic: false on the write. Not just inside the branch
+    // above — a caller can pass {openToAllMembers: false, isPublic: true}
+    // directly and skip that branch entirely, and that leaky pair must never
+    // reach Firestore.
+    if (data.openToAllMembers === false) {
+      data = { ...data, isPublic: false }
     }
     const docRef = await addDoc(collection(db, 'events'), {
       ...data,
@@ -729,8 +736,12 @@ export const dbService = {
       base = {
         ...base,
         openToAllMembers,
-        isPublic: openToAllMembers === false ? false : base.isPublic,
       }
+    }
+    // Invariant, enforced unconditionally — see createEvent for why this
+    // can't live only inside the branch above.
+    if (base.openToAllMembers === false) {
+      base = { ...base, isPublic: false }
     }
     const batch = writeBatch(db)
     const created: Event[] = []
@@ -767,8 +778,19 @@ export const dbService = {
       patch = {
         ...updates,
         openToAllMembers,
-        ...(openToAllMembers === false ? { isPublic: false } : {}),
       }
+    }
+    // Invariant, enforced unconditionally: whatever openToAllMembers value
+    // this write leaves in effect — just recomputed above, explicitly passed
+    // by the caller, or (if neither) already sitting on the existing
+    // document — false must always force isPublic: false. Closes the hole
+    // where a caller passes {openToAllMembers: false, isPublic: true}
+    // directly, or updates isPublic without touching the group at all.
+    const resolvedOpenToAllMembers = patch.openToAllMembers !== undefined
+      ? patch.openToAllMembers
+      : before?.openToAllMembers
+    if (resolvedOpenToAllMembers === false) {
+      patch = { ...patch, isPublic: false }
     }
     await updateDoc(eventRef, {
       ...patch,

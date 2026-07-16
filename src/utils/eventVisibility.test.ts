@@ -109,9 +109,9 @@ describe('legacy events (no openToAllMembers stamped)', () => {
     expect(visibleEvents(legacy, GATHERINGS, [])).toHaveLength(0)
   })
 
-  it('shows an event whose group no longer exists rather than hiding it forever', () => {
+  it('hides an event whose group no longer exists — an unknown group fails closed', () => {
     const orphan = [{ id: 'orphan', gatheringId: 'deleted-group' }]
-    expect(idsOf(visibleEvents(orphan, GATHERINGS, []))).toEqual(['orphan'])
+    expect(visibleEvents(orphan, GATHERINGS, [])).toHaveLength(0)
   })
 })
 
