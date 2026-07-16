@@ -19,6 +19,7 @@ import {
   writeBatch,
   type Unsubscribe,
   type DocumentData,
+  type QueryConstraint,
 } from 'firebase/firestore'
 import { auth, db } from './config'
 import type {
@@ -50,6 +51,7 @@ import type { BugReport, BugReportStatus } from '@/types/bugReport'
 import type { BugReportDiagnostics } from '@/utils/errorBuffer'
 import { GroupResource } from '../../types/groupResource'
 import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME, isCommunityGathering } from '@/utils/community'
+import { mergeEventQueryResults } from '@/utils/eventVisibility'
 
 // Helper to convert Firestore doc to typed object
 function docToObject<T>(doc: DocumentData): T {
@@ -62,6 +64,18 @@ function docToObject<T>(doc: DocumentData): T {
 function boardPostLink(gatheringId: string, postId: string): string {
   const base = isCommunityGathering(gatheringId) ? '/home' : `/groups/${gatheringId}`
   return `${base}?post=${postId}`
+}
+
+// Server-side source of truth for Event.openToAllMembers (mirrors the client
+// computation in EventForm and the read-side predicate in
+// src/utils/eventVisibility.ts): no group is church-wide (open), a public
+// group's events are open, a private group's events are closed by default.
+function computeOpenToAllMembers(
+  gatheringId: string | undefined,
+  gatheringsById: Map<string, { isPublic: boolean }>,
+): boolean {
+  if (!gatheringId) return true
+  return gatheringsById.get(gatheringId)?.isPublic === true
 }
 
 export const dbService = {
@@ -531,6 +545,30 @@ export const dbService = {
       ...updates,
       updatedAt: serverTimestamp()
     })
+
+    // Re-stamp openToAllMembers on every event in this gathering when its
+    // privacy flips. This is load-bearing, not cosmetic: a stale
+    // openToAllMembers flag makes the strict member-read rules reject the
+    // WHOLE events list query, not just this one event. Going private also
+    // force-unpublishes each event's website flag (isPublic) to hold the
+    // invariant — a private group can't leave a stray "public" event behind.
+    // Going public leaves each event's own isPublic as-is; we don't
+    // auto-publish an event to the website just because its group did.
+    if (updates.isPublic !== undefined) {
+      const newOpenToAllMembers = updates.isPublic === true
+      const q = query(collection(db, 'events'), where('gatheringId', '==', gatheringId))
+      const snapshot = await getDocs(q)
+      const docs = snapshot.docs
+      for (let i = 0; i < docs.length; i += 450) {
+        const batch = writeBatch(db)
+        for (const d of docs.slice(i, i + 450)) {
+          const patch: Partial<Event> = { openToAllMembers: newOpenToAllMembers }
+          if (updates.isPublic === false) patch.isPublic = false
+          batch.update(d.ref, patch)
+        }
+        await batch.commit()
+      }
+    }
   },
 
   async deleteGathering(gatheringId: string): Promise<void> {
@@ -564,27 +602,78 @@ export const dbService = {
   // EVENTS
   // ============================================
 
-  async getEvents(options: EventQueryOptions = {}): Promise<Event[]> {
-    let q = query(collection(db, 'events'))
-
-    const constraints = []
+  // The strict member-read rule (Task 5) can only prove a query is safe via
+  // its own constraints — an unconstrained `collection('events')` query gets
+  // rejected outright, because Firestore can't prove every returned doc is
+  // readable. So this can't just filter client-side; it has to issue queries
+  // whose constraints are themselves provably readable, then merge.
+  async getEvents(
+    options: EventQueryOptions = {},
+    viewer?: { myPrivateGroupIds: string[] }
+  ): Promise<Event[]> {
+    const dateConstraints: QueryConstraint[] = []
     if (options.startDate) {
-      constraints.push(where('date', '>=', options.startDate))
+      dateConstraints.push(where('date', '>=', options.startDate))
     }
     if (options.endDate) {
-      constraints.push(where('date', '<=', options.endDate))
-    }
-    if (options.gatheringId) {
-      constraints.push(where('gatheringId', '==', options.gatheringId))
-    }
-    constraints.push(orderBy('date', 'asc'))
-    if (options.limit) {
-      constraints.push(limit(options.limit))
+      dateConstraints.push(where('date', '<=', options.endDate))
     }
 
-    q = query(collection(db, 'events'), ...constraints)
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => docToObject<Event>(doc))
+    // Single-group queries stay as one query — the rule already allows a
+    // member (or anyone, for a public group) to read that one gathering's
+    // events, so there's nothing to split.
+    if (options.gatheringId) {
+      const constraints: QueryConstraint[] = [
+        ...dateConstraints,
+        where('gatheringId', '==', options.gatheringId),
+        orderBy('date', 'asc'),
+      ]
+      if (options.limit) constraints.push(limit(options.limit))
+      const snapshot = await getDocs(query(collection(db, 'events'), ...constraints))
+      return snapshot.docs.map(doc => docToObject<Event>(doc))
+    }
+
+    // Query P: openToAllMembers events — church-wide events plus every
+    // public group's events. Provable via the rule's
+    // `openToAllMembers == true` branch. Runs for every caller, including
+    // anonymous/no-viewer ones.
+    const pConstraints = [
+      ...dateConstraints,
+      where('openToAllMembers', '==', true),
+      orderBy('date', 'asc'),
+    ]
+    const pSnap = await getDocs(query(collection(db, 'events'), ...pConstraints))
+    const publicEvents = pSnap.docs.map(doc => docToObject<Event>(doc))
+
+    // Query M: only the PRIVATE groups the viewer actually belongs to
+    // (public ones are already covered by Query P). Provable via the rule's
+    // membership branch. Skipped entirely when there's no viewer or the
+    // viewer belongs to no private groups — an empty `in` clause is invalid
+    // Firestore anyway, and there'd be nothing more to fetch.
+    const myPrivateGroupIds = viewer?.myPrivateGroupIds ?? []
+    let privateEventSets: Event[][] = []
+    if (myPrivateGroupIds.length > 0) {
+      // Firestore's `in` operator caps at 30 values. A member belonging to
+      // more than 30 private groups isn't realistic at church scale, but
+      // chunk anyway so this can't silently truncate results if it ever is.
+      const chunks: string[][] = []
+      for (let i = 0; i < myPrivateGroupIds.length; i += 30) {
+        chunks.push(myPrivateGroupIds.slice(i, i + 30))
+      }
+      privateEventSets = await Promise.all(
+        chunks.map(async (chunk) => {
+          const mConstraints = [
+            ...dateConstraints,
+            where('gatheringId', 'in', chunk),
+            orderBy('date', 'asc'),
+          ]
+          const snap = await getDocs(query(collection(db, 'events'), ...mConstraints))
+          return snap.docs.map(doc => docToObject<Event>(doc))
+        })
+      )
+    }
+
+    return mergeEventQueryResults([publicEvents, ...privateEventSets], options.limit)
   },
 
   async getEvent(eventId: string): Promise<Event | null> {
@@ -594,12 +683,36 @@ export const dbService = {
 
   async createEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>): Promise<Event> {
     const timestamp = serverTimestamp()
+    // Defensive stamping: a caller that forgot to compute openToAllMembers
+    // (or one we haven't audited) can't create a leaky record — resolve the
+    // gathering ourselves and enforce the isPublic invariant on the write.
+    let data = eventData
+    if (data.openToAllMembers === undefined) {
+      const gatheringsById = new Map<string, { isPublic: boolean }>()
+      if (data.gatheringId) {
+        const gathering = await this.getGathering(data.gatheringId)
+        if (gathering) gatheringsById.set(data.gatheringId, gathering)
+      }
+      const openToAllMembers = computeOpenToAllMembers(data.gatheringId, gatheringsById)
+      data = {
+        ...data,
+        openToAllMembers,
+      }
+    }
+    // Invariant, enforced unconditionally: openToAllMembers === false must
+    // always force isPublic: false on the write. Not just inside the branch
+    // above — a caller can pass {openToAllMembers: false, isPublic: true}
+    // directly and skip that branch entirely, and that leaky pair must never
+    // reach Firestore.
+    if (data.openToAllMembers === false) {
+      data = { ...data, isPublic: false }
+    }
     const docRef = await addDoc(collection(db, 'events'), {
-      ...eventData,
+      ...data,
       createdAt: timestamp,
       updatedAt: timestamp
     })
-    return { id: docRef.id, ...eventData } as Event
+    return { id: docRef.id, ...data } as Event
   },
 
   // Bulk-create siblings of a recurring series. Each sibling shares `seriesId`
@@ -610,12 +723,32 @@ export const dbService = {
     dates: string[],
   ): Promise<Event[]> {
     const timestamp = serverTimestamp()
+    // Defensive stamping, same as createEvent — every sibling in the series
+    // shares one gatheringId, so this resolves once for the whole batch.
+    let base = baseData
+    if (base.openToAllMembers === undefined) {
+      const gatheringsById = new Map<string, { isPublic: boolean }>()
+      if (base.gatheringId) {
+        const gathering = await this.getGathering(base.gatheringId)
+        if (gathering) gatheringsById.set(base.gatheringId, gathering)
+      }
+      const openToAllMembers = computeOpenToAllMembers(base.gatheringId, gatheringsById)
+      base = {
+        ...base,
+        openToAllMembers,
+      }
+    }
+    // Invariant, enforced unconditionally — see createEvent for why this
+    // can't live only inside the branch above.
+    if (base.openToAllMembers === false) {
+      base = { ...base, isPublic: false }
+    }
     const batch = writeBatch(db)
     const created: Event[] = []
     for (let i = 0; i < dates.length; i++) {
       const ref = doc(collection(db, 'events'))
       const data = {
-        ...baseData,
+        ...base,
         date: dates[i],
         recurrenceIndex: i,
         createdAt: timestamp,
@@ -631,16 +764,44 @@ export const dbService = {
   async updateEvent(eventId: string, updates: Partial<Event>): Promise<void> {
     const eventRef = doc(db, 'events', eventId)
     const before = (await getDoc(eventRef)).data() as Event | undefined
+    // A group change moves the event under a different privacy regime —
+    // recompute openToAllMembers server-side (don't just trust the caller)
+    // and re-apply the isPublic invariant.
+    let patch = updates
+    if (before && updates.gatheringId !== undefined && updates.gatheringId !== before.gatheringId) {
+      const gatheringsById = new Map<string, { isPublic: boolean }>()
+      if (updates.gatheringId) {
+        const gathering = await this.getGathering(updates.gatheringId)
+        if (gathering) gatheringsById.set(updates.gatheringId, gathering)
+      }
+      const openToAllMembers = computeOpenToAllMembers(updates.gatheringId, gatheringsById)
+      patch = {
+        ...updates,
+        openToAllMembers,
+      }
+    }
+    // Invariant, enforced unconditionally: whatever openToAllMembers value
+    // this write leaves in effect — just recomputed above, explicitly passed
+    // by the caller, or (if neither) already sitting on the existing
+    // document — false must always force isPublic: false. Closes the hole
+    // where a caller passes {openToAllMembers: false, isPublic: true}
+    // directly, or updates isPublic without touching the group at all.
+    const resolvedOpenToAllMembers = patch.openToAllMembers !== undefined
+      ? patch.openToAllMembers
+      : before?.openToAllMembers
+    if (resolvedOpenToAllMembers === false) {
+      patch = { ...patch, isPublic: false }
+    }
     await updateDoc(eventRef, {
-      ...updates,
+      ...patch,
       updatedAt: serverTimestamp()
     })
     if (before && (
-      (updates.time !== undefined && updates.time !== before.time) ||
-      (updates.endTime !== undefined && updates.endTime !== before.endTime) ||
-      (updates.location !== undefined && updates.location !== before.location)
+      (patch.time !== undefined && patch.time !== before.time) ||
+      (patch.endTime !== undefined && patch.endTime !== before.endTime) ||
+      (patch.location !== undefined && patch.location !== before.location)
     )) {
-      const after = { ...before, ...updates } as Event
+      const after = { ...before, ...patch } as Event
       this.notifyEventAttendees(eventId, after, 'updated').catch(
         (err) => console.error('[db] event update notify failed', err)
       )
@@ -670,11 +831,36 @@ export const dbService = {
       gatheringId: _gid,
       gatheringName: _gname,
       rsvpYesCount: _rc,
+      // Never trust the client's openToAllMembers here. The Group <select>
+      // isn't locked during a "this and following" edit, so a client could
+      // compute it against a group it reselected but never actually applied
+      // (gatheringId is stripped above — it genuinely can't change here).
+      // Recomputed below from the series' REAL, persisted group instead.
+      openToAllMembers: _clientOpenToAllMembers,
       ...safe
     } = updates
-    void _date; void _idx; void _gid; void _gname; void _rc
+    void _date; void _idx; void _gid; void _gname; void _rc; void _clientOpenToAllMembers
+
+    // All siblings share one gatheringId (it can't drift within a series),
+    // so resolve it once from an actual fetched doc rather than the update
+    // payload, and stamp every sibling from that ground truth. This is what
+    // stops a private-group series from being written openToAllMembers/
+    // isPublic: true off a dropdown value that was never saved.
+    const realGatheringId = snapshot.docs[0]?.data().gatheringId as string | undefined
+    const gatheringsById = new Map<string, { isPublic: boolean }>()
+    if (realGatheringId) {
+      const gathering = await this.getGathering(realGatheringId)
+      if (gathering) gatheringsById.set(realGatheringId, gathering)
+    }
+    const openToAllMembers = computeOpenToAllMembers(realGatheringId, gatheringsById)
+
     snapshot.docs.forEach((d) => {
-      batch.update(d.ref, { ...safe, updatedAt: serverTimestamp() })
+      const before = d.data() as Event
+      // Admin can still publish/unpublish the series to the website, but a
+      // private-group series can never end up isPublic: true regardless of
+      // what was requested.
+      const isPublic = (safe.isPublic !== undefined ? safe.isPublic : before.isPublic) && openToAllMembers
+      batch.update(d.ref, { ...safe, openToAllMembers, isPublic, updatedAt: serverTimestamp() })
     })
     await batch.commit()
 
@@ -1436,10 +1622,21 @@ export const dbService = {
   // REAL-TIME LISTENERS
   // ============================================
 
+  // Not mounted anywhere in the app as of 2026-07-16 (no useEventsSubscription
+  // callers), but scoped defensively so it can't leak private-group events if
+  // someone wires it up later: constrained to openToAllMembers, mirroring
+  // getEvents' Query P. Full membership-scoped real-time (the equivalent of
+  // Query M, resubscribing as the viewer's private groups change) is
+  // deferred until this is actually used.
   subscribeToEvents(callback: (events: Event[]) => void, options: EventQueryOptions = {}): Unsubscribe {
     const constraints = []
     if (options.startDate) {
       constraints.push(where('date', '>=', options.startDate))
+    }
+    if (options.gatheringId) {
+      constraints.push(where('gatheringId', '==', options.gatheringId))
+    } else {
+      constraints.push(where('openToAllMembers', '==', true))
     }
     constraints.push(orderBy('date', 'asc'))
 

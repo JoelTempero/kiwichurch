@@ -77,6 +77,26 @@ service cloud.firestore {
       return !exists(/databases/$(database)/documents/settings/setup);
     }
 
+    // Check if the current user is a member of the gathering an event
+    // belongs to (used by the events read rule).
+    function isMemberOfEventGroup() {
+      return isAuthenticated()
+        && resource.data.gatheringId is string
+        && resource.data.gatheringId != ''
+        && exists(/databases/$(database)/documents/gatherings/$(resource.data.gatheringId)/members/$(request.auth.uid));
+    }
+
+    // Check if the current user is allowed to read an event's RSVPs —
+    // mirrors the events read rule but looks up the parent event doc,
+    // since subcollection rules don't inherit the parent's rule.
+    function canReadEventForRsvps(eventId) {
+      let e = get(/databases/$(database)/documents/events/$(eventId)).data;
+      return e.isPublic == true
+        || e.openToAllMembers == true
+        || (e.gatheringId is string && e.gatheringId != ''
+            && exists(/databases/$(database)/documents/gatherings/$(e.gatheringId)/members/$(request.auth.uid)));
+    }
+
     // ============================================
     // USERS COLLECTION
     // ============================================
@@ -217,8 +237,12 @@ service cloud.firestore {
     // EVENTS COLLECTION
     // ============================================
     match /events/{eventId} {
-      // Public events readable by anyone (static site calendar); all events readable by authenticated users
-      allow read: if isAuthenticated() || resource.data.isPublic == true;
+      // Anonymous static-site calendar: only website-published events.
+      // Authenticated members: events open to all members, church-wide events,
+      // or events of a group they belong to. No blanket authenticated read.
+      allow read: if resource.data.isPublic == true
+        || (isAuthenticated() && resource.data.openToAllMembers == true)
+        || isMemberOfEventGroup();
 
       // Admin can create/edit/delete any event (incl. church-wide events
       // with no gatheringId). Hosts can only act on events for groups
@@ -241,8 +265,8 @@ service cloud.firestore {
 
       // RSVPs subcollection
       match /rsvps/{rsvpId} {
-        // Users can read all RSVPs for an event
-        allow read: if isAuthenticated();
+        // Readable only by someone who can see the parent event (mirrors the event read rule).
+        allow read: if isAuthenticated() && canReadEventForRsvps(eventId);
 
         // Users can create/update their own RSVP
         allow create, update: if isAuthenticated() && request.auth.uid == rsvpId;

@@ -53,3 +53,4 @@ SITE/site.zip
 
 # Local scratch (bug-report screenshots, etc.)
 .tmp/
+.superpowers/
