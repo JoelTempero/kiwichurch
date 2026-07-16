@@ -96,6 +96,9 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
     }
 
     const gathering = gatherings.find((g) => g.id === data.gatheringId)
+    // Member-read gate, not the website flag: no group, or a public group,
+    // is open to all members; a private group's event is closed by default.
+    const openToAllMembers = !data.gatheringId || gathering?.isPublic === true
     const sharedData = {
       title: data.title,
       description: data.description,
@@ -104,7 +107,9 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
       location: data.location,
       gatheringId: data.gatheringId,
       gatheringName: gathering?.name,
-      isPublic: data.isPublic,
+      // Invariant: a private group's event can never carry the website flag.
+      isPublic: data.isPublic && openToAllMembers,
+      openToAllMembers,
       imageURL: data.imageURL,
       createdBy: event?.createdBy || user.id,
     }
@@ -138,7 +143,6 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
               recurrence: data.recurrence,
               recurrenceCount: data.recurrenceCount,
               seriesId,
-              isPublic: data.isPublic,
             },
             dates,
           )

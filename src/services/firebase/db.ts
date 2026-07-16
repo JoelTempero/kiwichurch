@@ -64,6 +64,18 @@ function boardPostLink(gatheringId: string, postId: string): string {
   return `${base}?post=${postId}`
 }
 
+// Server-side source of truth for Event.openToAllMembers (mirrors the client
+// computation in EventForm and the read-side predicate in
+// src/utils/eventVisibility.ts): no group is church-wide (open), a public
+// group's events are open, a private group's events are closed by default.
+function computeOpenToAllMembers(
+  gatheringId: string | undefined,
+  gatheringsById: Map<string, { isPublic: boolean }>,
+): boolean {
+  if (!gatheringId) return true
+  return gatheringsById.get(gatheringId)?.isPublic === true
+}
+
 export const dbService = {
   // ============================================
   // USERS
@@ -531,6 +543,30 @@ export const dbService = {
       ...updates,
       updatedAt: serverTimestamp()
     })
+
+    // Re-stamp openToAllMembers on every event in this gathering when its
+    // privacy flips. This is load-bearing, not cosmetic: a stale
+    // openToAllMembers flag makes the strict member-read rules reject the
+    // WHOLE events list query, not just this one event. Going private also
+    // force-unpublishes each event's website flag (isPublic) to hold the
+    // invariant — a private group can't leave a stray "public" event behind.
+    // Going public leaves each event's own isPublic as-is; we don't
+    // auto-publish an event to the website just because its group did.
+    if (updates.isPublic !== undefined) {
+      const newOpenToAllMembers = updates.isPublic === true
+      const q = query(collection(db, 'events'), where('gatheringId', '==', gatheringId))
+      const snapshot = await getDocs(q)
+      const docs = snapshot.docs
+      for (let i = 0; i < docs.length; i += 450) {
+        const batch = writeBatch(db)
+        for (const d of docs.slice(i, i + 450)) {
+          const patch: Partial<Event> = { openToAllMembers: newOpenToAllMembers }
+          if (updates.isPublic === false) patch.isPublic = false
+          batch.update(d.ref, patch)
+        }
+        await batch.commit()
+      }
+    }
   },
 
   async deleteGathering(gatheringId: string): Promise<void> {
@@ -594,12 +630,29 @@ export const dbService = {
 
   async createEvent(eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>): Promise<Event> {
     const timestamp = serverTimestamp()
+    // Defensive stamping: a caller that forgot to compute openToAllMembers
+    // (or one we haven't audited) can't create a leaky record — resolve the
+    // gathering ourselves and enforce the isPublic invariant on the write.
+    let data = eventData
+    if (data.openToAllMembers === undefined) {
+      const gatheringsById = new Map<string, { isPublic: boolean }>()
+      if (data.gatheringId) {
+        const gathering = await this.getGathering(data.gatheringId)
+        if (gathering) gatheringsById.set(data.gatheringId, gathering)
+      }
+      const openToAllMembers = computeOpenToAllMembers(data.gatheringId, gatheringsById)
+      data = {
+        ...data,
+        openToAllMembers,
+        isPublic: openToAllMembers === false ? false : data.isPublic,
+      }
+    }
     const docRef = await addDoc(collection(db, 'events'), {
-      ...eventData,
+      ...data,
       createdAt: timestamp,
       updatedAt: timestamp
     })
-    return { id: docRef.id, ...eventData } as Event
+    return { id: docRef.id, ...data } as Event
   },
 
   // Bulk-create siblings of a recurring series. Each sibling shares `seriesId`
@@ -610,12 +663,28 @@ export const dbService = {
     dates: string[],
   ): Promise<Event[]> {
     const timestamp = serverTimestamp()
+    // Defensive stamping, same as createEvent — every sibling in the series
+    // shares one gatheringId, so this resolves once for the whole batch.
+    let base = baseData
+    if (base.openToAllMembers === undefined) {
+      const gatheringsById = new Map<string, { isPublic: boolean }>()
+      if (base.gatheringId) {
+        const gathering = await this.getGathering(base.gatheringId)
+        if (gathering) gatheringsById.set(base.gatheringId, gathering)
+      }
+      const openToAllMembers = computeOpenToAllMembers(base.gatheringId, gatheringsById)
+      base = {
+        ...base,
+        openToAllMembers,
+        isPublic: openToAllMembers === false ? false : base.isPublic,
+      }
+    }
     const batch = writeBatch(db)
     const created: Event[] = []
     for (let i = 0; i < dates.length; i++) {
       const ref = doc(collection(db, 'events'))
       const data = {
-        ...baseData,
+        ...base,
         date: dates[i],
         recurrenceIndex: i,
         createdAt: timestamp,
@@ -631,16 +700,33 @@ export const dbService = {
   async updateEvent(eventId: string, updates: Partial<Event>): Promise<void> {
     const eventRef = doc(db, 'events', eventId)
     const before = (await getDoc(eventRef)).data() as Event | undefined
+    // A group change moves the event under a different privacy regime —
+    // recompute openToAllMembers server-side (don't just trust the caller)
+    // and re-apply the isPublic invariant.
+    let patch = updates
+    if (before && updates.gatheringId !== undefined && updates.gatheringId !== before.gatheringId) {
+      const gatheringsById = new Map<string, { isPublic: boolean }>()
+      if (updates.gatheringId) {
+        const gathering = await this.getGathering(updates.gatheringId)
+        if (gathering) gatheringsById.set(updates.gatheringId, gathering)
+      }
+      const openToAllMembers = computeOpenToAllMembers(updates.gatheringId, gatheringsById)
+      patch = {
+        ...updates,
+        openToAllMembers,
+        ...(openToAllMembers === false ? { isPublic: false } : {}),
+      }
+    }
     await updateDoc(eventRef, {
-      ...updates,
+      ...patch,
       updatedAt: serverTimestamp()
     })
     if (before && (
-      (updates.time !== undefined && updates.time !== before.time) ||
-      (updates.endTime !== undefined && updates.endTime !== before.endTime) ||
-      (updates.location !== undefined && updates.location !== before.location)
+      (patch.time !== undefined && patch.time !== before.time) ||
+      (patch.endTime !== undefined && patch.endTime !== before.endTime) ||
+      (patch.location !== undefined && patch.location !== before.location)
     )) {
-      const after = { ...before, ...updates } as Event
+      const after = { ...before, ...patch } as Event
       this.notifyEventAttendees(eventId, after, 'updated').catch(
         (err) => console.error('[db] event update notify failed', err)
       )
@@ -673,6 +759,13 @@ export const dbService = {
       ...safe
     } = updates
     void _date; void _idx; void _gid; void _gname; void _rc
+    // Invariant safety net: gatheringId is stripped above, so every sibling
+    // keeps its existing (shared) group and any caller-supplied
+    // openToAllMembers already reflects that group correctly. Still guard
+    // isPublic here in case a caller ever passes an inconsistent pair.
+    if (safe.openToAllMembers === false) {
+      safe.isPublic = false
+    }
     snapshot.docs.forEach((d) => {
       batch.update(d.ref, { ...safe, updatedAt: serverTimestamp() })
     })

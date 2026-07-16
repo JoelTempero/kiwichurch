@@ -13,6 +13,7 @@ export interface Event {
   gatheringId?: string
   gatheringName?: string
   isPublic: boolean
+  openToAllMembers?: boolean // stamped: !gatheringId || gathering.isPublic. Gates member reads. NOT the website flag.
   imageURL?: string
   createdBy?: string
   // Denormalised count of RSVPs with status === 'yes'. Maintained by
