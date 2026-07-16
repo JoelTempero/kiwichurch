@@ -66,10 +66,21 @@ async function loadGatheringsMap() {
   const snap = await db.collection('gatherings').get()
   const map = new Map()
   for (const doc of snap.docs) {
-    map.set(doc.id, { isPublic: doc.data().isPublic === true })
+    map.set(doc.id, { isPublic: doc.data().isPublic === true, name: doc.data().name ?? '(unnamed)' })
   }
   console.log(`Gatherings loaded: ${map.size}`)
   return map
+}
+
+// Human-readable reason a leak-log line is closing, for the dry-run sanity
+// check ("does the leak count match the number of real private-group
+// events?"). Distinguishes a genuine private-group closure from an orphaned
+// gatheringId (deleted/missing group doc) — both compute openToAllMembers
+// false, but only the former is a "real private-group event".
+function leakReason(gatheringId, gatheringsById) {
+  const gathering = gatheringsById.get(gatheringId)
+  if (!gathering) return `[ORPHAN: gathering ${gatheringId} not found]`
+  return `[private group: ${gathering.name}]`
 }
 
 // Same computation as db.ts:computeOpenToAllMembers — fail closed when the
@@ -128,11 +139,15 @@ for await (const doc of pageEvents()) {
   pendingWrites.push({ ref: doc.ref, patch })
 
   if (openToAllMembers === false) {
+    // gatheringId is guaranteed set here — computeOpenToAllMembers only
+    // returns false when a gatheringId was present (an event with none is
+    // always open and never reaches this branch).
     const detail = {
       id: doc.id,
       title: data.title ?? '(untitled)',
-      gatheringId: gatheringId ?? '(none)',
+      gatheringId,
       isPublicBefore,
+      reason: leakReason(gatheringId, gatheringsById),
     }
     leakEvents.push(detail)
     if (isPublicBefore) accidentallyPublished.push(detail)
@@ -147,7 +162,7 @@ if (leakEvents.length === 0) {
   console.log('  (none)')
 } else {
   for (const e of leakEvents) {
-    console.log(`  ${e.id}  "${e.title}"  gathering=${e.gatheringId}  isPublic(before)=${e.isPublicBefore}`)
+    console.log(`  ${e.id}  "${e.title}"  gathering=${e.gatheringId}  isPublic(before)=${e.isPublicBefore}  ${e.reason}`)
   }
 }
 console.log('')
