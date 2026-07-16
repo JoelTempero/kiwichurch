@@ -15,7 +15,8 @@
     "seed:kiwichurch": "node scripts/seed-kiwichurch.js",
     "wipe": "node scripts/wipe.js",
     "set-test-passwords": "node scripts/set-test-passwords.js",
-    "delete-user": "node scripts/delete-user.js"
+    "delete-user": "node scripts/delete-user.js",
+    "backfill-event-visibility": "node scripts/backfill-event-visibility.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
