@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { Skeleton } from '@/components/common'
 import { useQuery } from '@tanstack/react-query'
 import { dbService } from '@/services/firebase/db'
+import { useAuth } from '@/hooks/useAuth'
+import { useGatherings, useUserGatheringIds } from '@/hooks/useGatherings'
 import { Search, X, Calendar, FileText, Users, User, SlidersHorizontal, Clock } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import type { Event, KetePost, UserProfile, Gathering } from '@/types'
@@ -52,16 +54,20 @@ function getDateCutoff(range: DateRange): Date | null {
   }
 }
 
-function useGlobalSearch(query: string) {
+// `viewer` scopes the event search the same way `useEvents` does: without it,
+// getEvents returns only public/church-wide events, so a member would not find
+// their OWN private-group events in global search. Passing the viewer surfaces
+// those, and never leaks events from private groups they aren't in.
+function useGlobalSearch(query: string, viewer: { myPrivateGroupIds: string[] } | undefined) {
   return useQuery({
-    queryKey: ['search', query],
+    queryKey: ['search', query, viewer?.myPrivateGroupIds ?? []],
     queryFn: async (): Promise<SearchResult[]> => {
       if (!query || query.length < 2) return []
 
       const normalizedQuery = query.toLowerCase()
       const results: SearchResult[] = []
 
-      const events = await dbService.getEvents({ limit: 100 })
+      const events = await dbService.getEvents({ limit: 100 }, viewer)
       events.forEach((event: Event) => {
         if (
           event.title.toLowerCase().includes(normalizedQuery) ||
@@ -183,7 +189,27 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS)
-  const { data: results = [], isLoading } = useGlobalSearch(debouncedQuery)
+
+  // Derive the viewer (same logic as useEvents) so search includes the member's
+  // own private-group events without leaking others'.
+  const { user } = useAuth()
+  const { data: gatherings = [] } = useGatherings()
+  const gatheringIds = useMemo(() => gatherings.map((g) => g.id), [gatherings])
+  const { data: myGatheringIdSet } = useUserGatheringIds(user?.id ?? null, gatheringIds)
+  const myGatheringIds = useMemo(() => Array.from(myGatheringIdSet ?? []), [myGatheringIdSet])
+  const myPrivateGroupIds = useMemo(() => {
+    if (gatherings.length === 0) return []
+    const privateGatheringIds = new Set(
+      gatherings.filter((g) => g.isPublic === false).map((g) => g.id)
+    )
+    return myGatheringIds.filter((id) => privateGatheringIds.has(id))
+  }, [gatherings, myGatheringIds])
+  const viewer = useMemo(
+    () => (user ? { myPrivateGroupIds } : undefined),
+    [user, myPrivateGroupIds]
+  )
+
+  const { data: results = [], isLoading } = useGlobalSearch(debouncedQuery, viewer)
 
   const filteredResults = useMemo(() => {
     if (!results.length) return results
