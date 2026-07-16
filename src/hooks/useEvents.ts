@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { dbService } from '@/services/firebase'
+import { useAuth } from '@/hooks/useAuth'
+import { useGatherings, useUserGatheringIds } from '@/hooks/useGatherings'
+import { visibleEvents } from '@/utils/eventVisibility'
 import type { Event, EventQueryOptions, RSVPAttendee } from '@/types'
 
 // Query keys
@@ -14,13 +17,79 @@ export const eventKeys = {
   userRsvp: (eventId: string, userId: string) => [...eventKeys.rsvps(eventId), userId] as const
 }
 
-// Get events list
+/**
+ * Events the signed-in user is allowed to see.
+ *
+ * Two layers, both load-bearing:
+ *
+ *   1. `dbService.getEvents` is given a `viewer` (the ids of the caller's PRIVATE
+ *      groups) and issues two separately-constrained queries — one for
+ *      `openToAllMembers` events, one for the viewer's own private groups — so
+ *      the fetch itself never asks Firestore for a document the strict
+ *      member-read rule can't prove is readable.
+ *   2. `visibleEvents` is applied to the result anyway, as defence-in-depth. If
+ *      the query and the rule ever drift out of sync, this is the layer that
+ *      still stops a private-group event (its title, location, description and
+ *      RSVP list) from rendering to a non-member.
+ *
+ * An event is visible when:
+ *   - it belongs to no group (a whole-community event), or
+ *   - its group is public, or
+ *   - the user is a member of its group.
+ *
+ * No admin bypass, deliberately — the same call the directory makes. Private
+ * means private, or the word is worthless. Admins reach these events through the
+ * groups they are actually in.
+ */
 export function useEvents(options: EventQueryOptions = {}) {
-  return useQuery({
-    queryKey: eventKeys.list(options),
-    queryFn: () => dbService.getEvents(options),
+  const { user } = useAuth()
+  const { data: gatherings = [] } = useGatherings()
+
+  const gatheringIds = useMemo(() => gatherings.map((g) => g.id), [gatherings])
+  // useUserGatheringIds hands back a Set; visibleEvents wants a plain list.
+  const { data: myGatheringIdSet } = useUserGatheringIds(user?.id ?? null, gatheringIds)
+  const myGatheringIds = useMemo(() => Array.from(myGatheringIdSet ?? []), [myGatheringIdSet])
+
+  // Only the viewer's PRIVATE groups matter to getEvents' Query M — public
+  // groups are already covered by Query P (openToAllMembers). Deliberately []
+  // until gatherings have actually loaded, rather than guessing.
+  const myPrivateGroupIds = useMemo(() => {
+    if (gatherings.length === 0) return []
+    const privateGatheringIds = new Set(
+      gatherings.filter((g) => g.isPublic === false).map((g) => g.id)
+    )
+    return myGatheringIds.filter((id) => privateGatheringIds.has(id))
+  }, [gatherings, myGatheringIds])
+
+  const viewer = useMemo(
+    () => (user ? { myPrivateGroupIds } : undefined),
+    [user, myPrivateGroupIds]
+  )
+
+  // Wait for gatherings + membership to load before firing the query at all.
+  // myPrivateGroupIds feeds the queryKey below (not just the queryFn), so an
+  // early fetch with a not-yet-real [] wouldn't just be wrong once — it'd sit
+  // in the cache as its own stale entry once the real value arrived, since
+  // that's a different key. Anonymous callers have no membership to wait for.
+  const ready = !user || (gatherings.length > 0 && myGatheringIdSet !== undefined)
+
+  const query = useQuery({
+    queryKey: [...eventKeys.list(options), myPrivateGroupIds],
+    queryFn: () => dbService.getEvents(options, viewer),
+    enabled: ready,
     staleTime: 5 * 60 * 1000 // 5 minutes
   })
+
+  const visible = useMemo(() => {
+    if (!query.data) return query.data
+    // Until the gatherings load we cannot prove an event is safe to show, so we
+    // show nothing rather than risk leaking one for a frame.
+    if (gatherings.length === 0) return []
+
+    return visibleEvents(query.data, gatherings, myGatheringIds)
+  }, [query.data, gatherings, myGatheringIds])
+
+  return { ...query, data: visible }
 }
 
 // Get upcoming events (next 21 days)

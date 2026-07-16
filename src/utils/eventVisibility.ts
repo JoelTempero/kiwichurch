@@ -62,3 +62,36 @@ export function visibleEvents<T extends VisibilityEvent>(
   const mine = new Set(myGatheringIds)
   return events.filter((e) => canSeeEvent(e, byId, mine))
 }
+
+/** The bits of a query result `mergeEventQueryResults` needs to combine sets. */
+export interface DatedEvent {
+  id: string
+  date: string
+}
+
+/**
+ * Merge several separately-fetched event result sets into one list.
+ *
+ * `getEvents` can't run a single unconstrained query once the strict member-read
+ * rule lands (Firestore rejects a query it can't prove is safe), so it splits into
+ * a `openToAllMembers == true` query plus one `gatheringId in [...]` query per
+ * chunk of the viewer's private groups. This is the client-side glue that turns
+ * those N separately-constrained result sets back into the one ordered list
+ * callers actually want: dedupe by id (an event can't legitimately appear in two
+ * sets, but a defensive dedupe costs nothing), sort by date ascending, then apply
+ * the caller's limit — which only makes sense once everything is merged, since
+ * each underlying query's own `limit` would otherwise truncate before the merge.
+ */
+export function mergeEventQueryResults<T extends DatedEvent>(
+  resultSets: T[][],
+  limitCount?: number,
+): T[] {
+  const byId = new Map<string, T>()
+  for (const set of resultSets) {
+    for (const event of set) {
+      if (!byId.has(event.id)) byId.set(event.id, event)
+    }
+  }
+  const merged = Array.from(byId.values()).sort((a, b) => a.date.localeCompare(b.date))
+  return typeof limitCount === 'number' ? merged.slice(0, limitCount) : merged
+}

@@ -19,6 +19,7 @@ import {
   writeBatch,
   type Unsubscribe,
   type DocumentData,
+  type QueryConstraint,
 } from 'firebase/firestore'
 import { auth, db } from './config'
 import type {
@@ -50,6 +51,7 @@ import type { BugReport, BugReportStatus } from '@/types/bugReport'
 import type { BugReportDiagnostics } from '@/utils/errorBuffer'
 import { GroupResource } from '../../types/groupResource'
 import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME, isCommunityGathering } from '@/utils/community'
+import { mergeEventQueryResults } from '@/utils/eventVisibility'
 
 // Helper to convert Firestore doc to typed object
 function docToObject<T>(doc: DocumentData): T {
@@ -600,27 +602,78 @@ export const dbService = {
   // EVENTS
   // ============================================
 
-  async getEvents(options: EventQueryOptions = {}): Promise<Event[]> {
-    let q = query(collection(db, 'events'))
-
-    const constraints = []
+  // The strict member-read rule (Task 5) can only prove a query is safe via
+  // its own constraints — an unconstrained `collection('events')` query gets
+  // rejected outright, because Firestore can't prove every returned doc is
+  // readable. So this can't just filter client-side; it has to issue queries
+  // whose constraints are themselves provably readable, then merge.
+  async getEvents(
+    options: EventQueryOptions = {},
+    viewer?: { myPrivateGroupIds: string[] }
+  ): Promise<Event[]> {
+    const dateConstraints: QueryConstraint[] = []
     if (options.startDate) {
-      constraints.push(where('date', '>=', options.startDate))
+      dateConstraints.push(where('date', '>=', options.startDate))
     }
     if (options.endDate) {
-      constraints.push(where('date', '<=', options.endDate))
-    }
-    if (options.gatheringId) {
-      constraints.push(where('gatheringId', '==', options.gatheringId))
-    }
-    constraints.push(orderBy('date', 'asc'))
-    if (options.limit) {
-      constraints.push(limit(options.limit))
+      dateConstraints.push(where('date', '<=', options.endDate))
     }
 
-    q = query(collection(db, 'events'), ...constraints)
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => docToObject<Event>(doc))
+    // Single-group queries stay as one query — the rule already allows a
+    // member (or anyone, for a public group) to read that one gathering's
+    // events, so there's nothing to split.
+    if (options.gatheringId) {
+      const constraints: QueryConstraint[] = [
+        ...dateConstraints,
+        where('gatheringId', '==', options.gatheringId),
+        orderBy('date', 'asc'),
+      ]
+      if (options.limit) constraints.push(limit(options.limit))
+      const snapshot = await getDocs(query(collection(db, 'events'), ...constraints))
+      return snapshot.docs.map(doc => docToObject<Event>(doc))
+    }
+
+    // Query P: openToAllMembers events — church-wide events plus every
+    // public group's events. Provable via the rule's
+    // `openToAllMembers == true` branch. Runs for every caller, including
+    // anonymous/no-viewer ones.
+    const pConstraints = [
+      ...dateConstraints,
+      where('openToAllMembers', '==', true),
+      orderBy('date', 'asc'),
+    ]
+    const pSnap = await getDocs(query(collection(db, 'events'), ...pConstraints))
+    const publicEvents = pSnap.docs.map(doc => docToObject<Event>(doc))
+
+    // Query M: only the PRIVATE groups the viewer actually belongs to
+    // (public ones are already covered by Query P). Provable via the rule's
+    // membership branch. Skipped entirely when there's no viewer or the
+    // viewer belongs to no private groups — an empty `in` clause is invalid
+    // Firestore anyway, and there'd be nothing more to fetch.
+    const myPrivateGroupIds = viewer?.myPrivateGroupIds ?? []
+    let privateEventSets: Event[][] = []
+    if (myPrivateGroupIds.length > 0) {
+      // Firestore's `in` operator caps at 30 values. A member belonging to
+      // more than 30 private groups isn't realistic at church scale, but
+      // chunk anyway so this can't silently truncate results if it ever is.
+      const chunks: string[][] = []
+      for (let i = 0; i < myPrivateGroupIds.length; i += 30) {
+        chunks.push(myPrivateGroupIds.slice(i, i + 30))
+      }
+      privateEventSets = await Promise.all(
+        chunks.map(async (chunk) => {
+          const mConstraints = [
+            ...dateConstraints,
+            where('gatheringId', 'in', chunk),
+            orderBy('date', 'asc'),
+          ]
+          const snap = await getDocs(query(collection(db, 'events'), ...mConstraints))
+          return snap.docs.map(doc => docToObject<Event>(doc))
+        })
+      )
+    }
+
+    return mergeEventQueryResults([publicEvents, ...privateEventSets], options.limit)
   },
 
   async getEvent(eventId: string): Promise<Event | null> {
@@ -1547,10 +1600,21 @@ export const dbService = {
   // REAL-TIME LISTENERS
   // ============================================
 
+  // Not mounted anywhere in the app as of 2026-07-16 (no useEventsSubscription
+  // callers), but scoped defensively so it can't leak private-group events if
+  // someone wires it up later: constrained to openToAllMembers, mirroring
+  // getEvents' Query P. Full membership-scoped real-time (the equivalent of
+  // Query M, resubscribing as the viewer's private groups change) is
+  // deferred until this is actually used.
   subscribeToEvents(callback: (events: Event[]) => void, options: EventQueryOptions = {}): Unsubscribe {
     const constraints = []
     if (options.startDate) {
       constraints.push(where('date', '>=', options.startDate))
+    }
+    if (options.gatheringId) {
+      constraints.push(where('gatheringId', '==', options.gatheringId))
+    } else {
+      constraints.push(where('openToAllMembers', '==', true))
     }
     constraints.push(orderBy('date', 'asc'))
 

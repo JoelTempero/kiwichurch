@@ -15,7 +15,13 @@
  * These tests are what makes group and event privacy actually hold. */
 
 import { describe, it, expect } from 'vitest'
-import { visibleEvents, canSeeEvent, type VisibilityEvent, type VisibilityGathering } from './eventVisibility'
+import {
+  visibleEvents,
+  canSeeEvent,
+  mergeEventQueryResults,
+  type VisibilityEvent,
+  type VisibilityGathering,
+} from './eventVisibility'
 
 const GATHERINGS: VisibilityGathering[] = [
   { id: 'community', isPublic: true },
@@ -106,5 +112,37 @@ describe('legacy events (no openToAllMembers stamped)', () => {
   it('shows an event whose group no longer exists rather than hiding it forever', () => {
     const orphan = [{ id: 'orphan', gatheringId: 'deleted-group' }]
     expect(idsOf(visibleEvents(orphan, GATHERINGS, []))).toEqual(['orphan'])
+  })
+})
+
+describe('mergeEventQueryResults (getEvents Query P + Query M merge)', () => {
+  it('dedupes an event that appears in more than one result set, keeping one copy', () => {
+    const shared = { id: 'a', date: '2026-08-01' }
+    const merged = mergeEventQueryResults([[shared], [shared]])
+    expect(idsOf(merged)).toEqual(['a'])
+  })
+
+  it('sorts the merged set by date ascending regardless of input order', () => {
+    const p = [{ id: 'later', date: '2026-09-01' }]
+    const m = [{ id: 'earlier', date: '2026-08-01' }]
+    expect(idsOf(mergeEventQueryResults([p, m]))).toEqual(['earlier', 'later'])
+  })
+
+  it('applies the limit after merging, not per input set', () => {
+    const p = [{ id: 'p1', date: '2026-08-01' }, { id: 'p2', date: '2026-08-03' }]
+    const m = [{ id: 'm1', date: '2026-08-02' }]
+    const merged = mergeEventQueryResults([p, m], 2)
+    expect(idsOf(merged)).toEqual(['p1', 'm1'])
+  })
+
+  it('handles any number of input sets, including empty ones (e.g. no private groups)', () => {
+    const p = [{ id: 'p1', date: '2026-08-01' }]
+    expect(idsOf(mergeEventQueryResults([p, [], []]))).toEqual(['p1'])
+    expect(mergeEventQueryResults([[], []])).toEqual([])
+  })
+
+  it('leaves the set unlimited when no limit is passed', () => {
+    const p = Array.from({ length: 5 }, (_, i) => ({ id: `e${i}`, date: `2026-08-0${i + 1}` }))
+    expect(mergeEventQueryResults([p])).toHaveLength(5)
   })
 })
