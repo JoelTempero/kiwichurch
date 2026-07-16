@@ -402,7 +402,7 @@ export function EventForm({ event, isOpen, onClose, onSuccess }: EventFormProps)
           <div>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" className="w-[18px] h-[18px] accent-forest" {...form.register('isPublic')} />
-              <span>Public event (visible to all members)</span>
+              <span>Show on public website</span>
             </label>
           </div>
 
