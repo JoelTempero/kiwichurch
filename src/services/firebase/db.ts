@@ -756,18 +756,36 @@ export const dbService = {
       gatheringId: _gid,
       gatheringName: _gname,
       rsvpYesCount: _rc,
+      // Never trust the client's openToAllMembers here. The Group <select>
+      // isn't locked during a "this and following" edit, so a client could
+      // compute it against a group it reselected but never actually applied
+      // (gatheringId is stripped above — it genuinely can't change here).
+      // Recomputed below from the series' REAL, persisted group instead.
+      openToAllMembers: _clientOpenToAllMembers,
       ...safe
     } = updates
-    void _date; void _idx; void _gid; void _gname; void _rc
-    // Invariant safety net: gatheringId is stripped above, so every sibling
-    // keeps its existing (shared) group and any caller-supplied
-    // openToAllMembers already reflects that group correctly. Still guard
-    // isPublic here in case a caller ever passes an inconsistent pair.
-    if (safe.openToAllMembers === false) {
-      safe.isPublic = false
+    void _date; void _idx; void _gid; void _gname; void _rc; void _clientOpenToAllMembers
+
+    // All siblings share one gatheringId (it can't drift within a series),
+    // so resolve it once from an actual fetched doc rather than the update
+    // payload, and stamp every sibling from that ground truth. This is what
+    // stops a private-group series from being written openToAllMembers/
+    // isPublic: true off a dropdown value that was never saved.
+    const realGatheringId = snapshot.docs[0]?.data().gatheringId as string | undefined
+    const gatheringsById = new Map<string, { isPublic: boolean }>()
+    if (realGatheringId) {
+      const gathering = await this.getGathering(realGatheringId)
+      if (gathering) gatheringsById.set(realGatheringId, gathering)
     }
+    const openToAllMembers = computeOpenToAllMembers(realGatheringId, gatheringsById)
+
     snapshot.docs.forEach((d) => {
-      batch.update(d.ref, { ...safe, updatedAt: serverTimestamp() })
+      const before = d.data() as Event
+      // Admin can still publish/unpublish the series to the website, but a
+      // private-group series can never end up isPublic: true regardless of
+      // what was requested.
+      const isPublic = (safe.isPublic !== undefined ? safe.isPublic : before.isPublic) && openToAllMembers
+      batch.update(d.ref, { ...safe, openToAllMembers, isPublic, updatedAt: serverTimestamp() })
     })
     await batch.commit()
 
