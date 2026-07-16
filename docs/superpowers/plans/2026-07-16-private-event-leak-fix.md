@@ -159,16 +159,28 @@ function isMemberOfEventGroup() {
 }
 ```
 
-- [ ] **Step 2:** Replace the read rule (line 221) with:
+- [ ] **Step 2:** Replace the read rule (line 221) with (NOTE: the `openToAllMembers` branch MUST be auth-gated — otherwise anonymous users can read members-only events that have `openToAllMembers:true, isPublic:false`, e.g. any church-wide/public-group event not published to the website; caught in review 2026-07-16):
 ```
 // Anonymous static-site calendar: only website-published events.
 // Authenticated members: events open to all members, church-wide events,
 // or events of a group they belong to. No blanket authenticated read.
 allow read: if resource.data.isPublic == true
-  || resource.data.openToAllMembers == true
+  || (isAuthenticated() && resource.data.openToAllMembers == true)
   || isMemberOfEventGroup();
 ```
-Leave create/update/delete rules unchanged.
+Leave the events create/update/delete rules unchanged.
+
+- [ ] **Step 2b (added in review — closes the attendee-list half of the bug):** The `/events/{eventId}/rsvps` subcollection read is independent of the parent event rule and is currently `allow read: if isAuthenticated();` — so a private event's full attendee list is readable by any member. Add a helper and scope the rsvps read to whoever can see the parent event:
+```
+function canReadEventForRsvps(eventId) {
+  let e = get(/databases/$(database)/documents/events/$(eventId)).data;
+  return e.isPublic == true
+    || e.openToAllMembers == true
+    || (e.gatheringId is string && e.gatheringId != ''
+        && exists(/databases/$(database)/documents/gatherings/$(e.gatheringId)/members/$(request.auth.uid)));
+}
+```
+Then change only the rsvps read line: `allow read: if isAuthenticated() && canReadEventForRsvps(eventId);` (leave rsvps create/update/delete unchanged). Depends only on the parent event + auth, so `getRSVPs`'s `getDocs` and the `getCountFromServer` aggregate stay provable. (Known out-of-scope: rsvps create/update/delete still allow a member to write their own rsvp without an event-visibility check — pre-existing WRITE concern, not this read-leak fix.)
 
 - [ ] **Step 3:** Validate via Firebase MCP `validate_security_rules` on the edited file. Expected: valid.
 
@@ -182,15 +194,15 @@ Leave create/update/delete rules unchanged.
 
 Order is mandatory — flags must exist on every doc before the strict rules land, and the constrained client must ship with (or before) the rules.
 
-- [ ] **Step 1:** Ship Tasks 1–4 (client + write paths + backfill script) to `main`. `npm run build` clean.
-- [ ] **Step 2:** Run the backfill against prod: `npm run backfill-event-visibility -- --apply`. Confirm via Firebase MCP that a known private-group event now has `openToAllMembers: false` and a church-wide event has `true`.
-- [ ] **Step 3:** Deploy the client + strict rules together: `firebase deploy --only firestore:rules,hosting`.
-- [ ] **Step 4:** Live smoke test on the deployed site:
+- [ ] **Step 0 (MUST be first — added from final review):** Deploy the new composite index and wait for it to be READY *before* any client using Query P ships: `firebase deploy --only firestore:indexes`, then poll Firebase console / MCP `firestore_list_indexes` until `events(openToAllMembers ASC, date ASC)` is READY. Query P (`where('openToAllMembers','==',true) + orderBy('date')`) throws `FAILED_PRECONDITION` without it, which would empty every event list for all users (same failure class as the 2026-06-04 notifications-index incident).
+- [ ] **Step 1:** Run the backfill against prod: `npm run backfill-event-visibility` (dry-run first) — eyeball the two counts and the `[ORPHAN…]` vs `[private group…]` tags — then `-- --apply`. Confirm via Firebase MCP that a known private-group event now has `openToAllMembers: false` (+ `isPublic:false`) and a church-wide event has `true`.
+- [ ] **Step 2:** With the index READY and the backfill applied, deploy the client + strict rules together: `firebase deploy --only firestore:rules,hosting`. (Index is already live from Step 0; do NOT skip it there.)
+- [ ] **Step 3:** Live smoke test on the deployed site:
   - Sign in as a member NOT in a private group → that group's events are absent from `/events`, calendar, home, and search; the raw doc read is denied (check devtools network / Firebase MCP as that user is not possible — instead confirm the UI + that an unconstrained query throws in console).
   - Sign in as a member of that group → events appear, RSVP works.
   - Load the **public website** (`homepage.html`, `calendar.html`) signed out → published (`isPublic`) events still render. This is the regression guard.
-- [ ] **Step 5:** Relabel the misleading checkbox. In `EventForm.tsx:401`, change `"Public event (visible to all members)"` to `"Show on public website"` (its true meaning). Rebuild + deploy hosting. (Kept last so it doesn't muddy the security diff.)
-- [ ] **Step 6:** Update `kiwichurch/CLAUDE.md` (session log + Key Decisions: `openToAllMembers` model, deploy ordering, the `isPublic`=website clarification) and the churchconnect umbrella `CLAUDE.md` (tick the kiwichurch half of the leak; note theriver still pending). Commit.
+- [ ] **Step 4:** Relabel the misleading checkbox. In `EventForm.tsx:401`, change `"Public event (visible to all members)"` to `"Show on public website"` (its true meaning). Rebuild + deploy hosting. (Kept last so it doesn't muddy the security diff.)
+- [ ] **Step 5:** Update `kiwichurch/CLAUDE.md` (session log + Key Decisions: `openToAllMembers` model, deploy ordering incl. the index-first step, the `isPublic`=website clarification) and the churchconnect umbrella `CLAUDE.md` (tick the kiwichurch half of the leak; note theriver still pending). Commit.
 
 ---
 
@@ -198,4 +210,4 @@ Order is mandatory — flags must exist on every doc before the strict rules lan
 
 1. **Private-group events must never appear on the public website.** Enforced via the data invariant `openToAllMembers === false ⟹ isPublic === false` (write paths + backfill + group-privacy flip), which keeps the Firestore rule a simple provable OR and needs no static-site or index changes. The Task 3 dry-run reports how many existing events were accidentally published (stray `isPublic:true` on private-group events) before they're cleared.
 2. **theriver** is out of scope here (still mock backend). Port the same fix when its Firebase project exists — separate session, tracked in the umbrella CLAUDE.md.
-3. **Rules emulator tests deferred** — this session verifies the boundary via `validate_security_rules` + live manual smoke (Task 6 Step 4). Adding the `@firebase/rules-unit-testing` suite remains a future improvement.
+3. **Rules emulator tests deferred** — this session verifies the boundary via emulator compile-check + live manual smoke (Task 6 Step 3). Adding the `@firebase/rules-unit-testing` suite remains a future improvement.
