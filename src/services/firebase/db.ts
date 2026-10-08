@@ -1792,6 +1792,24 @@ export const dbService = {
     await updateDoc(doc(db, 'conversations', conversationId), {
       [`lastReadAt.${userId}`]: serverTimestamp(),
     })
+    // Reading the conversation also clears its DM notifications, so the bell and
+    // the app-icon badge (both = unread notifications) drop in step with Messages.
+    // Equality-only filters → served by single-field indexes, no composite needed.
+    try {
+      const unread = await getDocs(query(
+        collection(db, 'notifications'),
+        where('userId', '==', userId),
+        where('type', '==', 'direct_message'),
+        where('read', '==', false),
+        where('link', '==', `/messages/${conversationId}`)
+      ))
+      if (unread.empty) return
+      const batch = writeBatch(db)
+      unread.docs.forEach((d) => batch.update(d.ref, { read: true, readAt: serverTimestamp() }))
+      await batch.commit()
+    } catch (err) {
+      console.warn('[notifications] could not clear DM notifications', err)
+    }
   },
 
   subscribeToConversations(userId: string, callback: (conversations: Conversation[]) => void): Unsubscribe {

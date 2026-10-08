@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUnreadNotificationCount, useNotificationsSubscription } from '@/hooks/useNotifications'
 import { useConversationsSubscription } from '@/hooks/useDirectMessages'
 import { useAppBadge } from '@/hooks/useAppBadge'
+import { dbService } from '@/services/firebase'
 import { useKeyboardShortcuts, useNavigationShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 export function AppLayout() {
@@ -28,8 +29,20 @@ export function AppLayout() {
     setShowNotifications(false)
     setShowSearch(false)
   }, [location.pathname])
+  // Tapping a push lands on `<link>?n=<notificationId>` (see src/sw.ts):
+  // mark that notification read, then drop the param from the URL.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const notificationId = params.get('n')
+    if (!notificationId) return
+    dbService.markNotificationRead(notificationId).catch(() => {})
+    params.delete('n')
+    const search = params.toString()
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash }, { replace: true })
+  }, [location.search, location.pathname, location.hash, navigate])
+
   const unreadCount = useUnreadNotificationCount(user?.id || null, user?.mutedNotificationCategories || [])
-  useNotificationsSubscription(user?.id || null, user?.mutedNotificationCategories || [])
+  useNotificationsSubscription(user?.id || null)
   useConversationsSubscription(user?.id ?? null)
   useAppBadge(user?.id ?? null, user?.mutedNotificationCategories || [])
 

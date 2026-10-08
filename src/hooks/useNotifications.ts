@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { dbService } from '@/services/firebase'
-import { showNotification } from '@/utils/webNotifications'
 import type { Notification } from '@/types'
 
 // Query keys
@@ -23,14 +22,8 @@ export function useNotifications(userId: string | null, options: { unreadOnly?: 
 }
 
 // Subscribe to real-time notifications
-export function useNotificationsSubscription(
-  userId: string | null,
-  mutedCategories: Notification['type'][] = []
-) {
+export function useNotificationsSubscription(userId: string | null) {
   const queryClient = useQueryClient()
-  const prevIdsRef = useRef<Set<string>>(new Set())
-  const mutedRef = useRef(mutedCategories)
-  mutedRef.current = mutedCategories
 
   useEffect(() => {
     if (!userId) return
@@ -38,17 +31,7 @@ export function useNotificationsSubscription(
     const unsubscribe = dbService.subscribeToNotifications(userId, (notifications: Notification[]) => {
       queryClient.setQueryData(notificationKeys.unread(userId), notifications)
       queryClient.invalidateQueries({ queryKey: notificationKeys.user(userId) })
-
-      for (const notif of notifications) {
-        if (!prevIdsRef.current.has(notif.id) && !notif.read && !mutedRef.current.includes(notif.type)) {
-          showNotification(notif.title, {
-            body: notif.message,
-            tag: notif.id,
-            data: { link: notif.link },
-          })
-        }
-      }
-      prevIdsRef.current = new Set(notifications.map(n => n.id))
+      // OS-level notifications come from web push (functions/ + src/sw.ts), not from here.
     })
 
     return unsubscribe
