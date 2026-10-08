@@ -5,3 +5,8 @@
 declare const __APP_VERSION__: string
 declare const __BUILD_TIME__: string
 declare const __GIT_SHA__: string
+
+interface ImportMetaEnv {
+  /** Optional FCM Web Push public key; FCM's default key is used when unset. */
+  readonly VITE_FIREBASE_VAPID_KEY?: string
+}

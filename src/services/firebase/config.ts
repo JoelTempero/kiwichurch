@@ -13,7 +13,7 @@ const firebaseConfig = {
 }
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig)
+export const app = initializeApp(firebaseConfig)
 
 // Secondary app for admin user creation (avoids signing out the current user)
 export const secondaryApp = initializeApp(firebaseConfig, 'secondary')

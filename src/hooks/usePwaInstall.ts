@@ -8,14 +8,14 @@ interface BeforeInstallPromptEvent extends Event {
 const DISMISS_KEY = 'pwa-install-dismissed-at'
 const DISMISS_DAYS = 14
 
-function isStandalone(): boolean {
+export function isStandalone(): boolean {
   if (typeof window === 'undefined') return false
   if (window.matchMedia('(display-mode: standalone)').matches) return true
   const navStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone
   return navStandalone === true
 }
 
-function isIos(): boolean {
+export function isIos(): boolean {
   if (typeof navigator === 'undefined') return false
   const ua = navigator.userAgent
   return /iPad|iPhone|iPod/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua)
