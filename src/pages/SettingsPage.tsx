@@ -11,10 +11,7 @@ import { useToast } from '@/components/common/Toast'
 import { Search, Pencil, Check, Plus, Calendar, BookMarked, Shield, RefreshCw, Trash2, Bug } from 'lucide-react'
 import { BugReportModal } from '@/components/common/BugReportModal'
 import { cn } from '@/utils/cn'
-import {
-  getNotificationPermission,
-  requestNotificationPermission,
-} from '@/utils/webNotifications'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import type { User, NotificationType } from '@/types'
 
 const addUserSchema = z.object({
@@ -49,9 +46,7 @@ export function SettingsPage() {
   const { user, isAdmin, updateProfile } = useAuth()
   const { showToast } = useToast()
   const queryClient = useQueryClient()
-  const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>(
-    getNotificationPermission()
-  )
+  const push = usePushNotifications(user?.id ?? null)
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showRoleModal, setShowRoleModal] = useState(false)
@@ -100,10 +95,6 @@ export function SettingsPage() {
     }
     window.location.reload()
   }
-
-  useEffect(() => {
-    setNotifPermission(getNotificationPermission())
-  }, [])
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
@@ -173,9 +164,9 @@ export function SettingsPage() {
     )
   }
 
-  const notifEnabled = notifPermission === 'granted'
-  const notifBlocked = notifPermission === 'denied'
-  const notifUnsupported = notifPermission === 'unsupported'
+  const notifEnabled = push.status === 'on'
+  const notifBlocked = push.status === 'blocked'
+  const notifUnavailable = push.status === 'unsupported' || push.status === 'needs-install'
 
   // Show pending self-signups first so admins can approve quickly.
   const sortedUsers = [...users].sort((a, b) => {
@@ -285,32 +276,27 @@ export function SettingsPage() {
         <p className="text-xs uppercase tracking-widest font-medium text-terracotta mb-3">Notifications</p>
         <div className="flex items-center justify-between py-3 border-b border-[#e0dbd2]">
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-text-primary">Browser Notifications</h3>
+            <h3 className="text-sm font-semibold text-text-primary">Notifications on this device</h3>
             <p className="text-xs text-text-light mt-0.5">
-              {notifUnsupported
-                ? 'Not supported in this browser'
-                : notifEnabled
-                  ? "You'll get notified of new messages and mentions"
-                  : notifBlocked
-                    ? "Blocked by browser — update in your browser's site settings"
-                    : 'Get notified when you receive messages'}
+              {push.status === 'needs-install'
+                ? 'On iPhone, add Kiwi Church to your Home Screen first (Share → Add to Home Screen), then open it from there'
+                : push.status === 'unsupported'
+                  ? 'Not supported in this browser'
+                  : notifEnabled
+                    ? "You'll get notified on this device, even when the app is closed"
+                    : notifBlocked
+                      ? 'Blocked — allow notifications for Kiwi Church in your phone or browser settings, then come back'
+                      : 'Get notified about comments, messages and announcements'}
             </p>
           </div>
-          <label className={`relative inline-flex items-center ${notifBlocked || notifUnsupported ? 'opacity-50' : 'cursor-pointer'}`}>
+          <label className={`relative inline-flex items-center ${notifBlocked || notifUnavailable || push.busy ? 'opacity-50' : 'cursor-pointer'}`}>
             <input
               type="checkbox"
               className="sr-only peer"
               checked={notifEnabled}
-              disabled={notifBlocked || notifUnsupported}
-              onChange={async () => {
-                if (!notifEnabled && !notifBlocked) {
-                  const result = await requestNotificationPermission()
-                  setNotifPermission(result)
-                  if (result === 'granted') {
-                    showToast('Notifications enabled', 'success')
-                  }
-                }
-              }}
+              disabled={notifBlocked || notifUnavailable || push.busy}
+              aria-label="Notifications on this device"
+              onChange={() => (notifEnabled ? push.disable() : push.enable())}
             />
             <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-forest/30 rounded-full peer-checked:bg-forest transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5" />
           </label>

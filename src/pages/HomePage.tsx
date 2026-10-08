@@ -14,6 +14,7 @@ import { BoardPost } from '@/components/groups'
 import GroupResourcesList from '@/components/groups/GroupResourcesList'
 import { EventCard } from '@/components/events'
 import { Spinner, FadeIn, PullToRefresh, EmptyState, Button, Avatar, MentionInput } from '@/components/common'
+import { EnablePushBanner } from '@/components/common/EnablePushBanner'
 import { useToast } from '@/components/common/Toast'
 import { encodeMention, encodeGroupMention, extractMentionIds, extractGroupMentionIds } from '@/utils/mentions'
 import { COMMUNITY_GATHERING_ID, COMMUNITY_GATHERING_NAME } from '@/utils/community'
@@ -265,6 +266,8 @@ export function HomePage() {
             </span>
           </Link>
         )}
+
+        {user && <EnablePushBanner userId={user.id} />}
 
         {/* Community: Board + Files tabs, mirroring the GroupDetailPage pattern */}
         <section className="mt-6">

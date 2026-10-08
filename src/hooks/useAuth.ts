@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { authService, dbService } from '@/services/firebase'
+import { disablePush } from '@/services/firebase/push'
 import type { User } from '@/types'
 
 let announcementsResumedThisSession = false
@@ -130,13 +131,16 @@ export function useAuth() {
   // Sign out
   const signOut = useCallback(async () => {
     try {
+      // Stop pushes to this device first (needs the session for the Firestore delete),
+      // so a shared phone/iPad doesn't keep getting the previous person's notifications.
+      if (user?.id) await disablePush(user.id).catch(() => {})
       await authService.signOut()
       storeLogout()
     } catch (error) {
       console.error('Sign out error:', error)
       throw error
     }
-  }, [storeLogout])
+  }, [storeLogout, user?.id])
 
   // Password reset
   const sendPasswordReset = useCallback(async (email: string) => {
