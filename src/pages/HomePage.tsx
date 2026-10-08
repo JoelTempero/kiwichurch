@@ -282,7 +282,7 @@ export function HomePage() {
               }`}
               aria-current={activeTab === 'board' ? 'page' : undefined}
             >
-              Board
+              Community Board
             </button>
             <button
               type="button"
@@ -329,6 +329,7 @@ export function HomePage() {
                 disabled={isPosting}
                 rows={3}
                 className="resize-y"
+                containerClassName="flex-1 min-w-0"
                 ariaLabel="New community post"
               />
             </div>

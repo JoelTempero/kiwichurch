@@ -54,7 +54,7 @@ function formatTimeAgo(date: Date | { toDate: () => Date } | null | undefined): 
 function RichContent({ content }: { content: string }) {
   const segments = parseMentions(content)
   return (
-    <p className="text-text-primary leading-relaxed">
+    <p className="text-text-primary leading-relaxed whitespace-pre-wrap break-words">
       {segments.map((seg, i) =>
         seg.type === 'mention' ? (
           <span key={i} className="font-semibold text-forest">@{seg.content}</span>

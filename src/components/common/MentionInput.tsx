@@ -25,6 +25,8 @@ interface MentionInputProps {
   rows?: number
   maxRows?: number
   className?: string
+  /** Classes for the outer wrapper (e.g. `flex-1 min-w-0` inside a flex row) */
+  containerClassName?: string
   ariaLabel?: string
   singleLine?: boolean
   onSubmit?: () => void
@@ -46,6 +48,7 @@ export function MentionInput({
   rows = 3,
   maxRows = 6,
   className,
+  containerClassName,
   ariaLabel,
   singleLine = false,
   onSubmit,
@@ -182,7 +185,7 @@ export function MentionInput({
   )
 
   return (
-    <div className="relative">
+    <div className={cn('relative', containerClassName)}>
       <textarea
         ref={inputRef}
         className={inputClasses}

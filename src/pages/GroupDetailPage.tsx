@@ -373,6 +373,7 @@ export function GroupDetailPage() {
                     disabled={isPosting}
                     rows={3}
                     className="resize-y"
+                    containerClassName="flex-1 min-w-0"
                     ariaLabel="New post content"
                   />
                 </div>

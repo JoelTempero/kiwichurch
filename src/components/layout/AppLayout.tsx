@@ -11,6 +11,7 @@ import { UpdatePrompt } from '@/components/common/UpdatePrompt'
 import { useAuth } from '@/hooks/useAuth'
 import { useUnreadNotificationCount, useNotificationsSubscription } from '@/hooks/useNotifications'
 import { useConversationsSubscription } from '@/hooks/useDirectMessages'
+import { useAppBadge } from '@/hooks/useAppBadge'
 import { useKeyboardShortcuts, useNavigationShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 export function AppLayout() {
@@ -30,6 +31,7 @@ export function AppLayout() {
   const unreadCount = useUnreadNotificationCount(user?.id || null, user?.mutedNotificationCategories || [])
   useNotificationsSubscription(user?.id || null, user?.mutedNotificationCategories || [])
   useConversationsSubscription(user?.id ?? null)
+  useAppBadge(user?.id ?? null, user?.mutedNotificationCategories || [])
 
   // Pending self-signups see only the approval gate.
   if (user?.status === 'pending') {
