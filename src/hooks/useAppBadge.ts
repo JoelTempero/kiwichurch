@@ -1,5 +1,8 @@
 import { useEffect } from 'react'
-import { useNotifications } from './useNotifications'
+import { useQuery } from '@tanstack/react-query'
+import { dbService } from '@/services/firebase'
+import { notificationKeys } from './useNotifications'
+import { computeBadge, BADGE_QUERY_LIMIT } from '@/utils/badge'
 import type { Notification } from '@/types'
 
 /**
@@ -9,11 +12,19 @@ import type { Notification } from '@/types'
  * the onNotificationCreated push function uses, so the badge set by a push
  * and the badge set by the open app never disagree. DM notifications clear
  * when their conversation is opened (markConversationRead).
+ *
+ * Uses its own query (not the live feed, which is capped at 20) so it counts
+ * as far as the function does. Keyed under notificationKeys.user so every
+ * snapshot / mark-read invalidation refreshes it.
  */
 export function useAppBadge(userId: string | null, mutedCategories: Notification['type'][] = []) {
-  const { data: notifications } = useNotifications(userId, { unreadOnly: true, limit: 50 })
-  const unread = (notifications ?? []).filter((n) => !mutedCategories.includes(n.type)).length
-  const total = userId ? Math.min(unread, 99) : 0
+  const { data: unread } = useQuery({
+    queryKey: [...notificationKeys.user(userId || ''), 'badge'],
+    queryFn: () => dbService.getUserNotifications(userId!, { unreadOnly: true, limit: BADGE_QUERY_LIMIT }),
+    enabled: !!userId,
+  })
+
+  const total = userId ? computeBadge((unread ?? []).map((n) => n.type), mutedCategories) : 0
 
   useEffect(() => {
     const nav = navigator as Navigator & {

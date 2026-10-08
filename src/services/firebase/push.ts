@@ -3,9 +3,11 @@
 import { getMessaging, getToken, deleteToken, isSupported, type Messaging } from 'firebase/messaging'
 import { doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { app, db } from './config'
+import { withTimeout } from '@/utils/withTimeout'
 
 const TOKEN_KEY = (uid: string) => `kc-push-token:${uid}`
 const SW_READY_TIMEOUT_MS = 10_000
+const CLEANUP_TIMEOUT_MS = 3_000
 
 let messagingPromise: Promise<Messaging | null> | null = null
 
@@ -102,7 +104,9 @@ export async function disablePush(uid: string): Promise<void> {
   const stored = getStoredToken(uid)
   storeToken(uid, null)
   if (!stored) return
-  await deleteDoc(tokenRef(uid, stored)).catch(() => {})
+  // Bounded: offline, a Firestore delete never settles (persistentLocalCache waits
+  // for server ack) and sign-out must not hang on it.
+  await withTimeout(deleteDoc(tokenRef(uid, stored)), CLEANUP_TIMEOUT_MS)
   const m = await messaging()
-  if (m) await deleteToken(m).catch(() => {})
+  if (m) await withTimeout(deleteToken(m), CLEANUP_TIMEOUT_MS)
 }
