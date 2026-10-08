@@ -141,6 +141,15 @@ service cloud.firestore {
 
       // Only admins can delete users
       allow delete: if isAdmin();
+
+      // Push tokens — one doc per device (doc id = FCM token). Owner-only:
+      // the onNotificationCreated function reads them via the Admin SDK.
+      match /pushTokens/{token} {
+        allow read, delete: if isAuthenticated() && request.auth.uid == userId;
+        allow create, update: if isAuthenticated() && request.auth.uid == userId
+          && request.resource.data.token == token
+          && request.resource.data.keys().hasOnly(['token', 'userAgent', 'createdAt', 'lastSeenAt']);
+      }
     }
 
     // Public user profiles — the privacy-filtered mirror that the directory,
