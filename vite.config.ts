@@ -65,38 +65,15 @@ export default defineConfig({
     renameSpaEntry(),
     VitePWA({
       registerType: 'autoUpdate',
-      workbox: {
+      // Own service worker (src/sw.ts) so it can receive web push. It keeps
+      // the old generateSW behaviour (precache, app-shell fallback, fonts) but
+      // deliberately no longer caches firestore.googleapis.com.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         globPatterns: ['assets/**/*.{js,css}', 'app.html', 'icons/**/*.png'],
         globIgnores: ['js/**', 'css/**'],
-        navigateFallback: '/app.html',
-        navigateFallbackDenylist: [/^\/$/, /\.html/],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'firebase-cache',
-              networkTimeoutSeconds: 10,
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-stylesheets',
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              expiration: {
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-              },
-            },
-          },
-        ],
       },
       manifest: {
         id: '/kiwichurch/',
