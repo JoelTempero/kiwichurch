@@ -66,7 +66,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - styles.css (3,133 lines) still contains structural layout CSS (grid, sidebar, bottom-nav) — load-bearing
 - Group message boards upgraded with real-time comments, @mentions with notifications, and inline replies
 - Direct messaging system complete with real-time 1:1 conversations, @mentions, unread tracking
-- Web Notifications API for browser-level alerts when tab is backgrounded
+- Web push (FCM) to phones/desktops even when the app is closed, + home-screen icon badge (2026-10-10)
 - Polls and emoji reactions on group message boards
 - Content reporting and moderation queue for admins/hosts
 - Admin-pinnable community announcements with notification broadcast to all members (deterministic IDs + silent resume on admin app load)
@@ -76,7 +76,7 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
 - Drag-and-drop image upload on community + group post composers; drag-and-drop file upload on group resources modal (`useFileDrop` hook)
 - PWA install prompt (Chrome/Android beforeinstallprompt + iOS "Tap Share → Add to Home Screen" hint), explicit apple-touch-icon size hints
 - `lazyWithRetry` hardened to unregister SWs + clear caches before reloading, so a stale-chunk failure actually recovers instead of looping
-- No Cloud Functions yet. FCM deferred — Web Notifications API covers v1 use case
+- Cloud Functions live (Node 22, us-central1): `onNotificationCreated` turns every notifications doc into a web push
 
 ## Next Steps
 - [x] **Phase 1: Foundation modernisation** (COMPLETE — DESIGN.md deferred to design phase)
@@ -183,6 +183,22 @@ Read and obey `DESIGN.md` before writing any UI code. It defines the full visual
   - [x] Copyright 2025 → 2026 across all static pages
 
 ## Session Log
+
+### 2026-10-09/10: Bug reports + web push notifications — DEPLOYED, verified on Joel's phone
+**Bug reports (commit 9586577, deployed):** 5 open reports — post/comment line breaks now preserved (`whitespace-pre-wrap`), composers full-width (`MentionInput.containerClassName`), Board tab renamed "Community Board", home-screen icon badge (`useAppBadge`), upload-progress already done. All marked resolved via Admin SDK (Firebase MCP was timing out).
+
+**Web push (branch `feat/web-push`, merged to main).** Joel: notifications "just not showing up on phones at all". Root cause: the old Web Notifications API path only fired while a tab was open. Spec `docs/superpowers/specs/2026-10-09-web-push-notifications-design.md`, plan `docs/superpowers/plans/2026-10-09-web-push-notifications.md`. Built:
+- `functions/` (first Cloud Function): `onNotificationCreated` on `notifications/{id}` → reads recipient + `users/{uid}/pushTokens` → `sendEachForMulticast` data-only payload (Urgency high, TTL 24h) with badge count → prunes dead tokens. Pure logic in `functions/src/pushLogic.ts` (15 tests).
+- Custom service worker `src/sw.ts` (vite-plugin-pwa `injectManifest`): precache + app.html NavigationRoute (denylist `/` + `*.html`), shows notification + `setAppBadge` on push, click focuses/opens `link?n=<id>`. Dropped the old Firestore runtime cache.
+- Client: `src/services/firebase/push.ts`, `usePushNotifications`, `EnablePushBanner` (home, 30-day dismiss; iOS-not-installed shows Add-to-Home-Screen hint), Settings "Notifications on this device" toggle, sign-out removes the device token (3s bounded). `?n=` marks that notification read; opening a DM marks its notifications read. Badge = unread non-muted (cap 99), same formula client + server (`src/utils/badge.ts`). Deleted `webNotifications.ts`.
+- Rules: owner-only `users/{uid}/pushTokens/{token}` with field allowlist.
+- 49/49 vitest. Opus final review: 0 critical, 2 important fixed (badge capped at 20 feed items; offline sign-out hang).
+
+**Deploy gotchas:** firebase-functions 6 timed out in deploy discovery → upgraded to firebase-functions 7 / firebase-admin 14 + Node 22 (Node 20 decommissioned 2026-10-30). First 2nd-gen deploy needs 1-2 retries + a few minutes for Eventarc/IAM service agents to propagate — normal. `us-central1` trigger works with the `nam5` database. Default FCM VAPID key works with our custom SW (no `VITE_FIREBASE_VAPID_KEY` needed).
+
+**Verified:** Joel's Android Chrome registered; test notification arrived with the app closed (`sent:1 failed:0`). Test script: create a notifications doc for a user via Admin SDK and read `firebase functions:log --only onNotificationCreated`.
+
+**Deferred minors:** push still shows while you're viewing that thread; tap does nothing if focus() fails; disable may leave the browser push subscription alive (token deleted, harmless); function comment over-claims "never throws"; Chrome/Firefox on iOS + iPad Safari show "unsupported" instead of the install hint; offline sign-out on a shared device can leave the previous user's token until the delete syncs.
 
 ### 2026-07-16: Private-event leak — fixed + DEPLOYED (rules + client + RSVP), preventive
 Closed the cross-app private-event leak (flagged in the churchconnect umbrella). **Two leaks**: (1) `db.ts:getEvents()` had no visibility filter + `firestore.rules` allowed any authed member to read every event; (2) the `/events/{id}/rsvps` subcollection was `allow read: if isAuthenticated()`, so a private event's **attendee list** was readable by any member. Both closed.
@@ -481,6 +497,9 @@ Joel handed me four feature requests post-/clear, said "implement as you see fit
 </details>
 
 ## Key Decisions
+- **Web push architecture (2026-10-10)** — FCM web push via ONE Cloud Function on `notifications/{id}` create: every existing client-side fan-out (DMs, comments, mentions, announcements, events, group adds, family links) gets push for free, no per-path code. Tokens live at `users/{uid}/pushTokens/{token}` (one doc per device). Muting is respected server-side (`shouldSend`). iOS needs the home-screen app (16.4+) and every push MUST show a notification, so payloads are data-only and the SW always displays. Deploy: `firebase deploy --only functions --account leojfx@gmail.com`. Functions run us-central1 to match the nam5 Firestore.
+- **Service worker is hand-written (`src/sw.ts`, injectManifest)** — no longer the generated workbox SW. Precache, navigation fallback, font cache and push handling all live there. `registerType` still `autoUpdate` (skipWaiting + clientsClaim in the SW).
+- **Firebase CLI account** — project belongs to leojfx@gmail.com; every deploy needs `--account leojfx@gmail.com`.
 - **Approach B confirmed:** Modernise + extend existing codebase (not rebuild)
 - **Firestore for chat, RTDB for presence only** — hybrid approach
 - **Tailwind v4 migration:** Incremental, alongside existing CSS
